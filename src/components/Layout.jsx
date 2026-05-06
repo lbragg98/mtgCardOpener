@@ -1,0 +1,103 @@
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import CollectionsBookmarkIcon from '@mui/icons-material/CollectionsBookmark';
+import HomeIcon from '@mui/icons-material/Home';
+import MenuIcon from '@mui/icons-material/Menu';
+import StyleIcon from '@mui/icons-material/Style';
+import {
+  AppBar,
+  Box,
+  Button,
+  Container,
+  Drawer,
+  IconButton,
+  List,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Toolbar,
+  Typography,
+  useMediaQuery,
+} from '@mui/material';
+import { useState } from 'react';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
+
+const navItems = [
+  { label: 'Home', path: '/', icon: <HomeIcon /> },
+  { label: 'Open Packs', path: '/sets', icon: <AutoAwesomeIcon /> },
+  { label: 'Collection', path: '/collection', icon: <CollectionsBookmarkIcon /> },
+];
+
+export default function Layout() {
+  const isMobile = useMediaQuery((theme) => theme.breakpoints.down('sm'));
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const { pathname } = useLocation();
+  const isPackReveal = pathname.startsWith('/open/');
+
+  const navLinks = navItems.map((item) => (
+    <Button
+      key={item.path}
+      color="inherit"
+      component={NavLink}
+      startIcon={item.icon}
+      to={item.path}
+      sx={{
+        color: 'text.secondary',
+        '&.active': { color: 'warning.main' },
+        '&:hover': { color: 'primary.light', boxShadow: '0 0 16px rgba(143, 124, 255, 0.16)' },
+      }}
+    >
+      {item.label}
+    </Button>
+  ));
+
+  return (
+    <Box sx={{ minHeight: '100vh' }}>
+      {!isPackReveal && (
+      <AppBar position="sticky">
+        <Toolbar sx={{ gap: 2 }}>
+          <StyleIcon color="warning" />
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 800 }}>
+            MTG Pack Opener
+          </Typography>
+
+          {isMobile ? (
+            <IconButton
+              aria-label="Open navigation"
+              color="inherit"
+              edge="end"
+              onClick={() => setIsDrawerOpen(true)}
+            >
+              <MenuIcon />
+            </IconButton>
+          ) : (
+            <Box sx={{ display: 'flex', gap: 1 }}>{navLinks}</Box>
+          )}
+        </Toolbar>
+      </AppBar>
+      )}
+
+      {!isPackReveal && (
+      <Drawer anchor="right" open={isDrawerOpen} onClose={() => setIsDrawerOpen(false)}>
+        <Box sx={{ width: 260, pt: 2 }} role="navigation" onClick={() => setIsDrawerOpen(false)}>
+          <List>
+            {navItems.map((item) => (
+              <ListItemButton key={item.path} component={NavLink} to={item.path}>
+                <ListItemIcon sx={{ color: 'primary.light' }}>{item.icon}</ListItemIcon>
+                <ListItemText primary={item.label} />
+              </ListItemButton>
+            ))}
+          </List>
+        </Box>
+      </Drawer>
+      )}
+
+      <Container
+        disableGutters={isPackReveal}
+        maxWidth={isPackReveal ? false : 'lg'}
+        sx={{ py: isPackReveal ? 0 : { xs: 4, md: 6 } }}
+      >
+        <Outlet />
+      </Container>
+    </Box>
+  );
+}
