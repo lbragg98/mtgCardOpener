@@ -3,7 +3,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { Alert, Box, Button, Card, IconButton, Skeleton, Typography, useMediaQuery } from '@mui/material';
-import { animate, motion, useMotionValue, useTransform } from 'framer-motion';
+import { animate, motion, useMotionValue, useMotionValueEvent, useTransform } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { getArtCardsBySet, getCardsBySet } from '../api/scryfall.js';
@@ -193,6 +193,29 @@ function getShortestAngle(angle) {
   return ((angle + 180) % 360) - 180;
 }
 
+function normalizeAngle(angle) {
+  return ((angle % 360) + 360) % 360;
+}
+
+function getCenteredPackIndex(rotationValue, packCount) {
+  const angleStep = 360 / packCount;
+  let bestIndex = 0;
+  let bestDistance = Infinity;
+
+  for (let index = 0; index < packCount; index += 1) {
+    const baseAngle = index * angleStep;
+    const angle = normalizeAngle(baseAngle + rotationValue);
+    const distanceFromFront = Math.min(Math.abs(angle), Math.abs(360 - angle));
+
+    if (distanceFromFront < bestDistance) {
+      bestDistance = distanceFromFront;
+      bestIndex = index;
+    }
+  }
+
+  return bestIndex;
+}
+
 function getPackWheelStyleForAngle(angle, angleStep, radius) {
   const radians = (angle * Math.PI) / 180;
   const x = Math.sin(radians) * radius;
@@ -208,7 +231,7 @@ function getPackWheelStyleForAngle(angle, angleStep, radius) {
     opacity: Math.max(0.08, (0.16 + depth * 0.84) * backFade),
     rotateY: -getShortestAngle(angle),
     zIndex: Math.round(z + radius),
-    isFront: frontAngle < angleStep / 2,
+    frontCloseness: Math.max(0, 1 - frontAngle / angleStep),
   };
 }
 
@@ -220,28 +243,24 @@ function getWrappedIndex(index, length) {
   return ((index % length) + length) % length;
 }
 
-function WheelPackSlot({ activeIndex, angleStep, onCenterPack, onOpenPack, packOptions, radius, relativePosition, rotation }) {
-  const packIndex = getWrappedIndex(activeIndex + relativePosition, packOptions.length);
-  const pack = packOptions[packIndex];
-  const isActive = relativePosition === 0;
-  const baseAngle = relativePosition * angleStep;
+function WheelPackSlot({ angleStep, onCenterPack, onOpenPack, pack, packIndex, radius, rotation }) {
+  const baseAngle = packIndex * angleStep;
   const x = useTransform(rotation, (value) => getPackWheelStyleForAngle(baseAngle + value, angleStep, radius).x);
-  const y = useTransform(rotation, () => (isActive ? -10 : 0));
+  const y = useTransform(rotation, (value) => -10 * getPackWheelStyleForAngle(baseAngle + value, angleStep, radius).frontCloseness);
   const z = useTransform(rotation, (value) => getPackWheelStyleForAngle(baseAngle + value, angleStep, radius).z);
   const scale = useTransform(rotation, (value) => getPackWheelStyleForAngle(baseAngle + value, angleStep, radius).scale);
   const opacity = useTransform(rotation, (value) => getPackWheelStyleForAngle(baseAngle + value, angleStep, radius).opacity);
   const rotateY = useTransform(rotation, (value) => getPackWheelStyleForAngle(baseAngle + value, angleStep, radius).rotateY);
-  const initialStyle = getPackWheelStyleForAngle(baseAngle, angleStep, radius);
+  const zIndex = useTransform(rotation, (value) => getPackWheelStyleForAngle(baseAngle + value, angleStep, radius).zIndex);
+  const frontCloseness = useTransform(rotation, (value) => getPackWheelStyleForAngle(baseAngle + value, angleStep, radius).frontCloseness);
+  const glowOpacity = useTransform(frontCloseness, [0, 1], [0, 1]);
+  const brightness = useTransform(frontCloseness, [0, 1], ['brightness(0.72) saturate(0.85)', 'brightness(1.08) saturate(1.08)']);
 
   return (
     <Card
       component={motion.div}
       onClick={() => {
-        if (isActive) {
-          onOpenPack(pack);
-        } else {
-          onCenterPack(relativePosition);
-        }
+        onCenterPack(packIndex);
       }}
       sx={{
         position: 'absolute',
@@ -254,11 +273,8 @@ function WheelPackSlot({ activeIndex, angleStep, onCenterPack, onOpenPack, packO
         color: 'text.primary',
         cursor: 'pointer',
         borderRadius: '28px 28px 18px 18px',
-        borderColor: isActive ? 'rgba(244, 201, 93, 0.78)' : 'rgba(76, 201, 240, 0.24)',
-        boxShadow: isActive
-          ? '0 0 58px rgba(244, 201, 93, 0.38), 0 0 120px rgba(143, 124, 255, 0.18), 0 24px 70px rgba(0, 0, 0, 0.52)'
-          : '0 18px 46px rgba(0, 0, 0, 0.36)',
-        filter: isActive ? 'brightness(1.08)' : 'brightness(0.72) saturate(0.85)',
+        borderColor: 'rgba(76, 201, 240, 0.24)',
+        boxShadow: '0 18px 46px rgba(0, 0, 0, 0.36)',
       }}
       style={{
         x,
@@ -267,11 +283,26 @@ function WheelPackSlot({ activeIndex, angleStep, onCenterPack, onOpenPack, packO
         scale,
         opacity,
         rotateY,
-        zIndex: initialStyle.zIndex,
+        zIndex,
+        filter: brightness,
         transformStyle: 'preserve-3d',
       }}
     >
-      <PackCard pack={pack} isActive={isActive} />
+      <Box sx={{ position: 'relative', height: '100%' }}>
+        <PackCard pack={pack} />
+        <Box
+          component={motion.div}
+          style={{ opacity: glowOpacity }}
+          sx={{
+            position: 'absolute',
+            inset: -1,
+            borderRadius: '28px 28px 18px 18px',
+            boxShadow:
+              '0 0 58px rgba(244, 201, 93, 0.38), 0 0 120px rgba(143, 124, 255, 0.18), 0 24px 70px rgba(0, 0, 0, 0.52)',
+            pointerEvents: 'none',
+          }}
+        />
+      </Box>
     </Card>
   );
 }
@@ -287,7 +318,10 @@ export default function PackSelection() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const rotation = useMotionValue(0);
+  const activeIndexRef = useRef(0);
   const dragStartRotation = useRef(0);
+  const lastActiveUpdateRef = useRef(0);
+  const latestSnappedRotation = useRef(0);
 
   useEffect(() => {
     let isMounted = true;
@@ -336,12 +370,39 @@ export default function PackSelection() {
   const wheelRadius = isMobile ? 220 : 360;
 
   useEffect(() => {
+    activeIndexRef.current = activeIndex;
+  }, [activeIndex]);
+
+  useMotionValueEvent(rotation, 'change', (latestRotation) => {
+    if (!packOptions.length) {
+      return;
+    }
+
+    const centeredIndex = getCenteredPackIndex(latestRotation, packOptions.length);
+
+    if (centeredIndex === activeIndexRef.current) {
+      return;
+    }
+
+    const now = performance.now();
+
+    if (now - lastActiveUpdateRef.current > 80) {
+      activeIndexRef.current = centeredIndex;
+      lastActiveUpdateRef.current = now;
+      setActiveIndex(centeredIndex);
+    }
+  });
+
+  useEffect(() => {
     setActiveIndex(0);
+    activeIndexRef.current = 0;
+    lastActiveUpdateRef.current = 0;
+    latestSnappedRotation.current = 0;
     rotation.set(0);
   }, [normalizedSetCode, rotation]);
 
-  function snapToOffset(targetOffset, indexDelta) {
-    animate(rotation, targetOffset, {
+  function snapToRotation(targetRotation, centeredIndex) {
+    animate(rotation, targetRotation, {
       type: 'spring',
       stiffness: 70,
       damping: 38,
@@ -349,8 +410,12 @@ export default function PackSelection() {
       restDelta: 0.01,
       restSpeed: 0.01,
     }).then(() => {
-      setActiveIndex((index) => getWrappedIndex(index + indexDelta, packOptions.length));
-      rotation.set(0);
+      latestSnappedRotation.current = targetRotation;
+      rotation.set(targetRotation);
+      activeIndexRef.current = centeredIndex;
+      lastActiveUpdateRef.current = performance.now();
+      setActiveIndex(centeredIndex);
+      console.log('[PackSelection] after snap activeIndex', centeredIndex, 'rotation', rotation.get());
     });
   }
 
@@ -359,16 +424,18 @@ export default function PackSelection() {
       return;
     }
 
-    snapToOffset(-angleStep, 1);
-  }, [angleStep, packOptions.length]);
+    const centeredIndex = getWrappedIndex(activeIndex + 1, packOptions.length);
+    snapToRotation(-centeredIndex * angleStep, centeredIndex);
+  }, [activeIndex, angleStep, packOptions.length]);
 
   const goPrev = useCallback(() => {
     if (!packOptions.length) {
       return;
     }
 
-    snapToOffset(angleStep, -1);
-  }, [angleStep, packOptions.length]);
+    const centeredIndex = getWrappedIndex(activeIndex - 1, packOptions.length);
+    snapToRotation(-centeredIndex * angleStep, centeredIndex);
+  }, [activeIndex, angleStep, packOptions.length]);
 
   function openPack(pack = activePack) {
     if (!pack) {
@@ -389,44 +456,48 @@ export default function PackSelection() {
       return;
     }
 
-    let snappedOffset;
+    const currentRotation = rotation.get();
+    const projectedRotation = currentRotation + info.velocity.x * VELOCITY_PROJECTION;
+    const maxRotationDelta = MAX_FLICK_PACKS * angleStep;
+    const clampedRotation = clamp(
+      projectedRotation,
+      dragStartRotation.current - maxRotationDelta,
+      dragStartRotation.current + maxRotationDelta,
+    );
+    const centeredIndex = getCenteredPackIndex(clampedRotation, packOptions.length);
+    const snappedRotation = -centeredIndex * angleStep;
 
-    if (Math.abs(info.velocity.x) > 700) {
-      const projectedRotation = rotation.get() + info.velocity.x * VELOCITY_PROJECTION;
-      const maxRotationDelta = MAX_FLICK_PACKS * angleStep;
-      const clampedRotation = clamp(
-        projectedRotation,
-        dragStartRotation.current - maxRotationDelta,
-        dragStartRotation.current + maxRotationDelta,
-      );
-
-      snappedOffset = Math.round(clampedRotation / angleStep) * angleStep;
-    } else if (info.offset.x < -80) {
-      snappedOffset = -angleStep;
-    } else if (info.offset.x > 80) {
-      snappedOffset = angleStep;
-    } else {
-      snappedOffset = 0;
-    }
-
-    const indexDelta = Math.round(-snappedOffset / angleStep);
-    snapToOffset(snappedOffset, indexDelta);
+    activeIndexRef.current = centeredIndex;
+    lastActiveUpdateRef.current = performance.now();
+    setActiveIndex(centeredIndex);
+    console.log('[PackSelection] onDragEnd', {
+      current: currentRotation,
+      projected: projectedRotation,
+      centeredIndex,
+      snapped: snappedRotation,
+      velocityX: info.velocity.x,
+    });
+    snapToRotation(snappedRotation, centeredIndex);
   }
 
-  function centerPack(relativePosition) {
+  function centerPack(packIndex) {
     if (!packOptions.length) {
       return;
     }
 
-    snapToOffset(-relativePosition * angleStep, relativePosition);
+    const baseTarget = -packIndex * angleStep;
+    const turns = Math.round((rotation.get() - baseTarget) / 360);
+    snapToRotation(baseTarget + turns * 360, packIndex);
   }
 
   function handleDrag(_, info) {
     rotation.set(dragStartRotation.current + info.offset.x * DRAG_SENSITIVITY);
+    console.log('[PackSelection] onDrag rotation', rotation.get());
   }
 
   function handleDragStart() {
     dragStartRotation.current = rotation.get();
+    console.log('[PackSelection] onDragStart rotation', rotation.get());
   }
 
   return (
@@ -542,16 +613,15 @@ export default function PackSelection() {
                 pointerEvents: 'none',
               }}
             >
-              {VISIBLE_SLOTS.map((relativePosition) => (
+              {packOptions.map((pack, packIndex) => (
                 <WheelPackSlot
-                  key={`slot-${relativePosition}`}
-                  activeIndex={activeIndex}
+                  key={pack.id}
                   angleStep={angleStep}
                   onCenterPack={centerPack}
                   onOpenPack={openPack}
-                  packOptions={packOptions}
+                  pack={pack}
+                  packIndex={packIndex}
                   radius={wheelRadius}
-                  relativePosition={relativePosition}
                   rotation={rotation}
                 />
               ))}
@@ -581,6 +651,11 @@ export default function PackSelection() {
 
           <Typography color="text.secondary" fontWeight={700}>
             Swipe to browse packs
+          </Typography>
+
+          <Typography color="text.secondary" sx={{ fontSize: 13, textAlign: 'center' }}>
+            Active pack: {activeIndex + 1} / {packOptions.length}
+            {activePack?.artworkCardName ? ` - ${activePack.artworkCardName}` : ''}
           </Typography>
 
           <Button
