@@ -1,30 +1,30 @@
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import CollectionsBookmarkIcon from '@mui/icons-material/CollectionsBookmark';
-import { Alert, Box, Button, Card, CardContent, Grid, Skeleton, Typography } from '@mui/material';
+import { Box, Button, Card, CardContent, Grid, Skeleton, Typography } from '@mui/material';
 import { Link } from 'react-router-dom';
 import PageHeader from '../components/PageHeader.jsx';
 
 const featureCards = [
   {
     title: 'Choose a set',
-    body: 'Start from mock Magic sets while the Scryfall layer waits for the next step.',
+    body: 'Browse real Magic expansion and core sets loaded from Scryfall.',
   },
   {
     title: 'Open a pack',
-    body: 'Pack opening is stubbed with placeholder slots so the flow is ready to expand.',
+    body: 'Pick a sealed booster, cut the top seal, and reveal generated cards one at a time.',
   },
   {
     title: 'Build collection',
-    body: 'LocalStorage helpers are ready for keeping cards on this device.',
+    body: 'Opened cards save locally with foil status, duplicate counts, search, and filters.',
   },
 ];
 
 export default function Home() {
   return (
     <Box>
-      <PageHeader eyebrow="Prototype" title="Open packs in a moody little MTG lab.">
-        A Vite, React Router, and Material UI foundation for a Magic: The Gathering pack opening
-        simulator.
+      <PageHeader eyebrow="MTG Pack Opener" title="Open packs in a moody little MTG lab.">
+        Choose a set, spin through sealed boosters, cut one open, and build a local collection from
+        real Scryfall card data.
       </PageHeader>
 
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 4 }}>
@@ -41,10 +41,6 @@ export default function Home() {
           View Collection
         </Button>
       </Box>
-
-      <Alert severity="info" sx={{ mb: 4 }}>
-        Scryfall integration and real pack generation are intentionally left out for this first step.
-      </Alert>
 
       <Grid container spacing={3}>
         {featureCards.map((feature) => (

@@ -432,8 +432,8 @@ export default function PackSelection() {
   return (
     <Box sx={{ minHeight: 'calc(100vh - 96px)' }}>
       <PageHeader eyebrow={normalizedSetCode.toUpperCase()} title="Choose your pack">
-        Pick a simulated Play Booster for {setName}. The artwork comes from real cards in this set,
-        but card generation is still waiting for the next step.
+        Pick a simulated Play Booster for {setName}. Pack wrappers prefer Scryfall art cards from
+        this set and open into a generated reveal.
       </PageHeader>
 
       <Button component={Link} startIcon={<ArrowBackIcon />} to="/sets" variant="outlined" sx={{ mb: 4 }}>

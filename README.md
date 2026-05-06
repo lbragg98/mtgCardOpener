@@ -1,6 +1,6 @@
 # MTG Pack Opener
 
-MTG Pack Opener is a React prototype for opening simulated Magic: The Gathering packs in the browser. The app uses real set and card data from Scryfall, then presents a cinematic one-card-at-a-time reveal flow inspired by mobile card-opening games.
+MTG Pack Opener is a React app for opening simulated Magic: The Gathering packs in the browser. The app uses real set and card data from Scryfall, then presents a dark, cinematic pack selection, cutting, and one-card-at-a-time reveal flow.
 
 ## User Goal
 
@@ -10,8 +10,9 @@ The goal is to let a user choose a Magic set, open a simulated booster pack, rev
 
 - Browse real Magic expansion and core sets from Scryfall
 - Search sets by name or code
-- Select a set and choose from simulated Play Booster packs
-- Simulated sealed pack artwork using real card art from the selected set
+- Select a set and choose from simulated Play Booster packs in a 3D spinning carousel
+- Sealed booster wrapper previews using Scryfall art card images when available
+- Pack cutting animation before the card reveal starts
 - Full-screen pack opening reveal experience
 - Swipe, click, button, and keyboard controls for advancing cards
 - Foil shimmer effect for simulated foil cards
@@ -38,7 +39,7 @@ The goal is to let a user choose a Magic set, open a simulated booster pack, rev
 - `/` - Home
 - `/sets` - Set selection
 - `/packs/:setCode` - Pack selection for a selected set
-- `/open/:setCode` - Full-screen pack opening reveal
+- `/open/:setCode` - Pack cutting and full-screen card reveal
 - `/collection` - Saved card collection
 
 ## API Used
@@ -55,6 +56,7 @@ Scryfall API documentation: https://scryfall.com/docs/api
 
 - `/cards/search`
   - Used to load cards by set.
+  - Used to load art cards for pack wrapper previews.
   - Used by the pack generator to build simulated booster contents.
   - Used with `unique=prints` so set-specific printings are available.
 
@@ -62,6 +64,12 @@ Example card search:
 
 ```text
 https://api.scryfall.com/cards/search?q=set:dmu&unique=prints
+```
+
+Example art card search:
+
+```text
+https://api.scryfall.com/cards/search?q=set:dmu type:art include:extras&unique=prints
 ```
 
 ## Setup
@@ -100,10 +108,10 @@ When a user opens a pack, the app:
 2. Fetches cards from Scryfall for that set.
 3. Separates cards into approximate rarity buckets.
 4. Selects commons, uncommons, a land, a wildcard, and a rare or mythic.
-5. Randomly marks some cards as foil for the prototype effect.
+5. Randomly marks some cards as foil for the visual foil effect.
 6. Sorts the pack reveal order so commons appear first and rare, mythic, or foil cards appear near the end.
 
-This is a prototype/demo approximation, not official Magic booster collation.
+This is an approximation, not official Magic booster collation.
 
 ## How Collection Saving Works
 
@@ -124,7 +132,7 @@ Each saved card includes:
 - `isFoil`
 - `openedAt`
 
-Placeholder token/art cards are not saved.
+Token and art cards are not saved to the collection.
 
 ## Material UI Usage
 
@@ -153,7 +161,7 @@ The app also defines a custom dark MTG-inspired MUI theme with deep navy/black b
 ## Known Limitations
 
 - Scryfall does not provide official sealed booster pack images, so pack art is simulated using card art.
-- Pack odds are approximate for prototype/demo purposes.
+- Pack odds are approximate for demo purposes.
 - Collection uses localStorage, so it is browser-specific.
 - Some sets may not have enough cards in every rarity, so fallback logic is used.
 - The app does not currently use user accounts or cloud saving.
