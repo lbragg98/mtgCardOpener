@@ -2,20 +2,48 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import { Alert, Box, Button, Card, IconButton, Skeleton, Typography, useMediaQuery } from '@mui/material';
-import { animate, motion, useMotionValue, useMotionValueEvent, useTransform } from 'framer-motion';
+import LockIcon from '@mui/icons-material/Lock';
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  IconButton,
+  Skeleton,
+  Typography,
+  useMediaQuery,
+} from '@mui/material';
+import { animate, motion, useMotionValue, useTransform } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { getArtCardsBySet, getCardsBySet } from '../api/scryfall.js';
+import { getArtCardsBySet, getCardsBySet, getSets } from '../api/scryfall.js';
 import PageHeader from '../components/PageHeader.jsx';
+import PackCard from '../components/PackCard.jsx';
+import { getPackShards } from '../utils/collectionStorage.js';
+import { getPackArtForSet } from '../utils/packArt.js';
 
 const PACK_COUNT = 7;
-const VISIBLE_SLOTS = [-3, -2, -1, 0, 1, 2, 3];
-const DRAG_SENSITIVITY = 0.04;
-const VELOCITY_PROJECTION = 0.01;
-const MAX_FLICK_PACKS = 1;
+const COLLECTOR_BOOSTER_COST = 1000;
+const DRAG_SENSITIVITY = 0.045;
+const VELOCITY_PROJECTION = 0.018;
+const MAX_PACKS_PER_FLICK = 2;
+const SPRING_CONFIG = {
+  type: 'spring',
+  stiffness: 85,
+  damping: 32,
+  mass: 1.25,
+  restDelta: 0.01,
+  restSpeed: 0.01,
+};
 
 function buildPackOptions(cards, artCards, setCode) {
+  const realPackArt = getPackArtForSet(setCode);
   const showcasePool = cards.filter(
     (card) =>
       card.image &&
@@ -33,10 +61,14 @@ function buildPackOptions(cards, artCards, setCode) {
       id: `${setCode}-play-booster-${index + 1}`,
       name: `Pack ${index + 1}`,
       setCode: setCode.toUpperCase(),
-      artwork: artworkCard?.image,
+      setName: artworkCard?.set_name,
+      realPackArt,
+      accentArtwork: artworkCard?.image,
+      artwork: realPackArt || artworkCard?.image,
+      boosterLabel: 'PLAY BOOSTER',
       artworkCardName: artworkCard?.name || 'Mystery Card',
     };
-  }).filter((pack) => Boolean(pack.artwork));
+  });
 }
 
 function PackSkeletons() {
@@ -84,184 +116,61 @@ function MagicalParticles() {
   );
 }
 
-function PackCard({ pack, isActive }) {
-  return (
-    <Box
-      sx={{
-        position: 'relative',
-        display: 'flex',
-        height: '100%',
-        flexDirection: 'column',
-        overflow: 'hidden',
-        borderRadius: '30px 30px 18px 18px',
-        background:
-          'linear-gradient(180deg, rgba(248,247,255,0.2), rgba(22,18,39,0.92) 16%, rgba(5,7,17,0.96))',
-        '&::before': {
-          content: '""',
-          position: 'absolute',
-          inset: 8,
-          borderRadius: '24px 24px 13px 13px',
-          border: '1px solid rgba(248, 247, 255, 0.22)',
-          background:
-            'linear-gradient(90deg, rgba(255,255,255,0.08), transparent 12%, transparent 88%, rgba(255,255,255,0.08)), repeating-linear-gradient(98deg, rgba(255,255,255,0.035) 0 2px, transparent 2px 16px), repeating-linear-gradient(174deg, rgba(244,201,93,0.035) 0 1px, transparent 1px 18px)',
-          pointerEvents: 'none',
-          zIndex: 5,
-        },
-        '&::after': {
-          content: '""',
-          position: 'absolute',
-          inset: 0,
-          background:
-            'linear-gradient(118deg, transparent 0%, rgba(255,255,255,0.24) 25%, rgba(255,255,255,0.07) 35%, transparent 52%), linear-gradient(72deg, transparent 15%, rgba(76,201,240,0.12) 34%, rgba(244,201,93,0.16) 43%, transparent 58%), linear-gradient(90deg, rgba(255,255,255,0.13), transparent 18%, transparent 82%, rgba(255,255,255,0.1))',
-          opacity: isActive ? 0.86 : 0.48,
-          pointerEvents: 'none',
-          zIndex: 4,
-        },
-      }}
-    >
-      <Box
-        sx={{
-          position: 'relative',
-          zIndex: 3,
-          px: 2,
-          py: 1.25,
-          borderBottom: '1px solid rgba(248, 247, 255, 0.16)',
-          background:
-            'linear-gradient(180deg, rgba(5,7,17,0.96), rgba(24,18,43,0.9)), linear-gradient(90deg, rgba(244,201,93,0.18), transparent, rgba(76,201,240,0.12))',
-          textShadow: '0 2px 12px rgba(0, 0, 0, 0.78)',
-        }}
-      >
-        <Typography color="warning.main" fontWeight={900} sx={{ letterSpacing: 1.4 }}>
-          {pack.setCode}
-        </Typography>
-        <Typography color="text.secondary" sx={{ fontSize: 12, fontWeight: 800, letterSpacing: 2 }}>
-          SEALED BOOSTER
-        </Typography>
-      </Box>
-
-      <Box
-        sx={{
-          position: 'relative',
-          flexGrow: 1,
-          mx: 1.4,
-          my: 1.1,
-          overflow: 'hidden',
-          borderRadius: 3.5,
-          border: '1px solid rgba(248, 247, 255, 0.18)',
-          backgroundImage: `linear-gradient(180deg, rgba(5,7,17,0.02), rgba(5,7,17,0.62)), url(${pack.artwork})`,
-          backgroundPosition: 'center',
-          backgroundSize: 'cover',
-          boxShadow: 'inset 0 0 34px rgba(0,0,0,0.38)',
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            inset: 0,
-            background:
-              'linear-gradient(180deg, rgba(255,255,255,0.1), transparent 28%, transparent 72%, rgba(0,0,0,0.34)), linear-gradient(110deg, transparent 8%, rgba(255,255,255,0.18) 34%, transparent 48%)',
-            pointerEvents: 'none',
-          },
-        }}
-      />
-
-      <Box
-        sx={{
-          position: 'relative',
-          zIndex: 3,
-          display: 'grid',
-          justifyItems: 'center',
-          gap: 0.25,
-          px: 2,
-          py: 1.35,
-          borderTop: '1px solid rgba(248, 247, 255, 0.14)',
-          background:
-            'linear-gradient(180deg, rgba(28,19,46,0.88), rgba(5,7,17,0.96)), linear-gradient(90deg, rgba(76,201,240,0.12), transparent, rgba(244,201,93,0.16))',
-          textShadow: '0 2px 12px rgba(0, 0, 0, 0.78)',
-        }}
-      >
-        <Typography color="warning.main" sx={{ fontSize: { xs: 18, sm: 21 }, fontWeight: 950, letterSpacing: 2 }}>
-          PLAY BOOSTER
-        </Typography>
-        <Typography color="text.secondary" noWrap sx={{ maxWidth: '100%', fontSize: 12 }}>
-          {pack.artworkCardName}
-        </Typography>
-      </Box>
-    </Box>
-  );
-}
-
-function getShortestAngle(angle) {
-  return ((angle + 180) % 360) - 180;
-}
-
 function normalizeAngle(angle) {
   return ((angle % 360) + 360) % 360;
 }
 
-function getCenteredPackIndex(rotationValue, packCount) {
-  const angleStep = 360 / packCount;
-  let bestIndex = 0;
-  let bestDistance = Infinity;
-
-  for (let index = 0; index < packCount; index += 1) {
-    const baseAngle = index * angleStep;
-    const angle = normalizeAngle(baseAngle + rotationValue);
-    const distanceFromFront = Math.min(Math.abs(angle), Math.abs(360 - angle));
-
-    if (distanceFromFront < bestDistance) {
-      bestDistance = distanceFromFront;
-      bestIndex = index;
-    }
-  }
-
-  return bestIndex;
-}
-
-function getPackWheelStyleForAngle(angle, angleStep, radius) {
-  const radians = (angle * Math.PI) / 180;
-  const x = Math.sin(radians) * radius;
-  const z = Math.cos(radians) * radius;
-  const depth = (z + radius) / (radius * 2);
-  const frontAngle = Math.abs(getShortestAngle(angle));
-  const backFade = frontAngle > 145 ? 0.08 : frontAngle > 115 ? 0.22 : 1;
-
-  return {
-    x,
-    z: z - radius,
-    scale: 0.48 + depth * 0.52,
-    opacity: Math.max(0.08, (0.16 + depth * 0.84) * backFade),
-    rotateY: -getShortestAngle(angle),
-    zIndex: Math.round(z + radius),
-    frontCloseness: Math.max(0, 1 - frontAngle / angleStep),
-  };
+function getCenteredIndexFromRotation(rotationValue, itemCount) {
+  const angleStep = 360 / itemCount;
+  const rawIndex = Math.round(-rotationValue / angleStep);
+  return ((rawIndex % itemCount) + itemCount) % itemCount;
 }
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
 
-function getWrappedIndex(index, length) {
-  return ((index % length) + length) % length;
+function getShortestAngle(angle) {
+  return ((angle + 180) % 360) - 180;
 }
 
-function WheelPackSlot({ angleStep, onCenterPack, onOpenPack, pack, packIndex, radius, rotation }) {
-  const baseAngle = packIndex * angleStep;
-  const x = useTransform(rotation, (value) => getPackWheelStyleForAngle(baseAngle + value, angleStep, radius).x);
-  const y = useTransform(rotation, (value) => -10 * getPackWheelStyleForAngle(baseAngle + value, angleStep, radius).frontCloseness);
-  const z = useTransform(rotation, (value) => getPackWheelStyleForAngle(baseAngle + value, angleStep, radius).z);
-  const scale = useTransform(rotation, (value) => getPackWheelStyleForAngle(baseAngle + value, angleStep, radius).scale);
-  const opacity = useTransform(rotation, (value) => getPackWheelStyleForAngle(baseAngle + value, angleStep, radius).opacity);
-  const rotateY = useTransform(rotation, (value) => getPackWheelStyleForAngle(baseAngle + value, angleStep, radius).rotateY);
-  const zIndex = useTransform(rotation, (value) => getPackWheelStyleForAngle(baseAngle + value, angleStep, radius).zIndex);
-  const frontCloseness = useTransform(rotation, (value) => getPackWheelStyleForAngle(baseAngle + value, angleStep, radius).frontCloseness);
+function getPackWheelStyle(index, rotationValue, packCount, radius) {
+  const angleStep = 360 / packCount;
+  const angle = index * angleStep + rotationValue;
+  const radians = (angle * Math.PI) / 180;
+  const x = Math.sin(radians) * radius;
+  const z = Math.cos(radians) * radius;
+  const depth = (z + radius) / (radius * 2);
+  const frontAngle = Math.abs(getShortestAngle(angle));
+  const backFade = frontAngle > 155 ? 0.34 : frontAngle > 115 ? 0.52 : 1;
+
+  return {
+    x,
+    z: z - radius,
+    scale: 0.48 + depth * 0.52,
+    opacity: Math.max(0.06, (0.14 + depth * 0.86) * backFade),
+    rotateY: -getShortestAngle(angle),
+    zIndex: Math.round(z + radius),
+    frontCloseness: Math.max(0, 1 - frontAngle / angleStep),
+  };
+}
+
+function WheelPack({ index, isActive, onCenterPack, pack, packCount, radius, rotation, setInfo }) {
+  const x = useTransform(rotation, (value) => getPackWheelStyle(index, value, packCount, radius).x);
+  const y = useTransform(rotation, (value) => -10 * getPackWheelStyle(index, value, packCount, radius).frontCloseness);
+  const z = useTransform(rotation, (value) => getPackWheelStyle(index, value, packCount, radius).z);
+  const scale = useTransform(rotation, (value) => getPackWheelStyle(index, value, packCount, radius).scale);
+  const opacity = useTransform(rotation, (value) => getPackWheelStyle(index, value, packCount, radius).opacity);
+  const rotateY = useTransform(rotation, (value) => getPackWheelStyle(index, value, packCount, radius).rotateY);
+  const zIndex = useTransform(rotation, (value) => getPackWheelStyle(index, value, packCount, radius).zIndex);
+  const frontCloseness = useTransform(rotation, (value) => getPackWheelStyle(index, value, packCount, radius).frontCloseness);
   const glowOpacity = useTransform(frontCloseness, [0, 1], [0, 1]);
   const brightness = useTransform(frontCloseness, [0, 1], ['brightness(0.72) saturate(0.85)', 'brightness(1.08) saturate(1.08)']);
 
   return (
     <Card
       component={motion.div}
-      onClick={() => {
-        onCenterPack(packIndex);
-      }}
+      onClick={() => onCenterPack(index)}
       sx={{
         position: 'absolute',
         left: '50%',
@@ -269,27 +178,18 @@ function WheelPackSlot({ angleStep, onCenterPack, onOpenPack, pack, packIndex, r
         ml: { xs: '-104px', sm: '-132px', md: '-146px' },
         width: { xs: 208, sm: 264, md: 292 },
         height: { xs: 340, sm: 430, md: 470 },
-        overflow: 'hidden',
+        overflow: 'visible',
+        bgcolor: 'transparent',
         color: 'text.primary',
         cursor: 'pointer',
         borderRadius: '28px 28px 18px 18px',
-        borderColor: 'rgba(76, 201, 240, 0.24)',
-        boxShadow: '0 18px 46px rgba(0, 0, 0, 0.36)',
+        border: 0,
+        boxShadow: 'none',
       }}
-      style={{
-        x,
-        y,
-        z,
-        scale,
-        opacity,
-        rotateY,
-        zIndex,
-        filter: brightness,
-        transformStyle: 'preserve-3d',
-      }}
+      style={{ x, y, z, scale, opacity, rotateY, zIndex, filter: brightness, transformStyle: 'preserve-3d' }}
     >
       <Box sx={{ position: 'relative', height: '100%' }}>
-        <PackCard pack={pack} />
+        <PackCard isActive={isActive} pack={pack} setInfo={setInfo} />
         <Box
           component={motion.div}
           style={{ opacity: glowOpacity }}
@@ -314,14 +214,31 @@ export default function PackSelection() {
   const normalizedSetCode = setCode?.trim().toLowerCase() || '';
   const [cards, setCards] = useState([]);
   const [artCards, setArtCards] = useState([]);
+  const [loadedSetInfo, setLoadedSetInfo] = useState(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [isBoosterDialogOpen, setIsBoosterDialogOpen] = useState(false);
+  const [packShards, setPackShards] = useState(() => getPackShards());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const rotation = useMotionValue(0);
   const activeIndexRef = useRef(0);
-  const dragStartRotation = useRef(0);
-  const lastActiveUpdateRef = useRef(0);
-  const latestSnappedRotation = useRef(0);
+  const liveActiveIndexRef = useRef(0);
+  const startRotationRef = useRef(0);
+  const animationControlsRef = useRef(null);
+
+  useEffect(() => {
+    function refreshPackShards() {
+      setPackShards(getPackShards());
+    }
+
+    window.addEventListener('packShardsUpdated', refreshPackShards);
+    window.addEventListener('storage', refreshPackShards);
+
+    return () => {
+      window.removeEventListener('packShardsUpdated', refreshPackShards);
+      window.removeEventListener('storage', refreshPackShards);
+    };
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -330,14 +247,17 @@ export default function PackSelection() {
       try {
         setIsLoading(true);
         setError('');
-        const [scryfallCards, scryfallArtCards] = await Promise.all([
+        setLoadedSetInfo(null);
+        const [scryfallCards, scryfallArtCards, scryfallSets] = await Promise.all([
           getCardsBySet(normalizedSetCode),
           getArtCardsBySet(normalizedSetCode),
+          getSets().catch(() => []),
         ]);
 
         if (isMounted) {
           setCards(scryfallCards);
           setArtCards(scryfallArtCards);
+          setLoadedSetInfo(scryfallSets.find((set) => set.code === normalizedSetCode) || null);
         }
       } catch (loadError) {
         if (isMounted) {
@@ -360,6 +280,14 @@ export default function PackSelection() {
   }, [normalizedSetCode]);
 
   const setName = cards[0]?.set_name || normalizedSetCode.toUpperCase();
+  const setInfo = useMemo(
+    () => ({
+      code: normalizedSetCode,
+      name: loadedSetInfo?.name || setName,
+      iconUrl: loadedSetInfo?.icon_svg_uri || null,
+    }),
+    [loadedSetInfo, normalizedSetCode, setName],
+  );
   const packOptions = useMemo(() => buildPackOptions(cards, artCards, normalizedSetCode), [
     artCards,
     cards,
@@ -368,55 +296,26 @@ export default function PackSelection() {
   const activePack = packOptions[activeIndex] || packOptions[0];
   const angleStep = packOptions.length ? 360 / packOptions.length : 0;
   const wheelRadius = isMobile ? 220 : 360;
+  const canAffordCollectorBooster = packShards >= COLLECTOR_BOOSTER_COST;
 
   useEffect(() => {
     activeIndexRef.current = activeIndex;
   }, [activeIndex]);
 
-  useMotionValueEvent(rotation, 'change', (latestRotation) => {
-    if (!packOptions.length) {
-      return;
-    }
-
-    const centeredIndex = getCenteredPackIndex(latestRotation, packOptions.length);
-
-    if (centeredIndex === activeIndexRef.current) {
-      return;
-    }
-
-    const now = performance.now();
-
-    if (now - lastActiveUpdateRef.current > 80) {
-      activeIndexRef.current = centeredIndex;
-      lastActiveUpdateRef.current = now;
-      setActiveIndex(centeredIndex);
-    }
-  });
-
   useEffect(() => {
-    setActiveIndex(0);
-    activeIndexRef.current = 0;
-    lastActiveUpdateRef.current = 0;
-    latestSnappedRotation.current = 0;
-    rotation.set(0);
-  }, [normalizedSetCode, rotation]);
+    animationControlsRef.current?.stop();
+    const centeredIndex = packOptions.length ? getCenteredIndexFromRotation(rotation.get(), packOptions.length) : 0;
+    setActiveIndex(centeredIndex);
+    activeIndexRef.current = centeredIndex;
+    liveActiveIndexRef.current = centeredIndex;
+  }, [normalizedSetCode, packOptions.length, rotation]);
 
-  function snapToRotation(targetRotation, centeredIndex) {
-    animate(rotation, targetRotation, {
-      type: 'spring',
-      stiffness: 70,
-      damping: 38,
-      mass: 1.4,
-      restDelta: 0.01,
-      restSpeed: 0.01,
-    }).then(() => {
-      latestSnappedRotation.current = targetRotation;
-      rotation.set(targetRotation);
-      activeIndexRef.current = centeredIndex;
-      lastActiveUpdateRef.current = performance.now();
-      setActiveIndex(centeredIndex);
-      console.log('[PackSelection] after snap activeIndex', centeredIndex, 'rotation', rotation.get());
-    });
+  function animateToCenteredPack(centeredIndex, snappedRotation) {
+    liveActiveIndexRef.current = centeredIndex;
+    activeIndexRef.current = centeredIndex;
+    setActiveIndex(centeredIndex);
+    animationControlsRef.current?.stop();
+    animationControlsRef.current = animate(rotation, snappedRotation, SPRING_CONFIG);
   }
 
   const goNext = useCallback(() => {
@@ -424,31 +323,50 @@ export default function PackSelection() {
       return;
     }
 
-    const centeredIndex = getWrappedIndex(activeIndex + 1, packOptions.length);
-    snapToRotation(-centeredIndex * angleStep, centeredIndex);
-  }, [activeIndex, angleStep, packOptions.length]);
+    const nextRotation = rotation.get() - 360 / packOptions.length;
+    const centeredIndex = getCenteredIndexFromRotation(nextRotation, packOptions.length);
+    animateToCenteredPack(centeredIndex, nextRotation);
+  }, [packOptions.length, rotation]);
 
   const goPrev = useCallback(() => {
     if (!packOptions.length) {
       return;
     }
 
-    const centeredIndex = getWrappedIndex(activeIndex - 1, packOptions.length);
-    snapToRotation(-centeredIndex * angleStep, centeredIndex);
-  }, [activeIndex, angleStep, packOptions.length]);
+    const nextRotation = rotation.get() + 360 / packOptions.length;
+    const centeredIndex = getCenteredIndexFromRotation(nextRotation, packOptions.length);
+    animateToCenteredPack(centeredIndex, nextRotation);
+  }, [packOptions.length, rotation]);
 
-  function openPack(pack = activePack) {
-    if (!pack) {
+  function openPack(pack, boosterType = 'play') {
+    const selectedPack = pack || packOptions[liveActiveIndexRef.current] || packOptions[activeIndex] || activePack;
+
+    if (!selectedPack || (boosterType === 'collector' && packShards < COLLECTOR_BOOSTER_COST)) {
       return;
     }
 
     navigate(`/open/${normalizedSetCode}`, {
       state: {
-        packArtwork: pack.artwork,
-        packArtworkCardName: pack.artworkCardName,
-        packName: pack.name,
+        packArtwork: selectedPack.artwork,
+        packArtworkCardName: selectedPack.artworkCardName,
+        packName: selectedPack.name,
+        setIconUrl: setInfo.iconUrl,
+        setName: setInfo.name,
+        boosterType,
+        openingId: `${normalizedSetCode}-${boosterType}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       },
     });
+  }
+
+  function openBoosterDialog() {
+    if (activePack) {
+      setIsBoosterDialogOpen(true);
+    }
+  }
+
+  function openSelectedPack(boosterType = 'play') {
+    setIsBoosterDialogOpen(false);
+    openPack(activePack, boosterType);
   }
 
   function handleDragEnd(_, info) {
@@ -456,28 +374,14 @@ export default function PackSelection() {
       return;
     }
 
-    const currentRotation = rotation.get();
-    const projectedRotation = currentRotation + info.velocity.x * VELOCITY_PROJECTION;
-    const maxRotationDelta = MAX_FLICK_PACKS * angleStep;
-    const clampedRotation = clamp(
-      projectedRotation,
-      dragStartRotation.current - maxRotationDelta,
-      dragStartRotation.current + maxRotationDelta,
-    );
-    const centeredIndex = getCenteredPackIndex(clampedRotation, packOptions.length);
-    const snappedRotation = -centeredIndex * angleStep;
+    const current = rotation.get();
+    const projected = current + info.velocity.x * VELOCITY_PROJECTION;
+    const maxDelta = angleStep * MAX_PACKS_PER_FLICK;
+    const clampedProjected = clamp(projected, startRotationRef.current - maxDelta, startRotationRef.current + maxDelta);
+    const snappedRotation = Math.round(clampedProjected / angleStep) * angleStep;
+    const centeredIndex = getCenteredIndexFromRotation(snappedRotation, packOptions.length);
 
-    activeIndexRef.current = centeredIndex;
-    lastActiveUpdateRef.current = performance.now();
-    setActiveIndex(centeredIndex);
-    console.log('[PackSelection] onDragEnd', {
-      current: currentRotation,
-      projected: projectedRotation,
-      centeredIndex,
-      snapped: snappedRotation,
-      velocityX: info.velocity.x,
-    });
-    snapToRotation(snappedRotation, centeredIndex);
+    animateToCenteredPack(centeredIndex, snappedRotation);
   }
 
   function centerPack(packIndex) {
@@ -485,26 +389,25 @@ export default function PackSelection() {
       return;
     }
 
-    const baseTarget = -packIndex * angleStep;
+    const baseTarget = -packIndex * (360 / packOptions.length);
     const turns = Math.round((rotation.get() - baseTarget) / 360);
-    snapToRotation(baseTarget + turns * 360, packIndex);
+    animateToCenteredPack(packIndex, baseTarget + turns * 360);
   }
 
   function handleDrag(_, info) {
-    rotation.set(dragStartRotation.current + info.offset.x * DRAG_SENSITIVITY);
-    console.log('[PackSelection] onDrag rotation', rotation.get());
+    rotation.set(startRotationRef.current + info.offset.x * DRAG_SENSITIVITY);
   }
 
   function handleDragStart() {
-    dragStartRotation.current = rotation.get();
-    console.log('[PackSelection] onDragStart rotation', rotation.get());
+    animationControlsRef.current?.stop();
+    startRotationRef.current = rotation.get();
   }
 
   return (
     <Box sx={{ minHeight: 'calc(100vh - 96px)' }}>
       <PageHeader eyebrow={normalizedSetCode.toUpperCase()} title="Choose your pack">
-        Pick a simulated Play Booster for {setName}. Pack wrappers prefer Scryfall art cards from
-        this set and open into a generated reveal.
+        Pick a wrapper for {setName}, then open it as a free Play Booster or spend shards on a
+        mostly foil Collector Booster.
       </PageHeader>
 
       <Button component={Link} startIcon={<ArrowBackIcon />} to="/sets" variant="outlined" sx={{ mb: 4 }}>
@@ -547,6 +450,12 @@ export default function PackSelection() {
               Choose Your Pack
             </Typography>
             <Typography color="text.secondary">Sealed boosters circle through the dark.</Typography>
+            <Chip
+              color="warning"
+              label={`${packShards.toLocaleString()} Pack Shards`}
+              sx={{ mt: 1.5, fontWeight: 900 }}
+              variant="outlined"
+            />
           </Box>
 
           <Box
@@ -613,16 +522,17 @@ export default function PackSelection() {
                 pointerEvents: 'none',
               }}
             >
-              {packOptions.map((pack, packIndex) => (
-                <WheelPackSlot
+              {packOptions.map((pack, index) => (
+                <WheelPack
                   key={pack.id}
-                  angleStep={angleStep}
+                  index={index}
+                  isActive={index === activeIndex}
                   onCenterPack={centerPack}
-                  onOpenPack={openPack}
                   pack={pack}
-                  packIndex={packIndex}
+                  packCount={packOptions.length}
                   radius={wheelRadius}
                   rotation={rotation}
+                  setInfo={setInfo}
                 />
               ))}
             </Box>
@@ -647,10 +557,36 @@ export default function PackSelection() {
                 },
               }}
             />
+
+            <Box
+              component="button"
+              type="button"
+              aria-label="Open selected pack"
+              onClick={openBoosterDialog}
+              sx={{
+                position: 'absolute',
+                left: '50%',
+                top: { xs: 22, sm: 30 },
+                zIndex: 25,
+                width: { xs: 208, sm: 264, md: 292 },
+                height: { xs: 340, sm: 430, md: 470 },
+                ml: { xs: '-104px', sm: '-132px', md: '-146px' },
+                appearance: 'none',
+                border: 0,
+                borderRadius: '28px 28px 18px 18px',
+                bgcolor: 'transparent',
+                cursor: 'pointer',
+                p: 0,
+                '&:focus-visible': {
+                  outline: '3px solid rgba(244, 201, 93, 0.78)',
+                  outlineOffset: 6,
+                },
+              }}
+            />
           </Box>
 
           <Typography color="text.secondary" fontWeight={700}>
-            Swipe to browse packs
+            Click the centered pack or swipe to browse
           </Typography>
 
           <Typography color="text.secondary" sx={{ fontSize: 13, textAlign: 'center' }}>
@@ -658,15 +594,134 @@ export default function PackSelection() {
             {activePack?.artworkCardName ? ` - ${activePack.artworkCardName}` : ''}
           </Typography>
 
-          <Button
-            disabled={!activePack}
-            onClick={() => openPack()}
-            size="large"
-            startIcon={<AutoAwesomeIcon />}
-            variant="contained"
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' },
+              gap: 2,
+              width: '100%',
+              maxWidth: 760,
+            }}
           >
-            Open This Pack
-          </Button>
+            <Card sx={{ borderColor: 'rgba(244, 201, 93, 0.5)' }}>
+              <CardContent sx={{ display: 'grid', gap: 1.25 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                  <Typography variant="h5">Play Booster</Typography>
+                  <Chip color="success" label="Free" size="small" />
+                </Box>
+                <Typography color="text.secondary">
+                  A standard 15-card pack using the current set and the existing Play Booster generator.
+                </Typography>
+                <Button
+                  disabled={!activePack}
+                  onClick={() => openPack(undefined, 'play')}
+                  size="large"
+                  startIcon={<AutoAwesomeIcon />}
+                  variant="contained"
+                >
+                  Open Play Booster
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card
+              sx={{
+                borderColor:
+                  canAffordCollectorBooster ? 'rgba(244, 201, 93, 0.74)' : 'rgba(248, 247, 255, 0.12)',
+                opacity: canAffordCollectorBooster ? 1 : 0.72,
+                boxShadow: canAffordCollectorBooster
+                  ? '0 0 38px rgba(244, 201, 93, 0.18), 0 0 80px rgba(143, 124, 255, 0.12)'
+                  : undefined,
+              }}
+            >
+              <CardContent sx={{ display: 'grid', gap: 1.25 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                  <Typography variant="h5">Collector Booster</Typography>
+                  <Chip
+                    color={canAffordCollectorBooster ? 'warning' : 'default'}
+                    icon={canAffordCollectorBooster ? undefined : <LockIcon />}
+                    label={`${COLLECTOR_BOOSTER_COST.toLocaleString()} shards`}
+                    size="small"
+                    variant="outlined"
+                  />
+                </Box>
+                <Typography color="text.secondary">
+                  Mostly foil cards, with premium rare and mythic slots for a flashier opening.
+                </Typography>
+                <Typography color="text.secondary" sx={{ fontSize: 13 }}>
+                  Balance: {packShards.toLocaleString()} shards
+                </Typography>
+                {!canAffordCollectorBooster && (
+                  <Alert severity="info" variant="outlined">
+                    Earn shards from duplicate cards.
+                  </Alert>
+                )}
+                <Button
+                  disabled={!activePack || !canAffordCollectorBooster}
+                  onClick={() => openPack(undefined, 'collector')}
+                  size="large"
+                  startIcon={canAffordCollectorBooster ? <AutoAwesomeIcon /> : <LockIcon />}
+                  variant={canAffordCollectorBooster ? 'contained' : 'outlined'}
+                >
+                  {canAffordCollectorBooster ? 'Open Collector Booster' : 'Locked'}
+                </Button>
+              </CardContent>
+            </Card>
+          </Box>
+
+          <Dialog
+            fullWidth
+            maxWidth="xs"
+            onClose={() => setIsBoosterDialogOpen(false)}
+            open={isBoosterDialogOpen}
+            PaperProps={{
+              sx: {
+                border: '1px solid rgba(244, 201, 93, 0.28)',
+                background:
+                  'linear-gradient(180deg, rgba(17, 20, 38, 0.98), rgba(5, 7, 17, 0.98))',
+              },
+            }}
+          >
+            <DialogTitle sx={{ pb: 0.5 }}>Open {activePack?.name || 'Pack'}</DialogTitle>
+            <DialogContent sx={{ display: 'grid', gap: 1.25, pt: 1 }}>
+              <Typography color="text.secondary">
+                {setInfo.name} is ready as a free Play Booster. Collector Booster costs{' '}
+                {COLLECTOR_BOOSTER_COST.toLocaleString()} shards.
+              </Typography>
+              <Chip
+                color="warning"
+                label={`${packShards.toLocaleString()} Pack Shards`}
+                sx={{ justifySelf: 'start', fontWeight: 900 }}
+                variant="outlined"
+              />
+              {!canAffordCollectorBooster && (
+                <Alert severity="info" variant="outlined">
+                  Earn shards from duplicate cards to unlock Collector Boosters.
+                </Alert>
+              )}
+            </DialogContent>
+            <DialogActions sx={{ display: 'grid', gap: 1, p: 3, pt: 1.5 }}>
+              <Button
+                autoFocus
+                disabled={!activePack}
+                onClick={() => openSelectedPack('play')}
+                size="large"
+                startIcon={<AutoAwesomeIcon />}
+                variant="contained"
+              >
+                Open Play Booster
+              </Button>
+              <Button
+                disabled={!activePack || !canAffordCollectorBooster}
+                onClick={() => openSelectedPack('collector')}
+                size="large"
+                startIcon={canAffordCollectorBooster ? <AutoAwesomeIcon /> : <LockIcon />}
+                variant="outlined"
+              >
+                {canAffordCollectorBooster ? 'Open Collector Booster' : 'Collector Booster Locked'}
+              </Button>
+            </DialogActions>
+          </Dialog>
         </Box>
       )}
     </Box>

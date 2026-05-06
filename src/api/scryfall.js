@@ -1,3 +1,5 @@
+import { FOIL_TREATMENTS } from '../utils/foilTypes.js';
+
 const SCRYFALL_BASE_URL = 'https://api.scryfall.com';
 
 const EXCLUDED_SET_TYPES = new Set([
@@ -118,6 +120,8 @@ function normalizeCard(card) {
     color_identity: card.color_identity || [],
     image: imageUrl,
     image_uris: card.image_uris || card.card_faces?.[0]?.image_uris || null,
+    isFoil: false,
+    foilTreatment: FOIL_TREATMENTS.NONE,
     scryfall_uri: card.scryfall_uri,
   };
 }

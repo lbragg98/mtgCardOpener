@@ -7,6 +7,7 @@ import {
   Button,
   Card,
   CardContent,
+  Chip,
   Dialog,
   DialogContent,
   DialogTitle,
@@ -20,8 +21,10 @@ import {
 } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import CardImage from '../components/CardImage.jsx';
 import PageHeader from '../components/PageHeader.jsx';
-import { clearCollection, getCollection, removeCardFromCollection } from '../utils/collectionStorage.js';
+import { clearCollection, getCollection, getPackShards, removeCardFromCollection } from '../utils/collectionStorage.js';
+import { FOIL_LABELS, normalizeFoilTreatment } from '../utils/foilTypes.js';
 
 const ALL_FILTER = 'all';
 const SORT_OPTIONS = {
@@ -63,9 +66,24 @@ export default function Collection() {
   const [setFilter, setSetFilter] = useState(ALL_FILTER);
   const [sortBy, setSortBy] = useState(SORT_OPTIONS.newest);
   const [selectedCard, setSelectedCard] = useState(null);
+  const [packShards, setPackShards] = useState(() => getPackShards());
 
   useEffect(() => {
     setCollection(getCollection());
+  }, []);
+
+  useEffect(() => {
+    function refreshPackShards() {
+      setPackShards(getPackShards());
+    }
+
+    window.addEventListener('packShardsUpdated', refreshPackShards);
+    window.addEventListener('storage', refreshPackShards);
+
+    return () => {
+      window.removeEventListener('packShardsUpdated', refreshPackShards);
+      window.removeEventListener('storage', refreshPackShards);
+    };
   }, []);
 
   const rarityOptions = useMemo(() => sortOptions(collection.map((card) => card.rarity)), [collection]);
@@ -76,6 +94,9 @@ export default function Collection() {
       return counts;
     }, {});
   }, [collection]);
+  const duplicateCopyCount = useMemo(() => {
+    return Object.values(duplicateCounts).reduce((total, count) => total + Math.max(0, count - 1), 0);
+  }, [duplicateCounts]);
 
   const filteredCollection = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
@@ -132,6 +153,18 @@ export default function Collection() {
         <Typography color="warning.main" fontWeight={900}>
           Total cards: {collection.length}
         </Typography>
+        <Chip
+          color="warning"
+          label={`${packShards.toLocaleString()} pack shards`}
+          sx={{ fontWeight: 900 }}
+          variant="outlined"
+        />
+        <Chip
+          color="secondary"
+          label={`${duplicateCopyCount.toLocaleString()} duplicate ${duplicateCopyCount === 1 ? 'copy' : 'copies'}`}
+          sx={{ fontWeight: 900 }}
+          variant="outlined"
+        />
         <Button
           color="error"
           disabled={collection.length === 0}
@@ -142,6 +175,10 @@ export default function Collection() {
           Clear Collection
         </Button>
       </Box>
+
+      <Alert severity="info" sx={{ mb: 3 }} variant="outlined">
+        Duplicate cards reward 100 Pack Shards when they are opened. Foil and non-foil copies count separately.
+      </Alert>
 
       <Box
         sx={{
@@ -252,7 +289,6 @@ export default function Collection() {
           {filteredCollection.map((card) => (
             <Card
               key={card.collectionId}
-              className={card.isFoil ? 'foil-card' : ''}
               onClick={() => setSelectedCard(card)}
               sx={{
                 position: 'relative',
@@ -281,26 +317,22 @@ export default function Collection() {
                   x{duplicateCounts[card.id]}
                 </Box>
               )}
-              <Box
-                component="img"
-                src={card.imageUrl}
-                alt={card.name}
-                sx={{
-                  display: 'block',
-                  width: '100%',
-                  aspectRatio: '488 / 680',
-                  objectFit: 'contain',
-                  bgcolor: 'rgba(0, 0, 0, 0.32)',
-                }}
-              />
+              <CardImage card={card} variant="grid" />
               <CardContent sx={{ p: 1.25 }}>
                 <Typography variant="body2" fontWeight={900} noWrap>
                   {card.name}
                 </Typography>
                 <Typography variant="caption" color="text.secondary" display="block">
-                  {card.isFoil ? 'Foil ' : ''}
                   {card.rarity} - {card.set?.toUpperCase()} #{card.collector_number}
                 </Typography>
+                {card.isFoil && (
+                  <Chip
+                    color="warning"
+                    label={FOIL_LABELS[normalizeFoilTreatment(card)]}
+                    size="small"
+                    sx={{ mt: 0.75, maxWidth: '100%', fontWeight: 900 }}
+                  />
+                )}
                 <Button
                   color="error"
                   onClick={(event) => {
@@ -337,17 +369,7 @@ export default function Collection() {
                   alignItems: 'start',
                 }}
               >
-                <Box
-                  className={selectedCard.isFoil ? 'foil-card' : ''}
-                  sx={{ position: 'relative', overflow: 'hidden', borderRadius: 3 }}
-                >
-                  <Box
-                    component="img"
-                    src={selectedCard.imageUrl}
-                    alt={selectedCard.name}
-                    sx={{ display: 'block', width: '100%' }}
-                  />
-                </Box>
+                <CardImage card={selectedCard} large variant="detail" />
 
                 <Box sx={{ display: 'grid', gap: 1.5 }}>
                   <Typography>
@@ -361,6 +383,9 @@ export default function Collection() {
                   </Typography>
                   <Typography>
                     <strong>Foil:</strong> {selectedCard.isFoil ? 'Yes' : 'No'}
+                  </Typography>
+                  <Typography>
+                    <strong>Foil Treatment:</strong> {FOIL_LABELS[normalizeFoilTreatment(selectedCard)]}
                   </Typography>
                   <Typography>
                     <strong>Opened:</strong> {formatOpenedDate(selectedCard.openedAt)}

@@ -7,6 +7,7 @@ import {
   AppBar,
   Box,
   Button,
+  Chip,
   Container,
   Drawer,
   IconButton,
@@ -18,8 +19,9 @@ import {
   Typography,
   useMediaQuery,
 } from '@mui/material';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { getPackShards } from '../utils/collectionStorage.js';
 
 const navItems = [
   { label: 'Home', path: '/', icon: <HomeIcon /> },
@@ -30,8 +32,23 @@ const navItems = [
 export default function Layout() {
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down('sm'));
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [packShards, setPackShards] = useState(() => getPackShards());
   const { pathname } = useLocation();
   const isPackReveal = pathname.startsWith('/open/');
+
+  useEffect(() => {
+    function refreshPackShards() {
+      setPackShards(getPackShards());
+    }
+
+    window.addEventListener('packShardsUpdated', refreshPackShards);
+    window.addEventListener('storage', refreshPackShards);
+
+    return () => {
+      window.removeEventListener('packShardsUpdated', refreshPackShards);
+      window.removeEventListener('storage', refreshPackShards);
+    };
+  }, []);
 
   const navLinks = navItems.map((item) => (
     <Button
@@ -60,6 +77,16 @@ export default function Layout() {
             MTG Pack Opener
           </Typography>
 
+          {!isMobile && (
+            <Chip
+              color="warning"
+              label={`${packShards.toLocaleString()} shards`}
+              size="small"
+              sx={{ fontWeight: 900 }}
+              variant="outlined"
+            />
+          )}
+
           {isMobile ? (
             <IconButton
               aria-label="Open navigation"
@@ -80,6 +107,12 @@ export default function Layout() {
       <Drawer anchor="right" open={isDrawerOpen} onClose={() => setIsDrawerOpen(false)}>
         <Box sx={{ width: 260, pt: 2 }} role="navigation" onClick={() => setIsDrawerOpen(false)}>
           <List>
+            <ListItemButton>
+              <ListItemIcon sx={{ color: 'warning.main' }}>
+                <AutoAwesomeIcon />
+              </ListItemIcon>
+              <ListItemText primary={`${packShards.toLocaleString()} pack shards`} />
+            </ListItemButton>
             {navItems.map((item) => (
               <ListItemButton key={item.path} component={NavLink} to={item.path}>
                 <ListItemIcon sx={{ color: 'primary.light' }}>{item.icon}</ListItemIcon>

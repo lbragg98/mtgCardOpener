@@ -2,28 +2,29 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import CollectionsBookmarkIcon from '@mui/icons-material/CollectionsBookmark';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import StyleIcon from '@mui/icons-material/Style';
-import { Alert, Box, Button, Card, CardContent, CircularProgress, Fade, Snackbar, Typography, Zoom } from '@mui/material';
+import { Alert, Box, Button, Card, CardContent, Chip, CircularProgress, Fade, Snackbar, Typography, Zoom } from '@mui/material';
 import { AnimatePresence, motion, useAnimation, useMotionValue, useTransform } from 'framer-motion';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
-import { saveCardsToCollection } from '../utils/collectionStorage.js';
-import { generatePlayBooster } from '../utils/packGenerator.js';
+import CardImage from '../components/CardImage.jsx';
+import SealedPack from '../components/SealedPack.jsx';
+import { getPackShards, saveCardsToCollection, spendPackShards } from '../utils/collectionStorage.js';
+import { FOIL_LABELS, FOIL_TREATMENTS, normalizeFoilTreatment } from '../utils/foilTypes.js';
+import { generateCollectorBooster, generatePlayBooster } from '../utils/packGenerator.js';
 
 const SWIPE_THRESHOLD = 120;
 const CUT_THRESHOLD = 170;
+const COLLECTOR_BOOSTER_COST = 1000;
 const PHASES = {
   cutPack: 'cutPack',
   revealCards: 'revealCards',
   summary: 'summary',
 };
 
-function PackCuttingScreen({ artwork, setCode, onCutComplete }) {
+function PackCuttingScreen({ artwork, boosterLabel, setCode, setIconUrl, setName, onCutComplete }) {
   const cutterControls = useAnimation();
   const cutterTrackRef = useRef(null);
   const [isCut, setIsCut] = useState(false);
-  const packBackground = artwork
-    ? `linear-gradient(180deg, rgba(5,7,17,0.02), rgba(5,7,17,0.82)), url(${artwork})`
-    : 'linear-gradient(160deg, rgba(143,124,255,0.92), rgba(5,7,17,0.92) 46%, rgba(244,201,93,0.82))';
 
   async function handleDragEnd(_, info) {
     if (isCut) {
@@ -57,7 +58,7 @@ function PackCuttingScreen({ artwork, setCode, onCutComplete }) {
     >
       <Box sx={{ position: 'absolute', top: { xs: 24, md: 34 }, left: 0, right: 0, textAlign: 'center' }}>
         <Typography color="warning.main" fontWeight={900}>
-          {setCode.toUpperCase()} Play Booster
+          {setCode.toUpperCase()} {boosterLabel}
         </Typography>
         <Typography color="text.secondary">Swipe across the top seal to open</Typography>
       </Box>
@@ -66,63 +67,46 @@ function PackCuttingScreen({ artwork, setCode, onCutComplete }) {
         <motion.div
           animate={isCut ? { y: -96, rotate: -3, opacity: 0.96 } : { y: 0, rotate: 0, opacity: 1 }}
           transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+          className="tornTopStrip"
           style={{
             position: 'absolute',
-            inset: '0 0 90% 0',
+            inset: 0,
             overflow: 'hidden',
-            borderRadius: '24px 24px 6px 6px',
-            backgroundImage: packBackground,
-            backgroundPosition: 'center top',
-            backgroundSize: 'cover',
-            boxShadow: '0 0 42px rgba(244, 201, 93, 0.2), 0 22px 70px rgba(0, 0, 0, 0.56)',
+            clipPath: 'inset(0 0 88% 0)',
           }}
-        />
+        >
+          <SealedPack
+            accentArtwork={artwork}
+            boosterLabel={boosterLabel}
+            setCode={setCode}
+            setIconUrl={setIconUrl}
+            setName={setName}
+          />
+        </motion.div>
         <motion.div
           animate={isCut ? { y: 42, scale: 0.98 } : { y: 0, scale: 1 }}
           transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
           style={{
             position: 'absolute',
-            inset: '10% 0 0 0',
-            overflow: 'hidden',
-            borderRadius: '6px 6px 24px 24px',
-            backgroundImage: packBackground,
-            backgroundPosition: 'center bottom',
-            backgroundSize: 'cover',
-            boxShadow: '0 28px 90px rgba(0, 0, 0, 0.62)',
-          }}
-        />
-
-        <Box
-          sx={{
-            position: 'absolute',
             inset: 0,
-            border: '1px solid rgba(248, 247, 255, 0.24)',
-            borderRadius: 6,
-            pointerEvents: 'none',
-          }}
-        />
-
-        <Box
-          sx={{
-            position: 'absolute',
-            top: '10%',
-            left: 18,
-            right: 18,
-            height: 4,
-            borderRadius: 999,
-            bgcolor: 'rgba(244, 201, 93, 0.28)',
-            boxShadow: '0 0 22px rgba(244, 201, 93, 0.72)',
+            overflow: 'hidden',
+            clipPath: 'inset(12% 0 0 0)',
           }}
         >
+          <SealedPack
+            accentArtwork={artwork}
+            boosterLabel={boosterLabel}
+            setCode={setCode}
+            setIconUrl={setIconUrl}
+            setName={setName}
+          />
+        </motion.div>
+
+        <Box className="tearSeam">
           <motion.div
             animate={{ x: ['-8%', '108%'] }}
             transition={{ duration: 1.25, repeat: Infinity, ease: 'linear' }}
-            style={{
-              width: 70,
-              height: 4,
-              borderRadius: 999,
-              background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.95), transparent)',
-            }}
+            className="tearProgress"
           />
         </Box>
 
@@ -149,9 +133,9 @@ function PackCuttingScreen({ artwork, setCode, onCutComplete }) {
           ref={cutterTrackRef}
           sx={{
             position: 'absolute',
-            top: 'calc(10% - 18px)',
-            left: 22,
-            right: 22,
+            top: 'calc(12% - 18px)',
+            left: -24,
+            right: -24,
             height: 40,
           }}
         >
@@ -181,13 +165,16 @@ function RevealCard({ card, cardNumber, exitX, onAdvance }) {
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-260, 260], [-13, 13]);
   const scale = useTransform(x, [-260, 0, 260], [0.94, 1, 0.94]);
+  const foilTreatment = normalizeFoilTreatment(card);
   const isFinale = card.isFoil || ['rare', 'mythic'].includes(card.rarity);
+  const rarityLabel = card.isFoil ? FOIL_LABELS[foilTreatment] : card.rarity?.toUpperCase();
+  const cardKey = card.collectionTempId || card.id || `${card.name}-${cardNumber}`;
 
   return (
     <>
     <AnimatePresence custom={exitX} mode="wait">
       <motion.div
-        key={`${card.id}-${cardNumber}`}
+        key={`${cardKey}-${cardNumber}`}
         drag="x"
         dragConstraints={{ left: 0, right: 0 }}
         dragElastic={0.28}
@@ -208,31 +195,24 @@ function RevealCard({ card, cardNumber, exitX, onAdvance }) {
         }}
         style={{ x, rotate, scale, cursor: 'grab', touchAction: 'pan-y' }}
       >
-        <Box
-          className={card.isFoil ? 'foil-card' : ''}
+        <CardImage
+          card={card}
+          className={isFinale ? 'reveal-special-pulse' : ''}
+          large
+          variant="reveal"
           sx={{
             position: 'relative',
             width: { xs: '78vw', sm: 360, md: 420 },
             maxWidth: 440,
-            borderRadius: 4,
-            overflow: 'hidden',
-            boxShadow: isFinale
-              ? '0 0 42px rgba(244, 201, 93, 0.36), 0 0 90px rgba(143, 124, 255, 0.24)'
-              : '0 20px 70px rgba(0, 0, 0, 0.58)',
+            boxShadow: card.isFoil
+              ? [FOIL_TREATMENTS.GALAXY, FOIL_TREATMENTS.GILDED, FOIL_TREATMENTS.TEXTURED].includes(foilTreatment)
+                ? '0 0 82px rgba(244, 201, 93, 0.5), 0 0 150px rgba(143, 124, 255, 0.42), 0 32px 90px rgba(0, 0, 0, 0.64)'
+                : '0 0 58px rgba(244, 201, 93, 0.38), 0 0 115px rgba(76, 201, 240, 0.24), 0 28px 80px rgba(0, 0, 0, 0.6)'
+              : isFinale
+                ? '0 0 54px rgba(244, 201, 93, 0.42), 0 0 120px rgba(143, 124, 255, 0.3)'
+                : '0 20px 70px rgba(0, 0, 0, 0.58)',
           }}
-        >
-          <Box
-            component="img"
-            src={card.image}
-            alt={card.name}
-            draggable={false}
-            sx={{
-              display: 'block',
-              width: '100%',
-              userSelect: 'none',
-            }}
-          />
-        </Box>
+        />
       </motion.div>
     </AnimatePresence>
 
@@ -247,24 +227,74 @@ function RevealCard({ card, cardNumber, exitX, onAdvance }) {
         }}
       >
         <Typography color={isFinale ? 'warning.main' : 'text.secondary'} fontWeight={900}>
-          {card.isFoil ? 'Foil ' : ''}
           {card.rarity?.toUpperCase()} • {card.packSlot}
         </Typography>
+        {card.isFoil && (
+          <Chip
+            color={
+              [FOIL_TREATMENTS.GALAXY, FOIL_TREATMENTS.GILDED, FOIL_TREATMENTS.TEXTURED].includes(foilTreatment) ||
+              card.rarity === 'mythic'
+                ? 'warning'
+                : 'secondary'
+            }
+            label={rarityLabel}
+            size="small"
+            sx={{ mt: 1, fontWeight: 900 }}
+          />
+        )}
+        {isFinale && !card.isFoil && (
+          <Chip
+            color={card.rarity === 'mythic' ? 'warning' : 'secondary'}
+            label={rarityLabel}
+            size="small"
+            sx={{ mt: 1, fontWeight: 900 }}
+          />
+        )}
       </Box>
     </>
   );
 }
 
-function SummaryGrid({ pack, setCode }) {
+function SummaryGrid({ boosterLabel, pack, saveResult, setCode }) {
   return (
     <Box sx={{ minHeight: '100vh', px: { xs: 2, md: 4 }, py: { xs: 3, md: 4 } }}>
       <Box sx={{ mx: 'auto', maxWidth: 920 }}>
         <Typography color="warning.main" fontWeight={900} gutterBottom>
-          {setCode.toUpperCase()} opened
+          {setCode.toUpperCase()} {boosterLabel} opened
         </Typography>
         <Typography variant="h3" component="h1" sx={{ mb: 3, fontSize: { xs: 32, md: 40 } }}>
           Pack Summary
         </Typography>
+
+        {saveResult && (
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(5, minmax(0, 1fr))' },
+              gap: 1.5,
+              mb: 3,
+            }}
+          >
+            {[
+              { label: 'Booster', value: boosterLabel },
+              { label: 'Cards added', value: saveResult.savedCards.length },
+              { label: 'Duplicates', value: saveResult.duplicateCount },
+              { label: 'Shards earned', value: saveResult.shardsAwarded },
+              { label: 'Shard balance', value: saveResult.newShardBalance },
+            ].map((stat) => (
+              <Card key={stat.label} sx={{ borderColor: 'rgba(244, 201, 93, 0.28)' }}>
+                <CardContent sx={{ p: 1.5 }}>
+                  <Typography color="text.secondary" sx={{ fontSize: 12, fontWeight: 800 }}>
+                    {stat.label}
+                  </Typography>
+                  <Typography color="warning.main" fontWeight={950}>
+                    {typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}
+                  </Typography>
+                </CardContent>
+              </Card>
+            ))}
+          </Box>
+        )}
 
         <Box
           sx={{
@@ -281,29 +311,24 @@ function SummaryGrid({ pack, setCode }) {
           {pack.map((card) => (
             <Card
               key={`${card.id}-${card.packSlot}`}
-              className={card.isFoil ? 'foil-card' : ''}
               sx={{ position: 'relative', overflow: 'hidden', minWidth: 0 }}
             >
-              <Box
-                component="img"
-                src={card.image}
-                alt={card.name}
-                sx={{
-                  display: 'block',
-                  width: '100%',
-                  aspectRatio: '488 / 680',
-                  objectFit: 'contain',
-                  bgcolor: 'rgba(0, 0, 0, 0.32)',
-                }}
-              />
+              <CardImage card={card} variant="grid" />
               <CardContent sx={{ p: 1 }}>
                 <Typography variant="body2" fontWeight={800} noWrap>
                   {card.name}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  {card.isFoil ? 'Foil ' : ''}
                   {card.rarity}
                 </Typography>
+                {card.isFoil && (
+                  <Chip
+                    color="warning"
+                    label={FOIL_LABELS[normalizeFoilTreatment(card)]}
+                    size="small"
+                    sx={{ mt: 0.75, maxWidth: '100%', fontWeight: 900 }}
+                  />
+                )}
               </CardContent>
             </Card>
           ))}
@@ -329,14 +354,20 @@ export default function PackOpening() {
   const { setCode } = useParams();
   const { state } = useLocation();
   const normalizedSetCode = setCode?.trim().toLowerCase() || '';
+  const boosterType = state?.boosterType === 'collector' ? 'collector' : 'play';
+  const boosterLabel = boosterType === 'collector' ? 'Collector Booster' : 'Play Booster';
+  const openingId = state?.openingId || `${normalizedSetCode}-${boosterType}-direct`;
   const [pack, setPack] = useState([]);
   const [phase, setPhase] = useState(PHASES.cutPack);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [exitX, setExitX] = useState(520);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
-  const [hasSavedPack, setHasSavedPack] = useState(false);
   const [savedMessage, setSavedMessage] = useState('');
+  const [savedMessageSeverity, setSavedMessageSeverity] = useState('success');
+  const [saveResult, setSaveResult] = useState(null);
+  const hasSavedRef = useRef(false);
+  const isAnimatingRef = useRef(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -347,9 +378,27 @@ export default function PackOpening() {
         setError('');
         setPhase(PHASES.cutPack);
         setCurrentIndex(0);
-        setHasSavedPack(false);
+        hasSavedRef.current = false;
+        isAnimatingRef.current = false;
         setSavedMessage('');
-        const generatedPack = await generatePlayBooster(normalizedSetCode);
+        setSavedMessageSeverity('success');
+        setSaveResult(null);
+        const generatedPack =
+          boosterType === 'collector'
+            ? await generateCollectorBooster(normalizedSetCode)
+            : await generatePlayBooster(normalizedSetCode);
+
+        if (boosterType === 'collector') {
+          const spentKey = `collector-booster-spent-${openingId}`;
+
+          if (!sessionStorage.getItem(spentKey)) {
+            if (getPackShards() < COLLECTOR_BOOSTER_COST || !spendPackShards(COLLECTOR_BOOSTER_COST)) {
+              throw new Error('You need 1,000 pack shards to open a Collector Booster.');
+            }
+
+            sessionStorage.setItem(spentKey, 'true');
+          }
+        }
 
         if (isMounted) {
           setPack(generatedPack);
@@ -372,24 +421,49 @@ export default function PackOpening() {
     return () => {
       isMounted = false;
     };
-  }, [normalizedSetCode]);
+  }, [boosterType, normalizedSetCode, openingId]);
+
+  const revealedPack = pack;
+  const isFinished = currentIndex >= revealedPack.length;
 
   const advanceCard = useCallback((direction = 1) => {
-    setExitX(direction >= 0 ? 520 : -520);
-    setCurrentIndex((index) => {
-      const nextIndex = Math.min(index + 1, pack.length);
+    if (isAnimatingRef.current) {
+      return;
+    }
 
-      if (nextIndex >= pack.length) {
+    isAnimatingRef.current = true;
+    setExitX(direction >= 0 ? 520 : -520);
+    setCurrentIndex((previousIndex) => {
+      const nextIndex = previousIndex + 1;
+
+      if (nextIndex >= revealedPack.length) {
         setPhase(PHASES.summary);
+        return revealedPack.length;
       }
 
       return nextIndex;
     });
-  }, [pack.length]);
+
+    window.setTimeout(() => {
+      isAnimatingRef.current = false;
+    }, 280);
+  }, [revealedPack.length]);
+
+  useEffect(() => {
+    if (phase === PHASES.summary) {
+      isAnimatingRef.current = false;
+    }
+  }, [phase]);
+
+  useEffect(() => {
+    if (phase === PHASES.revealCards && revealedPack.length > 0 && currentIndex >= revealedPack.length) {
+      setPhase(PHASES.summary);
+    }
+  }, [phase, currentIndex, revealedPack.length]);
 
   useEffect(() => {
     function handleKeyDown(event) {
-      if (phase === PHASES.revealCards && event.key === 'ArrowRight' && currentIndex < pack.length) {
+      if (phase === PHASES.revealCards && event.key === 'ArrowRight' && currentIndex < revealedPack.length) {
         advanceCard();
       }
     }
@@ -399,15 +473,33 @@ export default function PackOpening() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [advanceCard, currentIndex, pack.length, phase]);
+  }, [advanceCard, currentIndex, revealedPack.length, phase]);
 
   useEffect(() => {
-    if (phase === PHASES.summary && pack.length > 0 && !hasSavedPack) {
-      const savedCards = saveCardsToCollection(pack);
-      setHasSavedPack(true);
-      setSavedMessage(`${savedCards.length} cards saved to your collection.`);
+    if (phase === PHASES.summary && revealedPack.length > 0 && !hasSavedRef.current) {
+      hasSavedRef.current = true;
+
+      try {
+        const saveResult = saveCardsToCollection(revealedPack);
+        setSaveResult(saveResult);
+        window.dispatchEvent(new Event('packShardsUpdated'));
+
+        const messages = [`${saveResult.savedCards.length} cards added to your collection.`];
+
+        if (saveResult.shardsAwarded > 0) {
+          messages.push(
+            `${saveResult.duplicateCount} duplicates converted into ${saveResult.shardsAwarded} pack shards.`,
+          );
+        }
+
+        setSavedMessageSeverity('success');
+        setSavedMessage(messages.join(' '));
+      } catch {
+        setSavedMessageSeverity('error');
+        setSavedMessage('Pack summary is ready, but the collection could not be saved.');
+      }
     }
-  }, [hasSavedPack, pack, phase]);
+  }, [revealedPack, phase]);
 
   if (isLoading) {
     return (
@@ -422,7 +514,7 @@ export default function PackOpening() {
       >
         <Box sx={{ textAlign: 'center' }}>
           <CircularProgress color="warning" sx={{ mb: 3 }} />
-          <Typography color="text.secondary">Generating pack...</Typography>
+          <Typography color="text.secondary">Generating {boosterLabel}...</Typography>
         </Box>
       </Box>
     );
@@ -438,17 +530,20 @@ export default function PackOpening() {
     );
   }
 
-  if (phase === PHASES.summary) {
+  const shouldShowSummary =
+    phase === PHASES.summary || (phase === PHASES.revealCards && revealedPack.length > 0 && isFinished);
+
+  if (shouldShowSummary) {
     return (
       <>
-        <SummaryGrid pack={pack} setCode={normalizedSetCode} />
+        <SummaryGrid boosterLabel={boosterLabel} pack={revealedPack} saveResult={saveResult} setCode={normalizedSetCode} />
         <Snackbar
           anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
           autoHideDuration={4200}
           onClose={() => setSavedMessage('')}
           open={Boolean(savedMessage)}
         >
-          <Alert severity="success" variant="filled" sx={{ width: '100%' }}>
+          <Alert severity={savedMessageSeverity} variant="filled" sx={{ width: '100%' }}>
             {savedMessage}
           </Alert>
         </Snackbar>
@@ -458,6 +553,7 @@ export default function PackOpening() {
 
   if (phase === PHASES.cutPack) {
     const fallbackArtwork = pack.find((card) => card.rarity === 'mythic')?.image || pack.find((card) => card.image)?.image;
+    const packSetName = state?.setName || pack[0]?.set_name || normalizedSetCode.toUpperCase();
 
     return (
       <AnimatePresence mode="wait">
@@ -470,7 +566,10 @@ export default function PackOpening() {
         >
           <PackCuttingScreen
             artwork={state?.packArtwork || fallbackArtwork}
+            boosterLabel={boosterLabel}
             setCode={normalizedSetCode}
+            setIconUrl={state?.setIconUrl}
+            setName={packSetName}
             onCutComplete={() => setPhase(PHASES.revealCards)}
           />
         </motion.div>
@@ -478,8 +577,42 @@ export default function PackOpening() {
     );
   }
 
-  const activeCard = pack[currentIndex];
-  const isFinalStretch = currentIndex >= pack.length - 3;
+  if (phase === PHASES.revealCards && (revealedPack.length === 0 || isFinished)) {
+    return (
+      <Box
+        sx={{
+          display: 'grid',
+          minHeight: '100vh',
+          placeItems: 'center',
+          bgcolor: '#03050d',
+          px: 2,
+        }}
+      >
+        <CircularProgress color="warning" />
+      </Box>
+    );
+  }
+
+  const activeCard = phase === PHASES.revealCards ? revealedPack[currentIndex] : null;
+
+  if (!activeCard) {
+    return (
+      <Box
+        sx={{
+          display: 'grid',
+          minHeight: '100vh',
+          placeItems: 'center',
+          bgcolor: '#03050d',
+          px: 2,
+        }}
+      >
+        <CircularProgress color="warning" />
+      </Box>
+    );
+  }
+
+  const activeCardKey = activeCard.collectionTempId || activeCard.id || `${activeCard.name}-${currentIndex}`;
+  const isFinalStretch = currentIndex >= revealedPack.length - 3;
 
   return (
     <Box
@@ -497,11 +630,12 @@ export default function PackOpening() {
     >
       <Box sx={{ position: 'absolute', top: { xs: 20, md: 28 }, left: 0, right: 0, textAlign: 'center' }}>
         <Typography color="text.secondary" fontWeight={800}>
-          Card {currentIndex + 1} / {pack.length}
+          Opening {boosterLabel} ·{' '}
+          Card {Math.min(currentIndex + 1, revealedPack.length)} / {revealedPack.length}
         </Typography>
       </Box>
 
-      <Fade in timeout={260} key={`fade-${activeCard.id}-${currentIndex}`}>
+      <Fade in timeout={260} key={`fade-${activeCardKey}-${currentIndex}`}>
         <Box sx={{ position: 'relative' }}>
           <Zoom in timeout={260}>
             <Box>

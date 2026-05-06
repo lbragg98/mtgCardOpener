@@ -1,20 +1,46 @@
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import SearchIcon from '@mui/icons-material/Search';
 import {
   Alert,
   Box,
+  Button,
   Card,
-  CardActionArea,
   CardContent,
+  IconButton,
   InputAdornment,
   Skeleton,
   TextField,
   Typography,
+  useMediaQuery,
 } from '@mui/material';
-import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getSets } from '../api/scryfall.js';
-import PageHeader from '../components/PageHeader.jsx';
+
+const VISIBLE_SET_SLOTS = [-2, -1, 0, 1, 2];
+const DESKTOP_SLOT_STYLES = {
+  '-2': { x: -430, scale: 0.55, rotateY: 45, opacity: 0.25, zIndex: 3 },
+  '-1': { x: -260, scale: 0.78, rotateY: 30, opacity: 0.6, zIndex: 6 },
+  0: { x: 0, scale: 1, rotateY: 0, opacity: 1, zIndex: 10 },
+  1: { x: 260, scale: 0.78, rotateY: -30, opacity: 0.6, zIndex: 6 },
+  2: { x: 430, scale: 0.55, rotateY: -45, opacity: 0.25, zIndex: 3 },
+};
+const MOBILE_SLOT_STYLES = {
+  '-2': { x: -245, scale: 0.55, rotateY: 45, opacity: 0.25, zIndex: 3 },
+  '-1': { x: -145, scale: 0.78, rotateY: 30, opacity: 0.6, zIndex: 6 },
+  0: { x: 0, scale: 1, rotateY: 0, opacity: 1, zIndex: 10 },
+  1: { x: 145, scale: 0.78, rotateY: -30, opacity: 0.6, zIndex: 6 },
+  2: { x: 245, scale: 0.55, rotateY: -45, opacity: 0.25, zIndex: 3 },
+};
+const SPRING_TRANSITION = {
+  type: 'spring',
+  stiffness: 120,
+  damping: 22,
+  mass: 0.9,
+};
 
 function formatReleaseDate(date) {
   if (!date) {
@@ -28,34 +54,169 @@ function formatReleaseDate(date) {
   }).format(new Date(date));
 }
 
+function getWrappedIndex(index, length) {
+  return ((index % length) + length) % length;
+}
+
 function LoadingSetCards() {
   return (
-    <Box
-      sx={{
-        display: 'flex',
-        gap: 2.5,
-        overflowX: 'auto',
-        pb: 2,
-      }}
-    >
-      {Array.from({ length: 5 }).map((_, index) => (
-        <Card key={index} sx={{ flex: '0 0 280px', maxWidth: '82vw' }}>
-          <CardContent>
-            <Skeleton variant="circular" width={56} height={56} sx={{ mb: 3 }} />
-            <Skeleton variant="text" width="42%" />
-            <Skeleton variant="text" width="88%" height={36} />
-            <Skeleton variant="rounded" height={72} sx={{ my: 2 }} />
-            <Skeleton variant="rounded" width={132} height={36} />
-          </CardContent>
-        </Card>
+    <Box sx={{ display: 'grid', minHeight: 420, placeItems: 'center' }}>
+      <Card sx={{ width: { xs: '86vw', sm: 380 }, maxWidth: 420 }}>
+        <CardContent sx={{ p: 3 }}>
+          <Skeleton variant="circular" width={82} height={82} sx={{ mb: 3, mx: 'auto' }} />
+          <Skeleton variant="text" width="42%" sx={{ mx: 'auto' }} />
+          <Skeleton variant="text" width="88%" height={46} sx={{ mx: 'auto' }} />
+          <Skeleton variant="rounded" height={116} sx={{ my: 2 }} />
+          <Skeleton variant="rounded" width={156} height={42} sx={{ mx: 'auto' }} />
+        </CardContent>
+      </Card>
+    </Box>
+  );
+}
+
+function MagicalParticles() {
+  return (
+    <Box sx={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+      {Array.from({ length: 24 }).map((_, index) => (
+        <Box
+          key={index}
+          component={motion.div}
+          animate={{ y: [0, -16, 0], opacity: [0.18, 0.7, 0.18], scale: [0.8, 1.18, 0.8] }}
+          transition={{ duration: 2.6 + (index % 4) * 0.4, repeat: Infinity, delay: index * 0.11 }}
+          sx={{
+            position: 'absolute',
+            top: `${8 + ((index * 41) % 82)}%`,
+            left: `${3 + ((index * 47) % 94)}%`,
+            width: index % 4 === 0 ? 4 : 3,
+            height: index % 4 === 0 ? 4 : 3,
+            borderRadius: '50%',
+            bgcolor: index % 2 === 0 ? 'warning.main' : 'secondary.light',
+            boxShadow: '0 0 14px currentColor',
+          }}
+        />
       ))}
     </Box>
   );
 }
 
+function SetIcon({ set, size = 54 }) {
+  return (
+    <Box
+      sx={{
+        display: 'grid',
+        width: size,
+        height: size,
+        placeItems: 'center',
+        borderRadius: '50%',
+        bgcolor: 'rgba(244, 201, 93, 0.1)',
+        border: '1px solid rgba(244, 201, 93, 0.36)',
+        boxShadow: '0 0 30px rgba(244, 201, 93, 0.18)',
+      }}
+    >
+      {set.icon_svg_uri ? (
+        <Box
+          alt=""
+          component="img"
+          src={set.icon_svg_uri}
+          sx={{ width: size * 0.58, height: size * 0.58, filter: 'brightness(1.35) saturate(1.2)' }}
+        />
+      ) : (
+        <Typography color="warning.main" fontWeight={900}>
+          {set.code.slice(0, 2).toUpperCase()}
+        </Typography>
+      )}
+    </Box>
+  );
+}
+
+function SetCarouselCard({ isMobile, onChoose, onFocus, relativePosition, set }) {
+  const isActive = relativePosition === 0;
+  const slotStyle = isMobile ? MOBILE_SLOT_STYLES[relativePosition] : DESKTOP_SLOT_STYLES[relativePosition];
+
+  return (
+    <Card
+      component={motion.div}
+      animate={{
+        x: slotStyle.x,
+        y: isActive ? [-8, -16, -8] : 0,
+        scale: slotStyle.scale,
+        opacity: slotStyle.opacity,
+        rotateY: slotStyle.rotateY,
+      }}
+      initial={false}
+      onClick={() => {
+        if (isActive) {
+          onChoose();
+          return;
+        }
+
+        onFocus(relativePosition);
+      }}
+      style={{ zIndex: slotStyle.zIndex, transformStyle: 'preserve-3d' }}
+      transition={
+        isActive
+          ? {
+              x: SPRING_TRANSITION,
+              scale: SPRING_TRANSITION,
+              opacity: { duration: 0.18 },
+              rotateY: SPRING_TRANSITION,
+              y: { duration: 2.8, repeat: Infinity, ease: 'easeInOut' },
+            }
+          : SPRING_TRANSITION
+      }
+      sx={{
+        position: 'absolute',
+        left: '50%',
+        top: { xs: 24, sm: 34 },
+        ml: { xs: '-142px', sm: '-190px' },
+        width: { xs: 284, sm: 380 },
+        minHeight: { xs: 330, sm: 390 },
+        cursor: 'pointer',
+        overflow: 'hidden',
+        borderRadius: 4,
+        borderColor: isActive ? 'rgba(244, 201, 93, 0.76)' : 'rgba(76, 201, 240, 0.22)',
+        boxShadow: isActive
+          ? '0 0 58px rgba(244, 201, 93, 0.32), 0 0 120px rgba(143, 124, 255, 0.16), 0 24px 70px rgba(0, 0, 0, 0.5)'
+          : '0 18px 46px rgba(0, 0, 0, 0.36)',
+        '&::after': {
+          content: '""',
+          position: 'absolute',
+          inset: 0,
+          background:
+            'linear-gradient(118deg, transparent 0%, rgba(255,255,255,0.2) 28%, rgba(255,255,255,0.05) 40%, transparent 58%)',
+          opacity: isActive ? 0.78 : 0.22,
+          pointerEvents: 'none',
+        },
+      }}
+    >
+      <CardContent sx={{ position: 'relative', zIndex: 1, display: 'grid', minHeight: 'inherit', p: { xs: 2.5, sm: 3 } }}>
+        <Box sx={{ display: 'grid', justifyItems: 'center', textAlign: 'center' }}>
+          <SetIcon set={set} size={isActive ? 88 : 72} />
+          <Typography color="warning.main" fontWeight={900} sx={{ mt: 2, letterSpacing: 1.5 }}>
+            {set.code.toUpperCase()}
+          </Typography>
+          <Typography variant={isActive ? 'h4' : 'h5'} sx={{ mt: 0.5, lineHeight: 1.08 }}>
+            {set.name}
+          </Typography>
+        </Box>
+
+        <Box sx={{ display: 'grid', gap: 1.2, mt: 3, alignSelf: 'end' }}>
+          <Typography color="text.secondary">Released: {formatReleaseDate(set.released_at)}</Typography>
+          <Typography color="text.secondary">Cards: {set.card_count.toLocaleString()}</Typography>
+          <Typography color="text.secondary">Type: {set.set_type}</Typography>
+        </Box>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function SetSelection() {
+  const navigate = useNavigate();
+  const isMobile = useMediaQuery((theme) => theme.breakpoints.down('sm'));
+  const dragMovedRef = useRef(false);
   const [sets, setSets] = useState([]);
   const [search, setSearch] = useState('');
+  const [activeIndex, setActiveIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -103,151 +264,256 @@ export default function SetSelection() {
     );
   }, [search, sets]);
 
-  return (
-    <Box>
-      <PageHeader eyebrow="Open Packs" title="Select a set">
-        Browse real expansion and core sets from Scryfall, then choose one to continue into the
-        pack selection flow.
-      </PageHeader>
+  const activeSet = filteredSets.length ? filteredSets[getWrappedIndex(activeIndex, filteredSets.length)] : null;
 
-      <TextField
-        fullWidth
-        label="Search sets"
-        onChange={(event) => setSearch(event.target.value)}
-        placeholder="Search by set name or code"
-        value={search}
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              <SearchIcon color="secondary" />
-            </InputAdornment>
-          ),
-        }}
-        sx={{
-          mb: 4,
-          maxWidth: 520,
-          '& .MuiOutlinedInput-root': {
-            bgcolor: 'rgba(16, 20, 38, 0.72)',
-          },
-        }}
-      />
+  useEffect(() => {
+    setActiveIndex(0);
+  }, [search]);
+
+  const goNext = useCallback(() => {
+    if (filteredSets.length <= 1) {
+      return;
+    }
+
+    setActiveIndex((index) => index + 1);
+  }, [filteredSets.length]);
+
+  const goPrev = useCallback(() => {
+    if (filteredSets.length <= 1) {
+      return;
+    }
+
+    setActiveIndex((index) => index - 1);
+  }, [filteredSets.length]);
+
+  function focusRelativeSet(relativePosition) {
+    if (filteredSets.length <= 1) {
+      return;
+    }
+
+    setActiveIndex((index) => index + relativePosition);
+  }
+
+  function chooseSet() {
+    if (activeSet?.code) {
+      navigate(`/packs/${activeSet.code}`);
+    }
+  }
+
+  return (
+    <Box
+      sx={{
+        position: 'relative',
+        minHeight: 'calc(100vh - 96px)',
+        mx: { xs: -2, md: -4 },
+        px: { xs: 2, md: 4 },
+        py: { xs: 3, md: 5 },
+        overflow: 'hidden',
+        borderRadius: { xs: 0, md: 4 },
+        background:
+          'radial-gradient(circle at 50% 38%, rgba(244,201,93,0.16), transparent 28rem), radial-gradient(circle at 50% 62%, rgba(76,201,240,0.1), transparent 34rem), rgba(3,5,13,0.78)',
+      }}
+    >
+      <MagicalParticles />
+
+      <Box sx={{ position: 'relative', zIndex: 1, mx: 'auto', maxWidth: 980, textAlign: 'center' }}>
+        <Typography color="warning.main" fontWeight={900} sx={{ mb: 1 }}>
+          Open Packs
+        </Typography>
+        <Typography variant="h2" component="h1" sx={{ fontSize: { xs: 38, md: 58 }, mb: 1 }}>
+          Choose a Set
+        </Typography>
+        <Typography color="text.secondary" sx={{ mx: 'auto', maxWidth: 700, fontSize: 18, lineHeight: 1.65 }}>
+          Select a Magic set to generate a booster pack from real Scryfall data.
+        </Typography>
+
+        <Box
+          sx={{
+            display: 'grid',
+            gap: 1.5,
+            mx: 'auto',
+            mt: 3,
+            maxWidth: 620,
+            p: 1.5,
+            border: '1px solid rgba(248, 247, 255, 0.12)',
+            borderRadius: 3,
+            bgcolor: 'rgba(16, 20, 38, 0.58)',
+            backdropFilter: 'blur(12px)',
+          }}
+        >
+          <TextField
+            fullWidth
+            label="Search sets"
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search by set name or code"
+            value={search}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon color="secondary" />
+                </InputAdornment>
+              ),
+            }}
+            sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'rgba(5, 7, 17, 0.54)' } }}
+          />
+          {!isLoading && !error && (
+            <Typography color="text.secondary" sx={{ textAlign: 'left', px: 1 }}>
+              {filteredSets.length} {filteredSets.length === 1 ? 'set' : 'sets'} found
+            </Typography>
+          )}
+        </Box>
+      </Box>
 
       {isLoading && <LoadingSetCards />}
 
       {!isLoading && error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
+        <Alert severity="error" sx={{ position: 'relative', zIndex: 1, mt: 4 }}>
           {error}
         </Alert>
       )}
 
       {!isLoading && !error && filteredSets.length === 0 && (
-        <Alert severity="info" sx={{ mb: 3 }}>
-          No sets match that search.
-        </Alert>
+        <Card sx={{ position: 'relative', zIndex: 1, mx: 'auto', mt: 5, maxWidth: 560, textAlign: 'center' }}>
+          <CardContent sx={{ p: 4 }}>
+            <Typography variant="h4" gutterBottom>
+              No sets found
+            </Typography>
+            <Typography color="text.secondary">
+              Try searching by a set name like Dominaria or a code like DMU.
+            </Typography>
+          </CardContent>
+        </Card>
       )}
 
       {!isLoading && !error && filteredSets.length > 0 && (
-        <Box
-          sx={{
-            display: 'flex',
-            gap: 2.5,
-            mx: { xs: -2, sm: 0 },
-            overflowX: 'auto',
-            px: { xs: 2, sm: 0 },
-            pb: 2.5,
-            scrollSnapType: 'x mandatory',
-            WebkitOverflowScrolling: 'touch',
-            '&::-webkit-scrollbar': {
-              height: 10,
-            },
-            '&::-webkit-scrollbar-thumb': {
-              bgcolor: 'rgba(143, 124, 255, 0.5)',
-              borderRadius: 999,
-            },
-          }}
-        >
-          {filteredSets.map((set) => (
-            <Card
-              key={set.code}
+        <Box sx={{ position: 'relative', zIndex: 1, display: 'grid', justifyItems: 'center', gap: 2.5, mt: 4 }}>
+          <Box
+            sx={{
+              position: 'relative',
+              width: '100%',
+              maxWidth: 1060,
+              height: { xs: 390, sm: 500 },
+              overflow: 'hidden',
+              perspective: '1200px',
+              touchAction: 'pan-y',
+              '&::before': {
+                content: '""',
+                position: 'absolute',
+                left: '50%',
+                top: '48%',
+                width: { xs: 320, sm: 460 },
+                height: { xs: 320, sm: 460 },
+                transform: 'translate(-50%, -50%)',
+                borderRadius: '50%',
+                background:
+                  'radial-gradient(circle, rgba(244, 201, 93, 0.24), rgba(143, 124, 255, 0.15) 42%, transparent 68%)',
+                filter: 'blur(10px)',
+                pointerEvents: 'none',
+              },
+            }}
+          >
+            <IconButton
+              aria-label="Previous set"
+              disabled={filteredSets.length <= 1}
+              onClick={goPrev}
               sx={{
-                flex: { xs: '0 0 82vw', sm: '0 0 310px' },
-                maxWidth: 340,
-                minHeight: 320,
-                scrollSnapAlign: 'start',
+                position: 'absolute',
+                top: '50%',
+                left: { xs: 2, md: 18 },
+                zIndex: 20,
+                bgcolor: 'rgba(5, 7, 17, 0.72)',
+                border: '1px solid rgba(248, 247, 255, 0.16)',
+                '&:hover': { bgcolor: 'rgba(16, 20, 38, 0.92)' },
               }}
             >
-              <CardActionArea
-                component={Link}
-                to={`/packs/${set.code}`}
-                sx={{
-                  display: 'flex',
-                  height: '100%',
-                  alignItems: 'stretch',
-                }}
-              >
-                <CardContent sx={{ display: 'flex', width: '100%', flexDirection: 'column', p: 3 }}>
-                <Box
-                  sx={{
-                    display: 'grid',
-                    width: 64,
-                    height: 64,
-                    mb: 3,
-                    placeItems: 'center',
-                    borderRadius: '50%',
-                    bgcolor: 'rgba(244, 201, 93, 0.1)',
-                    border: '1px solid rgba(244, 201, 93, 0.32)',
-                    boxShadow: '0 0 28px rgba(244, 201, 93, 0.16)',
-                  }}
-                >
-                  {set.icon_svg_uri ? (
-                    <Box
-                      alt=""
-                      component="img"
-                      src={set.icon_svg_uri}
-                      sx={{
-                        width: 38,
-                        height: 38,
-                        filter: 'brightness(1.25) saturate(1.15)',
-                      }}
-                    />
-                  ) : (
-                    <Typography color="warning.main" fontWeight={900}>
-                      {set.code.slice(0, 2).toUpperCase()}
-                    </Typography>
-                  )}
-                </Box>
-                <Typography color="warning.main" fontWeight={800} gutterBottom>
-                  {set.code.toUpperCase()}
-                </Typography>
-                <Typography variant="h5" gutterBottom>
-                  {set.name}
-                </Typography>
-                <Box sx={{ display: 'grid', gap: 1.25, mt: 2, mb: 3, flexGrow: 1 }}>
-                  <Typography color="text.secondary">Released: {formatReleaseDate(set.released_at)}</Typography>
-                  <Typography color="text.secondary">Cards: {set.card_count.toLocaleString()}</Typography>
-                  <Typography color="text.secondary">Type: {set.set_type}</Typography>
-                </Box>
-                <Box
-                  sx={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    alignSelf: 'flex-start',
-                    gap: 1,
-                    px: 2,
-                    py: 1,
-                    borderRadius: 999,
-                    bgcolor: 'primary.main',
-                    color: 'primary.contrastText',
-                    fontWeight: 800,
-                  }}
-                >
-                  Choose Packs
-                  <ArrowForwardIcon fontSize="small" />
-                </Box>
-              </CardContent>
-              </CardActionArea>
-            </Card>
-          ))}
+              <ChevronLeftIcon />
+            </IconButton>
+
+            <IconButton
+              aria-label="Next set"
+              disabled={filteredSets.length <= 1}
+              onClick={goNext}
+              sx={{
+                position: 'absolute',
+                top: '50%',
+                right: { xs: 2, md: 18 },
+                zIndex: 20,
+                bgcolor: 'rgba(5, 7, 17, 0.72)',
+                border: '1px solid rgba(248, 247, 255, 0.16)',
+                '&:hover': { bgcolor: 'rgba(16, 20, 38, 0.92)' },
+              }}
+            >
+              <ChevronRightIcon />
+            </IconButton>
+
+            <Box sx={{ position: 'absolute', inset: 0, transformStyle: 'preserve-3d' }}>
+              {VISIBLE_SET_SLOTS.map((relativePosition) => {
+                const setIndex = getWrappedIndex(activeIndex + relativePosition, filteredSets.length);
+                const set = filteredSets[setIndex];
+
+                return (
+                  <SetCarouselCard
+                    key={`set-slot-${relativePosition}`}
+                    isMobile={isMobile}
+                    onChoose={chooseSet}
+                    onFocus={focusRelativeSet}
+                    relativePosition={relativePosition}
+                    set={set}
+                  />
+                );
+              })}
+            </Box>
+
+            <Box
+              component={motion.div}
+              drag={filteredSets.length > 1 ? 'x' : false}
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0}
+              onClick={() => {
+                if (!dragMovedRef.current) {
+                  chooseSet();
+                }
+              }}
+              onDrag={(_, info) => {
+                if (Math.abs(info.offset.x) > 8) {
+                  dragMovedRef.current = true;
+                }
+              }}
+              onDragEnd={(_, info) => {
+                if (info.offset.x < -60) {
+                  goNext();
+                } else if (info.offset.x > 60) {
+                  goPrev();
+                }
+
+                window.setTimeout(() => {
+                  dragMovedRef.current = false;
+                }, 180);
+              }}
+              style={{ x: 0 }}
+              sx={{
+                position: 'absolute',
+                inset: 0,
+                zIndex: 18,
+                cursor: filteredSets.length > 1 ? 'grab' : 'pointer',
+                bgcolor: 'transparent',
+                '&:active': {
+                  cursor: filteredSets.length > 1 ? 'grabbing' : 'pointer',
+                },
+              }}
+            />
+          </Box>
+
+          {activeSet && (
+            <Box sx={{ display: 'grid', justifyItems: 'center', gap: 1.5, textAlign: 'center' }}>
+              <Typography color="text.secondary">
+                Selected: {activeSet.name} ({activeSet.code.toUpperCase()})
+              </Typography>
+              <Button endIcon={<ArrowForwardIcon />} onClick={chooseSet} size="large" variant="contained">
+                Choose This Set
+              </Button>
+            </Box>
+          )}
         </Box>
       )}
     </Box>

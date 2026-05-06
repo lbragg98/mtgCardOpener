@@ -20,31 +20,1150 @@ a {
   text-decoration: none;
 }
 
-.foil-card::after {
-  animation: foil-shimmer 2.2s linear infinite;
+.cardImageWrapper,
+.card-image-wrapper {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.32);
+}
+
+.cardImageWrapper.cardImageLarge,
+.card-image-wrapper.card-image-large {
+  border-radius: 18px;
+}
+
+.cardImage,
+.card-image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 488 / 680;
+  object-fit: contain;
+  user-select: none;
+}
+
+.sealedPack {
+  --pack-accent-art: none;
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid rgba(248, 247, 255, 0.22);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 50% 26%, rgba(244, 201, 93, 0.34), transparent 26%),
+    radial-gradient(circle at 24% 58%, rgba(76, 201, 240, 0.24), transparent 32%),
+    radial-gradient(circle at 78% 68%, rgba(143, 124, 255, 0.3), transparent 34%),
+    linear-gradient(156deg, #101421 0%, #2b1748 36%, #0b2430 66%, #070913 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 0 38px rgba(255, 255, 255, 0.07),
+    0 22px 48px rgba(0, 0, 0, 0.5);
+  color: #fff;
+  transform: translateZ(0);
+}
+
+.sealedPackActive {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 0 42px rgba(255, 255, 255, 0.08),
+    0 0 34px rgba(244, 201, 93, 0.24),
+    0 24px 60px rgba(0, 0, 0, 0.56);
+}
+
+.pack3d {
+  --pack-depth: 14px;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  transform-style: preserve-3d;
+  filter: drop-shadow(0 22px 34px rgba(0, 0, 0, 0.42));
+}
+
+.pack3d::after {
+  content: "";
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: -18px;
+  height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(244, 201, 93, 0.18), rgba(76, 201, 240, 0.08) 42%, transparent 72%);
+  filter: blur(8px);
+  opacity: 0.72;
+  transform: rotateX(82deg) translateZ(-28px);
+  pointer-events: none;
+}
+
+.pack3dActive {
+  filter:
+    drop-shadow(0 0 22px rgba(244, 201, 93, 0.26))
+    drop-shadow(0 26px 38px rgba(0, 0, 0, 0.48));
+}
+
+.packFace,
+.packSide {
+  position: absolute;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.packFace {
+  inset: 0;
+  border-radius: 28px 28px 18px 18px;
+  overflow: hidden;
+}
+
+.packFront {
+  transform: translateZ(var(--pack-depth));
+}
+
+.packBack {
+  transform: rotateY(180deg) translateZ(var(--pack-depth));
+}
+
+.packSide {
+  top: 10px;
+  bottom: 10px;
+  width: calc(var(--pack-depth) * 2);
+  border-radius: 9px;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.22), rgba(5, 7, 17, 0.92) 22%, rgba(30, 34, 56, 0.96) 54%, rgba(255, 255, 255, 0.12)),
+    repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0 5px, transparent 5px 14px);
+  box-shadow:
+    inset 0 0 16px rgba(255, 255, 255, 0.12),
+    inset 0 0 24px rgba(0, 0, 0, 0.58);
+}
+
+.packSideLeft {
+  left: calc(var(--pack-depth) * -1);
+  transform: rotateY(-90deg) translateZ(var(--pack-depth));
+  transform-origin: right center;
+}
+
+.packSideRight {
+  right: calc(var(--pack-depth) * -1);
+  transform: rotateY(90deg) translateZ(var(--pack-depth));
+  transform-origin: left center;
+}
+
+.packBackDesign {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid rgba(248, 247, 255, 0.18);
+  border-radius: 28px 28px 18px 18px;
+  background:
+    radial-gradient(circle at 50% 28%, rgba(244, 201, 93, 0.2), transparent 28%),
+    radial-gradient(circle at 32% 62%, rgba(76, 201, 240, 0.16), transparent 34%),
+    linear-gradient(154deg, #070913, #171b2f 42%, #0a2030 70%, #050711);
+  box-shadow:
+    inset 0 0 34px rgba(255, 255, 255, 0.06),
+    inset 0 0 52px rgba(0, 0, 0, 0.32);
+  color: #f4c95d;
+}
+
+.packBackDesign::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(120deg, transparent 8%, rgba(255, 255, 255, 0.18) 34%, transparent 52%),
+    repeating-linear-gradient(98deg, rgba(255, 255, 255, 0.035) 0 2px, transparent 2px 14px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.35), transparent 12%, transparent 88%, rgba(0, 0, 0, 0.38));
+  pointer-events: none;
+}
+
+.packBackSeal {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  height: 13%;
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.11) 0 2px, rgba(2, 4, 12, 0.22) 2px 10px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(3, 5, 13, 0.6));
+}
+
+.packBackSealTop {
+  top: 0;
+  border-bottom: 1px solid rgba(248, 247, 255, 0.16);
+}
+
+.packBackSealBottom {
+  bottom: 0;
+  border-top: 1px solid rgba(248, 247, 255, 0.14);
+}
+
+.packBackPanel {
+  position: absolute;
+  inset: 16% 10% 13%;
+  z-index: 1;
+  display: grid;
+  grid-template-rows: auto 1fr auto auto;
+  justify-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.packBackEmblem {
+  display: grid;
+  width: 54px;
+  height: 54px;
+  place-items: center;
+  border: 1px solid rgba(244, 201, 93, 0.56);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(244, 201, 93, 0.22), rgba(5, 7, 17, 0.84));
+  box-shadow: 0 0 24px rgba(244, 201, 93, 0.22);
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.packBackName {
+  align-self: center;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: clamp(1.2rem, 6vw, 1.65rem);
+  font-weight: 950;
+  line-height: 1;
+  overflow-wrap: anywhere;
+  text-transform: uppercase;
+}
+
+.packBackLabel {
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid rgba(248, 247, 255, 0.2);
+  border-radius: 10px;
+  background: rgba(5, 7, 17, 0.58);
+  font-weight: 950;
+}
+
+.packBackBarcode {
+  width: 72%;
+  height: 30px;
+  opacity: 0.62;
+  background:
+    repeating-linear-gradient(90deg, rgba(248, 247, 255, 0.72) 0 2px, transparent 2px 5px, rgba(248, 247, 255, 0.55) 5px 7px, transparent 7px 12px),
+    linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+}
+
+.packTopSeal,
+.packBottomSeal,
+.packBody,
+.packBackdropArt,
+.packCrinkles,
+.packShine,
+.packSideSeams,
+.packBranding {
+  position: absolute;
+}
+
+.packTopSeal {
+  left: 0;
+  right: 0;
+  top: 0;
+  z-index: 8;
+  height: 12%;
+  border-bottom: 1px solid rgba(248, 247, 255, 0.2);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.13), transparent 24%, rgba(2, 4, 12, 0.32)),
+    linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.16), transparent),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.13) 0 2px, rgba(2, 4, 12, 0.18) 2px 10px),
+    linear-gradient(180deg, #1a1e31, #080a14);
+  box-shadow: 0 13px 22px rgba(0, 0, 0, 0.28);
+}
+
+.packTopSeal::after {
+  content: "";
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 56%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.38), transparent);
+  opacity: 0.72;
+}
+
+.packBottomSeal {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 8;
+  height: 10%;
+  border-top: 1px solid rgba(248, 247, 255, 0.16);
+  background:
+    linear-gradient(180deg, rgba(2, 4, 12, 0.22), rgba(255, 255, 255, 0.1) 48%, rgba(2, 4, 12, 0.36)),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.11) 0 2px, rgba(2, 4, 12, 0.18) 2px 10px),
+    linear-gradient(180deg, #11182b, #050711);
+  box-shadow: 0 -12px 22px rgba(0, 0, 0, 0.28);
+}
+
+.packBody {
+  inset: 10% 0;
+  z-index: 1;
+  background:
+    radial-gradient(circle at 50% 34%, rgba(244, 201, 93, 0.3), transparent 24%),
+    radial-gradient(circle at 35% 58%, rgba(76, 201, 240, 0.2), transparent 29%),
+    radial-gradient(circle at 70% 62%, rgba(143, 124, 255, 0.26), transparent 31%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 28%, rgba(5, 7, 17, 0.24) 72%);
+}
+
+.packBackdropArt {
+  inset: 14% 9% 23%;
+  z-index: 2;
+  overflow: hidden;
+  border: 1px solid rgba(248, 247, 255, 0.12);
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(5, 7, 17, 0.58), rgba(5, 7, 17, 0.86)),
+    var(--pack-accent-art);
+  background-position: center;
+  background-size: cover;
+  filter: blur(1.5px) saturate(1.12);
+  opacity: 0.44;
+  transform: scale(1.03);
+}
+
+.packBackdropArt::after {
+  content: "";
+  position: absolute;
+  inset: -24px;
+  background-image: var(--pack-accent-art);
+  background-position: center;
+  background-size: cover;
+  filter: blur(18px) saturate(1.25);
+  opacity: 0.56;
+  transform: scale(1.16);
+}
+
+.packCrinkles {
+  inset: 0;
+  z-index: 9;
+  background:
+    repeating-linear-gradient(102deg, rgba(255, 255, 255, 0.045) 0 1px, transparent 1px 15px),
+    repeating-linear-gradient(174deg, rgba(244, 201, 93, 0.04) 0 1px, transparent 1px 18px),
+    linear-gradient(88deg, rgba(255, 255, 255, 0.08), transparent 13%, transparent 86%, rgba(255, 255, 255, 0.08)),
+    linear-gradient(12deg, transparent 38%, rgba(255, 255, 255, 0.05), transparent 58%);
+  opacity: 0.74;
+  pointer-events: none;
+}
+
+.packShine {
+  inset: 0;
+  z-index: 12;
+  background:
+    linear-gradient(120deg, transparent 3%, rgba(255, 255, 255, 0.28) 25%, rgba(255, 255, 255, 0.08) 36%, transparent 55%),
+    linear-gradient(72deg, transparent 18%, rgba(76, 201, 240, 0.11) 38%, rgba(244, 201, 93, 0.12) 46%, transparent 62%);
+  mix-blend-mode: screen;
+  opacity: 0.58;
+  pointer-events: none;
+}
+
+.packSideSeams {
+  inset: 0;
+  z-index: 7;
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.36), transparent 8%, transparent 92%, rgba(0, 0, 0, 0.42)),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.12), transparent 4%, transparent 96%, rgba(255, 255, 255, 0.1));
+  pointer-events: none;
+}
+
+.packBranding {
+  left: 8%;
+  right: 8%;
+  top: 18%;
+  bottom: 11%;
+  z-index: 10;
+  display: grid;
+  grid-template-rows: minmax(44px, 0.5fr) minmax(0, 1fr) auto;
+  place-items: center;
+  gap: clamp(8px, 2.2vh, 16px);
+  text-align: center;
+  text-shadow: 0 3px 15px rgba(0, 0, 0, 0.9);
+  pointer-events: none;
+}
+
+.packSetCode {
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 8px;
+  border: 1px solid rgba(244, 201, 93, 0.68);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(244, 201, 93, 0.32), rgba(76, 201, 240, 0.12) 44%, rgba(5, 7, 17, 0.82));
+  box-shadow: 0 0 24px rgba(244, 201, 93, 0.3);
+  color: #f4c95d;
+  font-size: clamp(0.62rem, 3.4vw, 0.78rem);
+  font-weight: 950;
+  letter-spacing: 0;
+  line-height: 1;
+}
+
+.packSetCode img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.packSetName {
+  align-self: center;
+  max-width: 100%;
+  color: #fff;
+  font-size: clamp(1.45rem, 8.2vw, 2.05rem);
+  font-weight: 950;
+  letter-spacing: 0;
+  line-height: 0.96;
+  overflow-wrap: anywhere;
+  text-transform: uppercase;
+}
+
+.packBoosterType {
+  width: min(100%, 220px);
+  padding: 0.55rem 0.7rem;
+  border: 1px solid rgba(248, 247, 255, 0.32);
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(5, 7, 17, 0.78), rgba(5, 7, 17, 0.48));
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.34);
+  color: #f4c95d;
+  font-size: clamp(1rem, 5.6vw, 1.28rem);
+  font-weight: 950;
+  letter-spacing: 0;
+  line-height: 1;
+}
+
+.tearSeam {
+  position: absolute;
+  top: 12%;
+  left: -24px;
+  right: -24px;
+  z-index: 20;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(244, 201, 93, 0.28);
+  box-shadow: 0 0 22px rgba(244, 201, 93, 0.72);
+  pointer-events: none;
+}
+
+.tearProgress {
+  width: 70px;
+  height: 5px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.95), transparent);
+}
+
+.tornTopStrip {
+  filter: drop-shadow(0 18px 28px rgba(0, 0, 0, 0.4));
+}
+
+@media (max-width: 520px) {
+  .packBranding {
+    left: 9%;
+    right: 9%;
+    top: 19%;
+    gap: 8px;
+  }
+
+  .packSetCode {
+    min-width: 40px;
+    min-height: 40px;
+  }
+}
+
+.foil-rainbow,
+.foil-standard {
+  box-shadow:
+    0 0 24px rgba(244, 201, 93, 0.24),
+    0 0 58px rgba(76, 201, 240, 0.18);
+}
+
+.foil-etched {
+  box-shadow:
+    0 0 22px rgba(210, 210, 226, 0.18),
+    0 0 44px rgba(244, 201, 93, 0.16);
+}
+
+.foil-galaxy,
+.foil-premium {
+  box-shadow:
+    0 0 30px rgba(143, 124, 255, 0.5),
+    0 0 88px rgba(76, 201, 240, 0.18),
+    0 0 118px rgba(5, 7, 17, 0.32);
+}
+
+.foil-gilded {
+  box-shadow:
+    inset 0 0 0 2px rgba(244, 201, 93, 0.44),
+    0 0 32px rgba(244, 201, 93, 0.56),
+    0 0 82px rgba(255, 214, 112, 0.22);
+}
+
+.foil-textured {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+    0 0 38px rgba(244, 201, 93, 0.42),
+    0 0 94px rgba(255, 255, 255, 0.2);
+}
+
+.foilOverlay,
+.foilSweep,
+.foilSparkles,
+.foil-shimmer,
+.foil-sweep,
+.foil-sparkles {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.foilOverlay {
+  mix-blend-mode: screen;
+}
+
+.foilOverlay::before,
+.foilOverlay::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.foilOverlay::before {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.08), transparent 18%, transparent 82%, rgba(255, 255, 255, 0.06));
+}
+
+.foilOverlay::after {
+  background: radial-gradient(circle at 50% 18%, rgba(255, 255, 255, 0.12), transparent 32%);
+  opacity: 0.48;
+}
+
+.foil-rainbow .foilOverlay,
+.foil-standard .foilOverlay {
+  animation: foilShift 4s linear infinite;
   background: linear-gradient(
     115deg,
     transparent 0%,
-    rgba(76, 201, 240, 0.12) 22%,
-    rgba(244, 201, 93, 0.22) 38%,
-    rgba(185, 140, 255, 0.2) 52%,
-    transparent 72%
+    rgba(255, 255, 255, 0.18) 18%,
+    rgba(255, 51, 214, 0.2) 34%,
+    rgba(51, 224, 255, 0.18) 50%,
+    rgba(255, 236, 92, 0.18) 66%,
+    transparent 86%
   );
-  content: '';
-  inset: 0;
-  mix-blend-mode: screen;
-  opacity: 0.72;
-  pointer-events: none;
-  position: absolute;
-  transform: translateX(-80%);
+  background-size: 260% 260%;
+  opacity: 0.38;
 }
 
-@keyframes foil-shimmer {
+.foil-etched .foilOverlay {
+  animation: metallicShift 6s linear infinite;
+  background:
+    linear-gradient(116deg, rgba(255, 236, 170, 0.18), transparent 28%, rgba(220, 226, 238, 0.18) 52%, transparent 76%),
+    repeating-linear-gradient(74deg, rgba(255, 255, 255, 0.08) 0 1px, rgba(0, 0, 0, 0.03) 1px 4px, transparent 4px 8px),
+    linear-gradient(90deg, rgba(244, 201, 93, 0.1), transparent, rgba(220, 226, 238, 0.12));
+  background-size: 220% 220%, 18px 18px, 100% 100%;
+  opacity: 0.42;
+}
+
+.foil-galaxy .foilOverlay,
+.foil-premium .foilOverlay {
+  animation: foilShift 5s linear infinite;
+  background:
+    radial-gradient(circle at 18% 24%, rgba(255, 255, 255, 0.7) 0 1px, transparent 2px),
+    radial-gradient(circle at 62% 18%, rgba(143, 124, 255, 0.66) 0 1px, transparent 2px),
+    radial-gradient(circle at 78% 64%, rgba(76, 201, 240, 0.68) 0 1px, transparent 2px),
+    linear-gradient(125deg, rgba(20, 12, 54, 0.14), rgba(143, 124, 255, 0.3), rgba(76, 201, 240, 0.16));
+  background-size: 120px 140px, 160px 120px, 140px 160px, 260% 260%;
+  opacity: 0.5;
+}
+
+.foil-gilded .foilOverlay {
+  animation: metallicShift 4.4s linear infinite;
+  background:
+    linear-gradient(112deg, rgba(255, 242, 184, 0.26), transparent 24%, rgba(244, 201, 93, 0.32) 52%, transparent 76%),
+    linear-gradient(90deg, rgba(244, 201, 93, 0.22), transparent 8%, transparent 92%, rgba(244, 201, 93, 0.22)),
+    radial-gradient(circle at 50% 16%, rgba(255, 232, 154, 0.18), transparent 34%);
+  background-size: 250% 250%, 100% 100%, 100% 100%;
+  opacity: 0.52;
+}
+
+.foil-textured .foilOverlay {
+  animation: texturePulse 3.2s ease-in-out infinite;
+  background:
+    repeating-linear-gradient(38deg, rgba(255, 255, 255, 0.1) 0 1px, transparent 1px 6px),
+    repeating-linear-gradient(128deg, rgba(244, 201, 93, 0.08) 0 1px, transparent 1px 8px),
+    linear-gradient(115deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  background-size: 18px 18px, 22px 22px, 240% 240%;
+  opacity: 0.5;
+}
+
+.foilSweep,
+.foil-sweep {
+  animation: foilSweep 3s ease-in-out infinite;
+  background: linear-gradient(120deg, transparent 35%, rgba(255, 255, 255, 0.5) 50%, transparent 65%);
+  opacity: 0.42;
+  transform: translateX(-120%);
+}
+
+.foil-etched .foilSweep {
+  animation-duration: 4.4s;
+  background: linear-gradient(120deg, transparent 36%, rgba(255, 241, 190, 0.38) 50%, transparent 64%);
+  opacity: 0.32;
+}
+
+.foil-galaxy .foilSweep,
+.foil-premium .foilSweep,
+.foil-textured .foilSweep {
+  animation-duration: 2.35s;
+  opacity: 0.58;
+}
+
+.foil-gilded .foilSweep {
+  background: linear-gradient(120deg, transparent 34%, rgba(255, 236, 170, 0.68) 50%, transparent 66%);
+  opacity: 0.62;
+}
+
+.foilSparkles,
+.foil-sparkles {
+  animation: sparklePulse 2.7s ease-in-out infinite;
+  background:
+    radial-gradient(circle at 18% 22%, rgba(255, 255, 255, 0.68) 0 1px, transparent 2px),
+    radial-gradient(circle at 72% 28%, rgba(244, 201, 93, 0.62) 0 1px, transparent 2px),
+    radial-gradient(circle at 42% 66%, rgba(76, 201, 240, 0.6) 0 1px, transparent 2px),
+    radial-gradient(circle at 86% 76%, rgba(255, 255, 255, 0.54) 0 1px, transparent 2px);
+  opacity: 0.32;
+}
+
+.foil-etched .foilSparkles {
+  opacity: 0.14;
+}
+
+.foil-galaxy .foilSparkles,
+.foil-premium .foilSparkles {
+  animation-duration: 1.9s;
+  background:
+    radial-gradient(circle at 12% 20%, rgba(255, 255, 255, 0.82) 0 1px, transparent 2px),
+    radial-gradient(circle at 32% 72%, rgba(143, 124, 255, 0.78) 0 1px, transparent 2px),
+    radial-gradient(circle at 68% 34%, rgba(76, 201, 240, 0.74) 0 1px, transparent 2px),
+    radial-gradient(circle at 86% 80%, rgba(255, 255, 255, 0.72) 0 1px, transparent 2px);
+  opacity: 0.72;
+}
+
+.foil-gilded .foilSparkles {
+  opacity: 0.46;
+}
+
+.foil-textured .foilSparkles {
+  opacity: 0.28;
+}
+
+.foilLabel,
+.foil-label {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  z-index: 8;
+  box-shadow: 0 0 18px rgba(244, 201, 93, 0.34);
+  font-weight: 900;
+  pointer-events: none;
+}
+
+.foilCard {
+  isolation: isolate;
+}
+
+.foilCard .cardImage {
+  position: relative;
+  z-index: 1;
+}
+
+.foilAura,
+.foilRevealBurst,
+.foilBorderGlow,
+.foilTexturePattern {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.foilAura {
+  z-index: 0;
+  opacity: 0.7;
+  animation: auraPulse 2.6s ease-in-out infinite;
+}
+
+.foilOverlay {
+  z-index: 2;
+}
+
+.foilSweep {
+  z-index: 3;
+}
+
+.foilSparkles,
+.foilTexturePattern {
+  z-index: 4;
+}
+
+.foilRevealBurst {
+  z-index: 5;
+  opacity: 0;
+}
+
+.foilBorderGlow {
+  z-index: 6;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.22);
+}
+
+.foilVariant-grid .foilOverlay,
+.foilVariant-grid .foilSweep,
+.foilVariant-grid .foilSparkles,
+.foilVariant-grid .foilTexturePattern {
+  opacity: 0.55;
+}
+
+.foilVariant-grid .foilAura,
+.foilVariant-grid .foilRevealBurst {
+  display: none;
+}
+
+.foilVariant-detail .foilOverlay,
+.foilVariant-detail .foilSweep,
+.foilVariant-detail .foilSparkles {
+  opacity: 0.9;
+}
+
+.foilVariant-reveal {
+  animation: foilCardPop 0.62s ease-out both;
+}
+
+.foilVariant-reveal .foilRevealBurst {
+  animation: revealBurst 1.05s ease-out both;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.34), transparent 16%),
+    radial-gradient(circle at 50% 50%, rgba(76, 201, 240, 0.24), transparent 42%),
+    radial-gradient(circle at 50% 50%, rgba(244, 201, 93, 0.18), transparent 72%);
+}
+
+.foilVariant-reveal.foilIntensity-3,
+.foilVariant-reveal.foilIntensity-4 {
+  animation: foilCardPop 0.74s ease-out both, auraPulse 1.8s ease-in-out infinite;
+}
+
+.foilVariant-reveal.foilIntensity-4 {
+  transform-origin: center;
+  animation: foilCardPop 0.82s ease-out both, textureRipple 2.2s ease-in-out infinite;
+}
+
+.foilRainbow,
+.foil-rainbow {
+  box-shadow:
+    0 0 34px rgba(244, 201, 93, 0.38),
+    0 0 72px rgba(76, 201, 240, 0.3),
+    0 0 110px rgba(255, 51, 214, 0.18);
+}
+
+.foilRainbow .foilAura {
+  background: radial-gradient(circle at 50% 45%, rgba(255, 236, 92, 0.28), rgba(51, 224, 255, 0.18) 42%, transparent 72%);
+}
+
+.foilRainbow .foilOverlay,
+.foil-rainbow .foilOverlay,
+.foil-standard .foilOverlay {
+  animation: prismaticShift 2.8s linear infinite;
+  background:
+    linear-gradient(
+      118deg,
+      transparent 0%,
+      rgba(255, 45, 120, 0.24) 13%,
+      rgba(255, 174, 45, 0.24) 25%,
+      rgba(255, 244, 76, 0.24) 38%,
+      rgba(72, 255, 147, 0.22) 50%,
+      rgba(76, 220, 255, 0.24) 63%,
+      rgba(117, 92, 255, 0.24) 76%,
+      rgba(255, 65, 216, 0.22) 88%,
+      transparent 100%
+    );
+  background-size: 320% 320%;
+  opacity: 0.62;
+}
+
+.foilRainbow .foilSweep {
+  animation-duration: 1.8s;
+  background: linear-gradient(120deg, transparent 28%, rgba(255, 255, 255, 0.78) 48%, rgba(76, 220, 255, 0.42) 54%, transparent 70%);
+  opacity: 0.75;
+}
+
+.foilEtched,
+.foil-etched {
+  box-shadow:
+    inset 0 0 0 1px rgba(235, 229, 204, 0.24),
+    0 0 28px rgba(210, 210, 226, 0.28),
+    0 0 64px rgba(244, 201, 93, 0.18);
+}
+
+.foilEtched .foilAura {
+  background: radial-gradient(circle at 50% 36%, rgba(244, 201, 93, 0.18), rgba(220, 226, 238, 0.12) 48%, transparent 72%);
+}
+
+.foilEtched .foilOverlay,
+.foil-etched .foilOverlay {
+  animation: metallicGlint 4.2s linear infinite;
+  background:
+    repeating-linear-gradient(62deg, rgba(255, 255, 255, 0.14) 0 1px, rgba(0, 0, 0, 0.06) 1px 3px, transparent 3px 7px),
+    linear-gradient(112deg, rgba(255, 240, 184, 0.24), transparent 30%, rgba(226, 232, 240, 0.28) 52%, transparent 76%),
+    linear-gradient(90deg, rgba(244, 201, 93, 0.12), transparent, rgba(220, 226, 238, 0.14));
+  background-size: 18px 18px, 260% 260%, 100% 100%;
+  opacity: 0.58;
+}
+
+.foilEtched .foilSparkles {
+  opacity: 0.18;
+}
+
+.foilGalaxy,
+.foil-galaxy,
+.foil-premium {
+  box-shadow:
+    0 0 42px rgba(143, 124, 255, 0.62),
+    0 0 92px rgba(76, 201, 240, 0.32),
+    0 0 140px rgba(30, 16, 80, 0.38);
+}
+
+.foilGalaxy .foilAura {
+  background:
+    radial-gradient(circle at 50% 48%, rgba(143, 124, 255, 0.34), rgba(76, 201, 240, 0.18) 40%, transparent 72%),
+    radial-gradient(circle at 22% 20%, rgba(255, 255, 255, 0.18), transparent 20%);
+}
+
+.foilGalaxy .foilOverlay,
+.foil-galaxy .foilOverlay,
+.foil-premium .foilOverlay {
+  animation: galaxyDrift 6s linear infinite;
+  background:
+    radial-gradient(circle at 12% 20%, rgba(255, 255, 255, 0.95) 0 1px, transparent 2px),
+    radial-gradient(circle at 32% 72%, rgba(143, 124, 255, 0.9) 0 1px, transparent 2px),
+    radial-gradient(circle at 68% 34%, rgba(76, 201, 240, 0.86) 0 1px, transparent 2px),
+    radial-gradient(circle at 86% 80%, rgba(255, 255, 255, 0.78) 0 1px, transparent 2px),
+    linear-gradient(130deg, rgba(18, 10, 42, 0.22), rgba(143, 124, 255, 0.38), rgba(76, 201, 240, 0.2));
+  background-size: 90px 120px, 120px 90px, 110px 140px, 140px 110px, 280% 280%;
+  opacity: 0.68;
+}
+
+.foilGalaxy .foilSparkles {
+  animation: sparkleTwinkle 1.45s ease-in-out infinite;
+  opacity: 0.88;
+}
+
+.foilGilded,
+.foil-gilded {
+  box-shadow:
+    inset 0 0 0 3px rgba(244, 201, 93, 0.7),
+    inset 0 0 18px rgba(255, 232, 154, 0.24),
+    0 0 44px rgba(244, 201, 93, 0.72),
+    0 0 110px rgba(255, 186, 64, 0.28);
+}
+
+.foilGilded .foilAura {
+  background: radial-gradient(circle at 50% 46%, rgba(255, 214, 112, 0.36), rgba(244, 201, 93, 0.2) 42%, transparent 72%);
+}
+
+.foilGilded .foilOverlay,
+.foil-gilded .foilOverlay {
+  animation: gildedPulse 2.4s ease-in-out infinite;
+  background:
+    linear-gradient(112deg, rgba(255, 242, 184, 0.38), transparent 24%, rgba(244, 201, 93, 0.42) 52%, transparent 76%),
+    linear-gradient(90deg, rgba(244, 201, 93, 0.34), transparent 8%, transparent 92%, rgba(244, 201, 93, 0.34)),
+    radial-gradient(circle at 14% 12%, rgba(255, 236, 170, 0.58) 0 1px, transparent 3px),
+    radial-gradient(circle at 86% 84%, rgba(255, 236, 170, 0.5) 0 1px, transparent 3px);
+  background-size: 280% 280%, 100% 100%, 80px 90px, 90px 80px;
+  opacity: 0.72;
+}
+
+.foilGilded .foilBorderGlow {
+  box-shadow:
+    inset 0 0 0 3px rgba(255, 224, 138, 0.78),
+    inset 0 0 28px rgba(244, 201, 93, 0.28);
+}
+
+.foilTextured,
+.foil-textured {
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 255, 255, 0.28),
+    0 0 56px rgba(244, 201, 93, 0.62),
+    0 0 122px rgba(255, 255, 255, 0.26),
+    0 0 160px rgba(143, 124, 255, 0.24);
+}
+
+.foilTextured .foilAura {
+  background:
+    radial-gradient(circle at 50% 46%, rgba(255, 255, 255, 0.36), rgba(244, 201, 93, 0.22) 35%, rgba(143, 124, 255, 0.18) 58%, transparent 78%);
+}
+
+.foilTextured .foilOverlay,
+.foil-textured .foilOverlay {
+  animation: textureRipple 1.85s ease-in-out infinite;
+  background:
+    repeating-linear-gradient(38deg, rgba(255, 255, 255, 0.16) 0 1px, transparent 1px 6px),
+    repeating-linear-gradient(128deg, rgba(244, 201, 93, 0.14) 0 1px, transparent 1px 8px),
+    radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.28), transparent 34%),
+    linear-gradient(115deg, transparent, rgba(255, 255, 255, 0.34), transparent);
+  background-size: 16px 16px, 20px 20px, 100% 100%, 260% 260%;
+  opacity: 0.76;
+}
+
+.foilTextured .foilTexturePattern {
+  animation: textureRipple 2.4s ease-in-out infinite reverse;
+  background:
+    repeating-radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.08) 0 1px, transparent 1px 7px),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.06) 0 1px, transparent 1px 9px);
+  mix-blend-mode: overlay;
+  opacity: 0.7;
+}
+
+.foilTextured .foilSweep {
+  animation-duration: 1.55s;
+  background: linear-gradient(120deg, transparent 24%, rgba(255, 255, 255, 0.82) 48%, rgba(244, 201, 93, 0.42) 57%, transparent 74%);
+  opacity: 0.86;
+}
+
+.foilVariant-reveal.foilRarity-rare .foilRevealBurst,
+.foilVariant-reveal.foilRarity-mythic .foilRevealBurst {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.55), transparent 16%),
+    radial-gradient(circle at 50% 50%, rgba(244, 201, 93, 0.46), transparent 42%),
+    radial-gradient(circle at 50% 50%, rgba(143, 124, 255, 0.26), transparent 72%);
+}
+
+.foilVariant-reveal.foilRarity-mythic.foilTextured .foilRevealBurst {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.72), transparent 14%),
+    radial-gradient(circle at 50% 50%, rgba(244, 201, 93, 0.62), transparent 40%),
+    radial-gradient(circle at 50% 50%, rgba(143, 124, 255, 0.42), transparent 78%);
+}
+
+.reveal-special-pulse {
+  animation: revealPulse 1.7s ease-in-out infinite;
+}
+
+@keyframes foilShift {
   from {
-    transform: translateX(-85%);
+    background-position: 0% 50%;
   }
 
   to {
-    transform: translateX(85%);
+    background-position: 200% 50%;
+  }
+}
+
+@keyframes prismaticShift {
+  0% {
+    background-position: 0% 50%;
+    filter: hue-rotate(0deg) saturate(1.15);
+  }
+
+  50% {
+    background-position: 100% 50%;
+    filter: hue-rotate(22deg) saturate(1.35);
+  }
+
+  100% {
+    background-position: 200% 50%;
+    filter: hue-rotate(0deg) saturate(1.15);
+  }
+}
+
+@keyframes foilSweep {
+  0% {
+    transform: translateX(-125%);
+  }
+
+  52%,
+  100% {
+    transform: translateX(125%);
+  }
+}
+
+@keyframes sparkleTwinkle {
+  0%,
+  100% {
+    opacity: 0.36;
+    filter: brightness(0.9);
+  }
+
+  35% {
+    opacity: 0.94;
+    filter: brightness(1.55);
+  }
+
+  62% {
+    opacity: 0.55;
+    filter: brightness(1.1);
+  }
+}
+
+@keyframes galaxyDrift {
+  from {
+    background-position: 0 0, 20px 30px, 50px 10px, 10px 50px, 0% 50%;
+  }
+
+  to {
+    background-position: 120px 80px, 140px 10px, 20px 150px, 160px 90px, 200% 50%;
+  }
+}
+
+@keyframes sparklePulse {
+  0%,
+  100% {
+    opacity: 0.28;
+  }
+
+  50% {
+    opacity: 0.68;
+  }
+}
+
+@keyframes metallicGlint {
+  from {
+    background-position: 0 0, 0% 50%, 0 0;
+  }
+
+  to {
+    background-position: 24px 0, 200% 50%, 0 0;
+  }
+}
+
+@keyframes metallicShift {
+  from {
+    background-position: 0% 50%, 0 0, 0 0;
+  }
+
+  to {
+    background-position: 200% 50%, 22px 0, 0 0;
+  }
+}
+
+@keyframes gildedPulse {
+  0%,
+  100% {
+    background-position: 0% 50%, 0 0, 0 0, 0 0;
+    filter: brightness(1) saturate(1.05);
+  }
+
+  50% {
+    background-position: 100% 50%, 0 0, 24px 18px, -18px -24px;
+    filter: brightness(1.28) saturate(1.3);
+  }
+}
+
+@keyframes texturePulse {
+  0%,
+  100% {
+    filter: contrast(1) brightness(1);
+    opacity: 0.42;
+  }
+
+  50% {
+    filter: contrast(1.16) brightness(1.08);
+    opacity: 0.58;
+  }
+}
+
+@keyframes textureRipple {
+  0%,
+  100% {
+    background-position: 0 0, 0 0, 50% 40%, 0% 50%;
+    filter: contrast(1.05) brightness(1);
+  }
+
+  50% {
+    background-position: 18px 10px, -14px 20px, 50% 30%, 100% 50%;
+    filter: contrast(1.32) brightness(1.14);
+  }
+}
+
+@keyframes revealBurst {
+  0% {
+    opacity: 0;
+    transform: scale(0.92);
+    filter: brightness(1);
+  }
+
+  32% {
+    opacity: 1;
+    transform: scale(1.045);
+    filter: brightness(1.36);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.1);
+    filter: brightness(1);
+  }
+}
+
+@keyframes foilCardPop {
+  0% {
+    transform: scale(0.96);
+    filter: brightness(1);
+  }
+
+  38% {
+    transform: scale(1.045);
+    filter: brightness(1.18);
+  }
+
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+}
+
+@keyframes auraPulse {
+  0%,
+  100% {
+    opacity: 0.42;
+    filter: blur(0px) brightness(1);
+  }
+
+  50% {
+    opacity: 0.86;
+    filter: blur(1px) brightness(1.16);
+  }
+}
+
+@keyframes revealPulse {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+
+  50% {
+    filter: brightness(1.12);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .foilOverlay,
+  .foilSweep,
+  .foilSparkles,
+  .foilAura,
+  .foilRevealBurst,
+  .foilBorderGlow,
+  .foilTexturePattern,
+  .foil-shimmer,
+  .foil-sweep,
+  .foil-sparkles,
+  .reveal-special-pulse {
+    animation-duration: 12s;
+    animation-iteration-count: 1;
   }
 }

@@ -1,4 +1,8 @@
+import { normalizeFoilTreatment } from './foilTypes.js';
+
 const COLLECTION_KEY = 'mtg-pack-opener-collection';
+const PACK_SHARDS_KEY = 'mtg-pack-opener-pack-shards';
+const DUPLICATE_SHARD_REWARD = 100;
 
 function createCollectionId() {
   if (globalThis.crypto?.randomUUID) {
@@ -23,6 +27,8 @@ function isRealSaveableCard(card) {
 }
 
 function normalizeCollectionCard(card, openedAt) {
+  const isFoil = Boolean(card.isFoil);
+
   return {
     collectionId: createCollectionId(),
     id: card.id,
@@ -32,8 +38,19 @@ function normalizeCollectionCard(card, openedAt) {
     set: card.set,
     set_name: card.set_name,
     collector_number: card.collector_number,
-    isFoil: Boolean(card.isFoil),
+    isFoil,
+    foilTreatment: normalizeFoilTreatment({ ...card, isFoil }),
     openedAt,
+  };
+}
+
+function normalizeStoredCollectionCard(card) {
+  const isFoil = Boolean(card.isFoil);
+
+  return {
+    ...card,
+    isFoil,
+    foilTreatment: normalizeFoilTreatment({ ...card, isFoil }),
   };
 }
 
@@ -41,26 +58,92 @@ function isStoredCollectionCard(card) {
   return Boolean(card?.collectionId && card?.id && card?.name && card?.imageUrl && card?.set);
 }
 
+function notifyPackShardsUpdated() {
+  window.dispatchEvent(new Event('packShardsUpdated'));
+}
+
 export function getCollection() {
   try {
     const savedCollection = localStorage.getItem(COLLECTION_KEY);
     const parsedCollection = savedCollection ? JSON.parse(savedCollection) : [];
 
-    return Array.isArray(parsedCollection) ? parsedCollection.filter(isStoredCollectionCard) : [];
+    return Array.isArray(parsedCollection)
+      ? parsedCollection.filter(isStoredCollectionCard).map(normalizeStoredCollectionCard)
+      : [];
   } catch {
     return [];
   }
+}
+
+export function getPackShards() {
+  try {
+    const savedShards = localStorage.getItem(PACK_SHARDS_KEY);
+    const parsedShards = Number.parseInt(savedShards || '0', 10);
+
+    return Number.isFinite(parsedShards) && parsedShards > 0 ? parsedShards : 0;
+  } catch {
+    return 0;
+  }
+}
+
+export function setPackShards(amount) {
+  const nextAmount = Math.max(0, Number.parseInt(amount || 0, 10) || 0);
+
+  localStorage.setItem(PACK_SHARDS_KEY, String(nextAmount));
+  notifyPackShardsUpdated();
+
+  return nextAmount;
+}
+
+export function addPackShards(amount) {
+  return setPackShards(getPackShards() + Math.max(0, Number.parseInt(amount || 0, 10) || 0));
+}
+
+export function spendPackShards(amount) {
+  const spendAmount = Math.max(0, Number.parseInt(amount || 0, 10) || 0);
+  const currentShards = getPackShards();
+
+  if (spendAmount > currentShards) {
+    return false;
+  }
+
+  setPackShards(currentShards - spendAmount);
+
+  return true;
+}
+
+export function calculateDuplicateShardReward(cardsToSave, existingCollection) {
+  const duplicateCount = cardsToSave.reduce((count, card) => {
+    const isDuplicate = existingCollection.some(
+      (existingCard) => existingCard.id === card.id && Boolean(existingCard.isFoil) === Boolean(card.isFoil),
+    );
+
+    return isDuplicate ? count + 1 : count;
+  }, 0);
+
+  return {
+    duplicateCount,
+    shardsAwarded: duplicateCount * DUPLICATE_SHARD_REWARD,
+  };
 }
 
 export function saveCardsToCollection(cards) {
   const currentCollection = getCollection();
   const openedAt = new Date().toISOString();
   const cardsToSave = cards.filter(isRealSaveableCard).map((card) => normalizeCollectionCard(card, openedAt));
+  const { duplicateCount, shardsAwarded } = calculateDuplicateShardReward(cardsToSave, currentCollection);
   const nextCollection = [...cardsToSave, ...currentCollection];
 
   localStorage.setItem(COLLECTION_KEY, JSON.stringify(nextCollection));
 
-  return cardsToSave;
+  const newShardBalance = shardsAwarded > 0 ? addPackShards(shardsAwarded) : getPackShards();
+
+  return {
+    savedCards: cardsToSave,
+    duplicateCount,
+    shardsAwarded,
+    newShardBalance,
+  };
 }
 
 export function clearCollection() {
