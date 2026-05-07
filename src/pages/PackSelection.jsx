@@ -30,14 +30,25 @@ import { getPackArtForSet } from '../utils/packArt.js';
 
 const PACK_COUNT = 7;
 const COLLECTOR_BOOSTER_COST = 1000;
-const DRAG_SENSITIVITY = 0.045;
-const VELOCITY_PROJECTION = 0.018;
-const MAX_PACKS_PER_FLICK = 2;
-const SPRING_CONFIG = {
+const DESKTOP_DRAG_SENSITIVITY = 0.045;
+const MOBILE_DRAG_SENSITIVITY = 0.028;
+const DESKTOP_VELOCITY_PROJECTION = 0.018;
+const MOBILE_VELOCITY_PROJECTION = 0.009;
+const DESKTOP_MAX_PACKS_PER_FLICK = 2;
+const MOBILE_MAX_PACKS_PER_FLICK = 1;
+const DESKTOP_SPRING_CONFIG = {
   type: 'spring',
   stiffness: 85,
   damping: 32,
   mass: 1.25,
+  restDelta: 0.01,
+  restSpeed: 0.01,
+};
+const MOBILE_SPRING_CONFIG = {
+  type: 'spring',
+  stiffness: 70,
+  damping: 40,
+  mass: 1.45,
   restDelta: 0.01,
   restSpeed: 0.01,
 };
@@ -134,38 +145,50 @@ function getShortestAngle(angle) {
   return ((angle + 180) % 360) - 180;
 }
 
-function getPackWheelStyle(index, rotationValue, packCount, radius) {
+function getPackWheelStyle(index, rotationValue, packCount, radius, isMobile = false) {
   const angleStep = 360 / packCount;
   const angle = index * angleStep + rotationValue;
   const radians = (angle * Math.PI) / 180;
   const x = Math.sin(radians) * radius;
   const z = Math.cos(radians) * radius;
   const depth = (z + radius) / (radius * 2);
-  const frontAngle = Math.abs(getShortestAngle(angle));
+  const shortestAngle = getShortestAngle(angle);
+  const frontAngle = Math.abs(shortestAngle);
+  const visibleRange = isMobile ? 2 : 3;
+  const isVisible = frontAngle <= angleStep * visibleRange;
   const backFade = frontAngle > 155 ? 0.34 : frontAngle > 115 ? 0.52 : 1;
+  const minVisibleOpacity = isMobile ? 0.16 : 0.06;
+  const rotateIntensity = isMobile ? 0.64 : 1;
 
   return {
     x,
     z: z - radius,
-    scale: 0.48 + depth * 0.52,
-    opacity: Math.max(0.06, (0.14 + depth * 0.86) * backFade),
-    rotateY: -getShortestAngle(angle),
+    scale: isMobile ? 0.62 + depth * 0.38 : 0.48 + depth * 0.52,
+    opacity: isVisible ? Math.max(minVisibleOpacity, (0.2 + depth * 0.8) * backFade) : 0,
+    rotateY: -shortestAngle * rotateIntensity,
     zIndex: Math.round(z + radius),
     frontCloseness: Math.max(0, 1 - frontAngle / angleStep),
   };
 }
 
-function WheelPack({ index, isActive, onCenterPack, pack, packCount, radius, rotation, setInfo }) {
-  const x = useTransform(rotation, (value) => getPackWheelStyle(index, value, packCount, radius).x);
-  const y = useTransform(rotation, (value) => -10 * getPackWheelStyle(index, value, packCount, radius).frontCloseness);
-  const z = useTransform(rotation, (value) => getPackWheelStyle(index, value, packCount, radius).z);
-  const scale = useTransform(rotation, (value) => getPackWheelStyle(index, value, packCount, radius).scale);
-  const opacity = useTransform(rotation, (value) => getPackWheelStyle(index, value, packCount, radius).opacity);
-  const rotateY = useTransform(rotation, (value) => getPackWheelStyle(index, value, packCount, radius).rotateY);
-  const zIndex = useTransform(rotation, (value) => getPackWheelStyle(index, value, packCount, radius).zIndex);
-  const frontCloseness = useTransform(rotation, (value) => getPackWheelStyle(index, value, packCount, radius).frontCloseness);
-  const glowOpacity = useTransform(frontCloseness, [0, 1], [0, 1]);
-  const brightness = useTransform(frontCloseness, [0, 1], ['brightness(0.72) saturate(0.85)', 'brightness(1.08) saturate(1.08)']);
+function WheelPack({ index, isActive, isDragging, isMobile, onCenterPack, pack, packCount, radius, rotation, setInfo }) {
+  const x = useTransform(rotation, (value) => getPackWheelStyle(index, value, packCount, radius, isMobile).x);
+  const y = useTransform(rotation, (value) =>
+    (isMobile ? -5 : -10) * getPackWheelStyle(index, value, packCount, radius, isMobile).frontCloseness,
+  );
+  const z = useTransform(rotation, (value) => getPackWheelStyle(index, value, packCount, radius, isMobile).z);
+  const scale = useTransform(rotation, (value) => getPackWheelStyle(index, value, packCount, radius, isMobile).scale);
+  const opacity = useTransform(rotation, (value) => getPackWheelStyle(index, value, packCount, radius, isMobile).opacity);
+  const rotateY = useTransform(rotation, (value) => getPackWheelStyle(index, value, packCount, radius, isMobile).rotateY);
+  const zIndex = useTransform(rotation, (value) => getPackWheelStyle(index, value, packCount, radius, isMobile).zIndex);
+  const frontCloseness = useTransform(rotation, (value) =>
+    getPackWheelStyle(index, value, packCount, radius, isMobile).frontCloseness,
+  );
+  const glowOpacity = useTransform(frontCloseness, [0, 1], isMobile ? [0, isDragging ? 0.12 : 0.28] : [0, 1]);
+  const brightness = useTransform(frontCloseness, [0, 1], [
+    isMobile || isDragging ? 'none' : 'brightness(0.72) saturate(0.85)',
+    isMobile || isDragging ? 'none' : 'brightness(1.08) saturate(1.08)',
+  ]);
 
   return (
     <Card
@@ -175,9 +198,9 @@ function WheelPack({ index, isActive, onCenterPack, pack, packCount, radius, rot
         position: 'absolute',
         left: '50%',
         top: { xs: 22, sm: 30 },
-        ml: { xs: '-104px', sm: '-132px', md: '-146px' },
-        width: { xs: 208, sm: 264, md: 292 },
-        height: { xs: 340, sm: 430, md: 470 },
+        ml: { xs: '-92px', sm: '-132px', md: '-146px' },
+        width: { xs: 184, sm: 264, md: 292 },
+        height: { xs: 304, sm: 430, md: 470 },
         overflow: 'visible',
         bgcolor: 'transparent',
         color: 'text.primary',
@@ -186,7 +209,18 @@ function WheelPack({ index, isActive, onCenterPack, pack, packCount, radius, rot
         border: 0,
         boxShadow: 'none',
       }}
-      style={{ x, y, z, scale, opacity, rotateY, zIndex, filter: brightness, transformStyle: 'preserve-3d' }}
+      style={{
+        x,
+        y,
+        z,
+        scale,
+        opacity,
+        rotateY,
+        zIndex,
+        filter: brightness,
+        transformStyle: 'preserve-3d',
+        willChange: 'transform, opacity',
+      }}
     >
       <Box sx={{ position: 'relative', height: '100%' }}>
         <PackCard isActive={isActive} pack={pack} setInfo={setInfo} />
@@ -198,7 +232,9 @@ function WheelPack({ index, isActive, onCenterPack, pack, packCount, radius, rot
             inset: -1,
             borderRadius: '28px 28px 18px 18px',
             boxShadow:
-              '0 0 58px rgba(244, 201, 93, 0.38), 0 0 120px rgba(143, 124, 255, 0.18), 0 24px 70px rgba(0, 0, 0, 0.52)',
+              isMobile
+                ? '0 0 20px rgba(244, 201, 93, 0.14), 0 14px 30px rgba(0, 0, 0, 0.36)'
+                : '0 0 58px rgba(244, 201, 93, 0.38), 0 0 120px rgba(143, 124, 255, 0.18), 0 24px 70px rgba(0, 0, 0, 0.52)',
             pointerEvents: 'none',
           }}
         />
@@ -219,6 +255,7 @@ export default function PackSelection() {
   const [isBoosterDialogOpen, setIsBoosterDialogOpen] = useState(false);
   const [packShards, setPackShards] = useState(() => getPackShards());
   const [isLoading, setIsLoading] = useState(true);
+  const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState('');
   const rotation = useMotionValue(0);
   const activeIndexRef = useRef(0);
@@ -295,7 +332,11 @@ export default function PackSelection() {
   ]);
   const activePack = packOptions[activeIndex] || packOptions[0];
   const angleStep = packOptions.length ? 360 / packOptions.length : 0;
-  const wheelRadius = isMobile ? 220 : 360;
+  const dragSensitivity = isMobile ? MOBILE_DRAG_SENSITIVITY : DESKTOP_DRAG_SENSITIVITY;
+  const velocityProjection = isMobile ? MOBILE_VELOCITY_PROJECTION : DESKTOP_VELOCITY_PROJECTION;
+  const maxPacksPerFlick = isMobile ? MOBILE_MAX_PACKS_PER_FLICK : DESKTOP_MAX_PACKS_PER_FLICK;
+  const springConfig = isMobile ? MOBILE_SPRING_CONFIG : DESKTOP_SPRING_CONFIG;
+  const wheelRadius = isMobile ? 190 : 360;
   const canAffordCollectorBooster = packShards >= COLLECTOR_BOOSTER_COST;
 
   useEffect(() => {
@@ -315,7 +356,7 @@ export default function PackSelection() {
     activeIndexRef.current = centeredIndex;
     setActiveIndex(centeredIndex);
     animationControlsRef.current?.stop();
-    animationControlsRef.current = animate(rotation, snappedRotation, SPRING_CONFIG);
+    animationControlsRef.current = animate(rotation, snappedRotation, springConfig);
   }
 
   const goNext = useCallback(() => {
@@ -370,13 +411,15 @@ export default function PackSelection() {
   }
 
   function handleDragEnd(_, info) {
+    setIsDragging(false);
+
     if (!packOptions.length) {
       return;
     }
 
     const current = rotation.get();
-    const projected = current + info.velocity.x * VELOCITY_PROJECTION;
-    const maxDelta = angleStep * MAX_PACKS_PER_FLICK;
+    const projected = current + info.velocity.x * velocityProjection;
+    const maxDelta = angleStep * maxPacksPerFlick;
     const clampedProjected = clamp(projected, startRotationRef.current - maxDelta, startRotationRef.current + maxDelta);
     const snappedRotation = Math.round(clampedProjected / angleStep) * angleStep;
     const centeredIndex = getCenteredIndexFromRotation(snappedRotation, packOptions.length);
@@ -395,10 +438,11 @@ export default function PackSelection() {
   }
 
   function handleDrag(_, info) {
-    rotation.set(startRotationRef.current + info.offset.x * DRAG_SENSITIVITY);
+    rotation.set(startRotationRef.current + info.offset.x * dragSensitivity);
   }
 
   function handleDragStart() {
+    setIsDragging(true);
     animationControlsRef.current?.stop();
     startRotationRef.current = rotation.get();
   }
@@ -430,6 +474,13 @@ export default function PackSelection() {
 
       {!isLoading && !error && packOptions.length > 0 && (
         <Box
+          className={[
+            'packSelectionSurface',
+            isMobile ? 'mobileCarousel' : '',
+            isMobile && isDragging ? 'mobileDragging' : '',
+          ]
+            .filter(Boolean)
+            .join(' ')}
           sx={{
             position: 'relative',
             display: 'grid',
@@ -441,10 +492,12 @@ export default function PackSelection() {
             overflow: 'hidden',
             borderRadius: { xs: 0, md: 4 },
             background:
-              'radial-gradient(circle at 50% 42%, rgba(244,201,93,0.16), transparent 28rem), radial-gradient(circle at 50% 64%, rgba(76,201,240,0.1), transparent 32rem), rgba(3,5,13,0.72)',
+              isMobile
+                ? 'radial-gradient(circle at 50% 42%, rgba(244,201,93,0.1), transparent 18rem), rgba(3,5,13,0.78)'
+                : 'radial-gradient(circle at 50% 42%, rgba(244,201,93,0.16), transparent 28rem), radial-gradient(circle at 50% 64%, rgba(76,201,240,0.1), transparent 32rem), rgba(3,5,13,0.72)',
           }}
         >
-          <MagicalParticles />
+          {!isMobile && <MagicalParticles />}
           <Box sx={{ textAlign: 'center' }}>
             <Typography variant="h4" component="h2" sx={{ fontSize: { xs: 30, md: 38 }, mb: 0.5 }}>
               Choose Your Pack
@@ -459,14 +512,15 @@ export default function PackSelection() {
           </Box>
 
           <Box
+            className="carouselStage"
             sx={{
               position: 'relative',
               width: '100%',
               maxWidth: 1040,
-              height: { xs: 430, sm: 520, md: 560 },
+              height: { xs: 390, sm: 520, md: 560 },
               overflow: 'hidden',
               touchAction: 'pan-y',
-              perspective: '1200px',
+              perspective: { xs: '850px', sm: '1200px' },
               '&::before': {
                 content: '""',
                 position: 'absolute',
@@ -477,8 +531,10 @@ export default function PackSelection() {
                 transform: 'translate(-50%, -50%)',
                 borderRadius: '50%',
                 background:
-                  'radial-gradient(circle, rgba(244, 201, 93, 0.22), rgba(143, 124, 255, 0.14) 42%, transparent 68%)',
-                filter: 'blur(8px)',
+                  isMobile
+                    ? 'radial-gradient(circle, rgba(244, 201, 93, 0.12), rgba(143, 124, 255, 0.06) 42%, transparent 66%)'
+                    : 'radial-gradient(circle, rgba(244, 201, 93, 0.22), rgba(143, 124, 255, 0.14) 42%, transparent 68%)',
+                filter: { xs: 'none', sm: 'blur(8px)' },
                 pointerEvents: 'none',
               },
             }}
@@ -527,6 +583,8 @@ export default function PackSelection() {
                   key={pack.id}
                   index={index}
                   isActive={index === activeIndex}
+                  isDragging={isDragging}
+                  isMobile={isMobile}
                   onCenterPack={centerPack}
                   pack={pack}
                   packCount={packOptions.length}
@@ -568,9 +626,9 @@ export default function PackSelection() {
                 left: '50%',
                 top: { xs: 22, sm: 30 },
                 zIndex: 25,
-                width: { xs: 208, sm: 264, md: 292 },
-                height: { xs: 340, sm: 430, md: 470 },
-                ml: { xs: '-104px', sm: '-132px', md: '-146px' },
+                width: { xs: 184, sm: 264, md: 292 },
+                height: { xs: 304, sm: 430, md: 470 },
+                ml: { xs: '-92px', sm: '-132px', md: '-146px' },
                 appearance: 'none',
                 border: 0,
                 borderRadius: '28px 28px 18px 18px',

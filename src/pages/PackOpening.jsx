@@ -21,6 +21,51 @@ const PHASES = {
   summary: 'summary',
 };
 
+function getFoilRevealConfig(card) {
+  const foilTreatment = normalizeFoilTreatment(card);
+  const configs = {
+    [FOIL_TREATMENTS.RAINBOW]: {
+      intensity: 1,
+      auraClassName: 'foilRevealAura foilRevealAura-rainbow',
+      screenShake: false,
+      transition: { type: 'spring', stiffness: 240, damping: 20, mass: 0.9 },
+    },
+    [FOIL_TREATMENTS.ETCHED]: {
+      intensity: 2,
+      auraClassName: 'foilRevealAura foilRevealAura-etched',
+      screenShake: false,
+      transition: { type: 'spring', stiffness: 255, damping: 19, mass: 0.9 },
+    },
+    [FOIL_TREATMENTS.GALAXY]: {
+      intensity: 3,
+      auraClassName: 'foilRevealAura foilRevealAura-galaxy',
+      screenShake: true,
+      transition: { type: 'spring', stiffness: 270, damping: 18, mass: 0.88 },
+    },
+    [FOIL_TREATMENTS.GILDED]: {
+      intensity: 3,
+      auraClassName: 'foilRevealAura foilRevealAura-gilded',
+      screenShake: true,
+      transition: { type: 'spring', stiffness: 275, damping: 18, mass: 0.88 },
+    },
+    [FOIL_TREATMENTS.TEXTURED]: {
+      intensity: 4,
+      auraClassName: 'foilRevealAura foilRevealAura-textured',
+      screenShake: true,
+      transition: { type: 'spring', stiffness: 290, damping: 16, mass: 0.86 },
+    },
+  };
+
+  return (
+    configs[foilTreatment] || {
+      intensity: 0,
+      auraClassName: '',
+      screenShake: false,
+      transition: { duration: 0.26, ease: 'easeOut' },
+    }
+  );
+}
+
 function PackCuttingScreen({ artwork, boosterLabel, setCode, setIconUrl, setName, onCutComplete }) {
   const cutterControls = useAnimation();
   const cutterTrackRef = useRef(null);
@@ -169,32 +214,61 @@ function RevealCard({ card, cardNumber, exitX, onAdvance }) {
   const isFinale = card.isFoil || ['rare', 'mythic'].includes(card.rarity);
   const rarityLabel = card.isFoil ? FOIL_LABELS[foilTreatment] : card.rarity?.toUpperCase();
   const cardKey = card.collectionTempId || card.id || `${card.name}-${cardNumber}`;
+  const foilRevealConfig = getFoilRevealConfig(card);
+  const isFoilReveal = card.isFoil && foilRevealConfig.intensity > 0;
+  const revealInitial = isFoilReveal
+    ? { opacity: 0, rotateY: 75, rotateX: -8, scale: 0.88, y: -40 }
+    : { opacity: 0, y: 34, scale: 0.9 };
+  const revealAnimate = isFoilReveal
+    ? { opacity: 1, rotateY: 0, rotateX: 0, scale: [0.88, 1.08, 1], y: [-40, 8, 0] }
+    : { opacity: 1, y: 0, scale: 1 };
+  const revealTransition = isFoilReveal ? foilRevealConfig.transition : { duration: 0.26, ease: 'easeOut' };
 
   return (
     <>
     <AnimatePresence custom={exitX} mode="wait">
       <motion.div
         key={`${cardKey}-${cardNumber}`}
+        className={[
+          'revealCardMotion',
+          isFoilReveal ? `foilRevealSlam foilRevealIntensity-${foilRevealConfig.intensity}` : '',
+          foilRevealConfig.screenShake ? 'foilRevealScreenShake' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
         drag="x"
         dragConstraints={{ left: 0, right: 0 }}
         dragElastic={0.28}
-        initial={{ opacity: 0, y: 34, scale: 0.9 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
+        initial={revealInitial}
+        animate={revealAnimate}
         exit={(customExitX) => ({
           opacity: 0,
           x: customExitX,
           rotate: customExitX > 0 ? 18 : -18,
           scale: 0.86,
         })}
-        transition={{ duration: 0.26, ease: 'easeOut' }}
+        transition={revealTransition}
         onClick={() => onAdvance(1)}
         onDragEnd={(_, info) => {
           if (Math.abs(info.offset.x) > SWIPE_THRESHOLD || Math.abs(info.velocity.x) > 650) {
             onAdvance(info.offset.x >= 0 ? 1 : -1);
           }
         }}
-        style={{ x, rotate, scale, cursor: 'grab', touchAction: 'pan-y' }}
+        style={{
+          x,
+          rotate,
+          ...(isFoilReveal ? {} : { scale }),
+          cursor: 'grab',
+          touchAction: 'pan-y',
+        }}
       >
+        {isFoilReveal && (
+          <>
+            <Box className={foilRevealConfig.auraClassName} />
+            <Box className="foilImpactBurst" />
+            <Box className="foilImpactSparkles" />
+          </>
+        )}
         <CardImage
           card={card}
           className={isFinale ? 'reveal-special-pulse' : ''}
