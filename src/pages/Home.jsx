@@ -19,7 +19,7 @@ import {
   Typography,
 } from '@mui/material';
 import { Link, useNavigate } from 'react-router-dom';
-import PageHeader from '../components/PageHeader.jsx';
+import SealedPack from '../components/SealedPack.jsx';
 import { getCollection, getPackShards } from '../utils/collectionStorage.js';
 
 const COLLECTOR_BOOSTER_COST = 1000;
@@ -43,24 +43,142 @@ function handleKeyboardActivate(event, action) {
   }
 }
 
+function HeroPackVisual() {
+  return (
+    <Box
+      aria-hidden="true"
+      sx={{
+        position: 'relative',
+        display: 'grid',
+        minHeight: { xs: 330, md: 420 },
+        placeItems: 'center',
+      }}
+    >
+      <Box
+        sx={{
+          position: 'absolute',
+          width: { xs: 240, md: 340 },
+          height: { xs: 240, md: 340 },
+          borderRadius: '50%',
+          background:
+            'radial-gradient(circle, rgba(244, 201, 93, 0.22), rgba(76, 201, 240, 0.12) 42%, transparent 70%)',
+          filter: 'blur(8px)',
+        }}
+      />
+      <Box
+        sx={{
+          position: 'absolute',
+          right: { xs: '12%', md: '8%' },
+          bottom: { xs: 32, md: 42 },
+          display: 'grid',
+          gap: 0.7,
+          transform: 'rotate(-9deg)',
+        }}
+      >
+        {Array.from({ length: 5 }).map((_, index) => (
+          <Box
+            key={index}
+            sx={{
+              width: { xs: 118, md: 150 },
+              height: { xs: 164, md: 208 },
+              mt: index === 0 ? 0 : -19,
+              border: '1px solid rgba(248, 247, 255, 0.14)',
+              borderRadius: 2,
+              background:
+                index === 4
+                  ? 'linear-gradient(145deg, rgba(244, 201, 93, 0.32), rgba(76, 201, 240, 0.16), rgba(5, 7, 17, 0.94))'
+                  : 'linear-gradient(145deg, rgba(248, 247, 255, 0.1), rgba(5, 7, 17, 0.94))',
+              boxShadow: index === 4 ? '0 0 32px rgba(244, 201, 93, 0.22)' : undefined,
+            }}
+          />
+        ))}
+      </Box>
+      <Box
+        sx={{
+          position: 'relative',
+          width: { xs: 190, sm: 230, md: 260 },
+          height: { xs: 306, sm: 370, md: 414 },
+          transform: 'rotate(5deg)',
+          filter: 'drop-shadow(0 32px 42px rgba(0, 0, 0, 0.48))',
+        }}
+      >
+        <SealedPack boosterLabel="PLAY BOOSTER" setCode="MTG" setName="Magic Pack Opener" />
+      </Box>
+    </Box>
+  );
+}
+
+function HomeStatCard({ helper, icon, label, value, tone = 'primary' }) {
+  return (
+    <Card
+      sx={{
+        height: '100%',
+        borderColor: tone === 'warning' ? 'rgba(244, 201, 93, 0.24)' : 'rgba(76, 201, 240, 0.16)',
+        background:
+          tone === 'warning'
+            ? 'linear-gradient(145deg, rgba(244, 201, 93, 0.12), rgba(21, 16, 31, 0.92))'
+            : 'linear-gradient(145deg, rgba(76, 201, 240, 0.09), rgba(12, 15, 31, 0.94))',
+      }}
+    >
+      <CardContent sx={{ display: 'flex', gap: 1.5, alignItems: 'center', p: 2 }}>
+        <Box
+          sx={{
+            display: 'grid',
+            flex: '0 0 auto',
+            width: 42,
+            height: 42,
+            placeItems: 'center',
+            borderRadius: '50%',
+            bgcolor: 'rgba(5, 7, 17, 0.58)',
+            color: tone === 'warning' ? 'warning.main' : 'primary.light',
+            boxShadow: tone === 'warning' ? '0 0 24px rgba(244, 201, 93, 0.16)' : '0 0 24px rgba(76, 201, 240, 0.12)',
+          }}
+        >
+          {icon}
+        </Box>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography color="text.secondary" sx={{ fontSize: 12, fontWeight: 800 }}>
+            {label}
+          </Typography>
+          <Typography color="warning.main" fontWeight={950} sx={{ fontSize: 26, lineHeight: 1.05 }}>
+            {value.toLocaleString()}
+          </Typography>
+          <Typography color="text.secondary" sx={{ fontSize: 12 }}>
+            {helper}
+          </Typography>
+        </Box>
+      </CardContent>
+    </Card>
+  );
+}
+
 function MiniVisual({ icon, tone = 'primary' }) {
   return (
     <Box
       sx={{
         position: 'relative',
         display: 'grid',
-        height: 96,
-        mb: 2,
+        height: 92,
+        mb: 1.5,
         overflow: 'hidden',
         placeItems: 'center',
         border: '1px solid rgba(248, 247, 255, 0.12)',
         borderRadius: 2,
         background:
           tone === 'warning'
-            ? 'radial-gradient(circle at 50% 45%, rgba(244, 201, 93, 0.28), transparent 52%), linear-gradient(135deg, rgba(37, 25, 9, 0.86), rgba(10, 13, 28, 0.92))'
-            : 'radial-gradient(circle at 50% 45%, rgba(76, 201, 240, 0.18), transparent 52%), linear-gradient(135deg, rgba(18, 18, 46, 0.86), rgba(6, 9, 22, 0.94))',
+            ? 'radial-gradient(circle at 50% 45%, rgba(244, 201, 93, 0.3), transparent 56%), linear-gradient(135deg, rgba(37, 25, 9, 0.86), rgba(10, 13, 28, 0.92))'
+            : 'radial-gradient(circle at 50% 45%, rgba(76, 201, 240, 0.2), transparent 56%), linear-gradient(135deg, rgba(18, 18, 46, 0.86), rgba(6, 9, 22, 0.94))',
       }}
     >
+      <Box
+        sx={{
+          position: 'absolute',
+          inset: 0,
+          background:
+            'radial-gradient(circle at 18% 28%, rgba(255, 255, 255, 0.24) 0 1px, transparent 2px), radial-gradient(circle at 74% 66%, rgba(244, 201, 93, 0.3) 0 1px, transparent 2px)',
+          opacity: 0.42,
+        }}
+      />
       <Box
         sx={{
           display: 'grid',
@@ -69,11 +187,8 @@ function MiniVisual({ icon, tone = 'primary' }) {
           placeItems: 'center',
           borderRadius: '50%',
           bgcolor: 'rgba(5, 7, 17, 0.58)',
-          boxShadow:
-            tone === 'warning'
-              ? '0 0 34px rgba(244, 201, 93, 0.28)'
-              : '0 0 34px rgba(76, 201, 240, 0.18)',
           color: tone === 'warning' ? 'warning.main' : 'primary.light',
+          boxShadow: tone === 'warning' ? '0 0 34px rgba(244, 201, 93, 0.28)' : '0 0 34px rgba(76, 201, 240, 0.18)',
         }}
       >
         {icon}
@@ -93,20 +208,18 @@ function HomeActionCard({ actionLabel, ariaLabel, body, children, icon, onClick,
       sx={{
         height: '100%',
         cursor: 'pointer',
+        overflow: 'hidden',
         transition: 'transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease',
         '&:hover, &:focus-visible': {
-          borderColor: tone === 'warning' ? 'rgba(244, 201, 93, 0.56)' : 'rgba(76, 201, 240, 0.36)',
-          boxShadow:
-            tone === 'warning'
-              ? '0 0 34px rgba(244, 201, 93, 0.16)'
-              : '0 0 34px rgba(76, 201, 240, 0.12)',
+          borderColor: tone === 'warning' ? 'rgba(244, 201, 93, 0.58)' : 'rgba(76, 201, 240, 0.38)',
+          boxShadow: tone === 'warning' ? '0 0 38px rgba(244, 201, 93, 0.18)' : '0 0 38px rgba(76, 201, 240, 0.12)',
           outline: 'none',
-          transform: 'translateY(-3px)',
+          transform: 'translateY(-4px)',
         },
       }}
     >
       <CardActionArea component="div" sx={{ height: '100%', alignItems: 'stretch' }}>
-        <CardContent sx={{ display: 'grid', height: '100%', gap: 1 }}>
+        <CardContent sx={{ display: 'grid', height: '100%', gap: 1.2, p: 2.25 }}>
           <MiniVisual icon={icon} tone={tone} />
           <Typography variant="h5">{title}</Typography>
           <Typography color="text.secondary">{body}</Typography>
@@ -125,15 +238,67 @@ function HomeActionCard({ actionLabel, ariaLabel, body, children, icon, onClick,
   );
 }
 
-function StatCard({ label, value }) {
+function RecommendedAction({ hasCollectorBooster, hasCollection, navigate }) {
+  const message = hasCollectorBooster
+    ? 'You have enough shards for a Collector Booster.'
+    : hasCollection
+      ? 'Keep opening packs to earn shards from duplicates.'
+      : 'Start by opening your first pack.';
+  const buttonLabel = hasCollectorBooster ? 'Open Collector Booster' : hasCollection ? 'Open Packs' : 'Browse Sets';
+
   return (
-    <Card sx={{ borderColor: 'rgba(248, 247, 255, 0.1)' }}>
-      <CardContent sx={{ p: 1.5 }}>
-        <Typography color="text.secondary" sx={{ fontSize: 12, fontWeight: 800 }}>
-          {label}
-        </Typography>
-        <Typography color="warning.main" fontWeight={950}>
-          {value.toLocaleString()}
+    <Card sx={{ mb: 4, borderColor: 'rgba(244, 201, 93, 0.26)' }}>
+      <CardContent
+        sx={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 2,
+          background:
+            'radial-gradient(circle at 12% 50%, rgba(244, 201, 93, 0.14), transparent 22rem), linear-gradient(90deg, rgba(18, 20, 38, 0.96), rgba(5, 7, 17, 0.92))',
+        }}
+      >
+        <Box>
+          <Typography color="warning.main" fontWeight={950}>
+            Recommended next action
+          </Typography>
+          <Typography color="text.secondary">{message}</Typography>
+        </Box>
+        <Button
+          onClick={() => navigate('/sets')}
+          startIcon={hasCollectorBooster ? <LocalAtmIcon /> : <AutoAwesomeIcon />}
+          variant="contained"
+        >
+          {buttonLabel}
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function HowItWorksStep({ icon, label, onClick, text }) {
+  return (
+    <Card
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={(event) => handleKeyboardActivate(event, onClick)}
+      sx={{
+        minWidth: { xs: 210, sm: 0 },
+        height: '100%',
+        cursor: 'pointer',
+        '&:hover, &:focus-visible': {
+          borderColor: 'rgba(76, 201, 240, 0.32)',
+          outline: 'none',
+        },
+      }}
+    >
+      <CardContent sx={{ display: 'grid', gap: 1, p: 1.75 }}>
+        <Box sx={{ color: 'warning.main' }}>{icon}</Box>
+        <Typography fontWeight={950}>{label}</Typography>
+        <Typography color="text.secondary" sx={{ fontSize: 13 }}>
+          {text}
         </Typography>
       </CardContent>
     </Card>
@@ -176,7 +341,9 @@ export default function Home() {
     },
     {
       title: 'Earn Pack Shards',
-      body: 'Duplicates grant 100 Pack Shards. Spend 1000 shards on Collector Boosters.',
+      body: hasCollectorBooster
+        ? 'Collector Booster Ready. Spend shards on a mostly foil opening.'
+        : 'Duplicates grant 100 Pack Shards. Spend 1000 shards on Collector Boosters.',
       actionLabel: hasCollectorBooster ? 'Open Collector Booster' : 'Earn Shards',
       icon: <LocalAtmIcon fontSize="large" />,
       onClick: () => navigate(hasCollectorBooster ? '/sets' : stats.totalCards ? '/collection' : '/sets'),
@@ -186,47 +353,70 @@ export default function Home() {
   ];
 
   const flowSteps = [
-    { label: 'Choose Set', icon: <StyleIcon />, to: '/sets' },
-    { label: 'Spin Pack Carousel', icon: <ViewCarouselIcon />, to: '/sets' },
-    { label: 'Tear Pack', icon: <WhatshotIcon />, to: '/sets' },
-    { label: 'Reveal Cards', icon: <AutoAwesomeIcon />, to: '/sets' },
-    { label: 'Save Collection', icon: <SaveAltIcon />, to: '/collection' },
+    { label: 'Choose Set', text: 'Start from real set data.', icon: <StyleIcon />, onClick: () => navigate('/sets') },
+    { label: 'Select Booster', text: 'Spin the pack carousel.', icon: <ViewCarouselIcon />, onClick: () => navigate('/sets') },
+    { label: 'Tear Pack', text: 'Cut the wrapper open.', icon: <WhatshotIcon />, onClick: () => navigate('/sets') },
+    { label: 'Reveal Cards', text: 'Flip through every pull.', icon: <AutoAwesomeIcon />, onClick: () => navigate('/sets') },
+    { label: 'Save Pulls', text: 'Build your collection.', icon: <SaveAltIcon />, onClick: () => navigate('/collection') },
   ];
 
   return (
-    <Box>
-      <PageHeader eyebrow="MTG Pack Opener" title="Open packs in a moody little MTG lab.">
-        Choose a set, spin through sealed boosters, cut one open, and build a local collection from
-        real Scryfall card data.
-      </PageHeader>
+    <Box
+      sx={{
+        position: 'relative',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          inset: { xs: '-40px -16px auto', md: '-48px -32px auto' },
+          height: 520,
+          zIndex: -1,
+          background:
+            'radial-gradient(circle at 12% 20%, rgba(143, 124, 255, 0.16), transparent 24rem), radial-gradient(circle at 88% 16%, rgba(244, 201, 93, 0.12), transparent 22rem)',
+          pointerEvents: 'none',
+        },
+      }}
+    >
+      <Grid container spacing={{ xs: 3, md: 5 }} alignItems="center" sx={{ mb: { xs: 4, md: 5 } }}>
+        <Grid item xs={12} md={7}>
+          <Chip color="warning" label="MTG Pack Opener" sx={{ mb: 2, fontWeight: 900 }} variant="outlined" />
+          <Typography variant="h1" sx={{ maxWidth: 740, fontSize: { xs: 42, md: 64 }, lineHeight: 0.96, mb: 2 }}>
+            Open Magic packs. Build your collection.
+          </Typography>
+          <Typography color="text.secondary" sx={{ maxWidth: 680, fontSize: { xs: 17, md: 20 }, mb: 3 }}>
+            Choose real MTG sets, spin through sealed boosters, tear packs open, reveal foils, and save your pulls locally.
+          </Typography>
+          <Stack direction="row" flexWrap="wrap" gap={2}>
+            <Button component={Link} to="/sets" size="large" variant="contained" startIcon={<AutoAwesomeIcon />}>
+              Open Packs
+            </Button>
+            <Button component={Link} to="/collection" size="large" variant="outlined" startIcon={<CollectionsBookmarkIcon />}>
+              View Collection
+            </Button>
+          </Stack>
+        </Grid>
+        <Grid item xs={12} md={5}>
+          <HeroPackVisual />
+        </Grid>
+      </Grid>
 
-      <Stack direction="row" flexWrap="wrap" gap={2} sx={{ mb: 3 }}>
-        <Button component={Link} to="/sets" size="large" variant="contained" startIcon={<AutoAwesomeIcon />}>
-          Open Packs
-        </Button>
-        <Button
-          component={Link}
-          to="/collection"
-          size="large"
-          variant="outlined"
-          startIcon={<CollectionsBookmarkIcon />}
-        >
-          View Collection
-        </Button>
-      </Stack>
+      <RecommendedAction
+        hasCollectorBooster={hasCollectorBooster}
+        hasCollection={stats.totalCards > 0}
+        navigate={navigate}
+      />
 
       <Grid container spacing={1.5} sx={{ mb: 4 }}>
-        <Grid item xs={6} md={3}>
-          <StatCard label="Cards Saved" value={stats.totalCards} />
+        <Grid item xs={12} sm={6} md={3}>
+          <HomeStatCard icon={<CollectionsBookmarkIcon />} label="Cards Saved" value={stats.totalCards} helper="Local collection" />
         </Grid>
-        <Grid item xs={6} md={3}>
-          <StatCard label="Foils Pulled" value={stats.foilCards} />
+        <Grid item xs={12} sm={6} md={3}>
+          <HomeStatCard icon={<AutoAwesomeIcon />} label="Foils Pulled" value={stats.foilCards} helper="Special pulls" tone="warning" />
         </Grid>
-        <Grid item xs={6} md={3}>
-          <StatCard label="Unique Cards" value={stats.uniqueCards} />
+        <Grid item xs={12} sm={6} md={3}>
+          <HomeStatCard icon={<StyleIcon />} label="Unique Cards" value={stats.uniqueCards} helper={stats.duplicateCards ? `${stats.duplicateCards} duplicates` : 'No duplicates'} />
         </Grid>
-        <Grid item xs={6} md={3}>
-          <StatCard label="Pack Shards" value={packShards} />
+        <Grid item xs={12} sm={6} md={3}>
+          <HomeStatCard icon={<LocalAtmIcon />} label="Pack Shards" value={packShards} helper="Currency balance" tone="warning" />
         </Grid>
       </Grid>
 
@@ -245,7 +435,17 @@ export default function Home() {
                 <Chip label={card.extra} sx={{ justifySelf: 'start', maxWidth: '100%' }} variant="outlined" />
               )}
               {card.shardCard && (
-                <Box sx={{ display: 'grid', gap: 1 }}>
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gap: 1.25,
+                    p: 1.5,
+                    border: '1px solid rgba(244, 201, 93, 0.18)',
+                    borderRadius: 2,
+                    background:
+                      'linear-gradient(135deg, rgba(244, 201, 93, 0.12), rgba(143, 124, 255, 0.1), rgba(5, 7, 17, 0.52))',
+                  }}
+                >
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>
                     <Typography color="text.secondary" sx={{ fontSize: 13, fontWeight: 800 }}>
                       {packShards.toLocaleString()} / {COLLECTOR_BOOSTER_COST.toLocaleString()} Pack Shards
@@ -258,11 +458,15 @@ export default function Home() {
                     color="warning"
                     value={collectorProgress * 100}
                     variant="determinate"
-                    sx={{ height: 8, borderRadius: 999 }}
+                    sx={{ height: 11, borderRadius: 999, bgcolor: 'rgba(248, 247, 255, 0.08)' }}
                   />
                   <Stack direction="row" flexWrap="wrap" gap={1}>
-                    <Chip color="warning" label="Duplicates grant 100 shards" size="small" />
-                    <Chip color="secondary" label="Collector Booster at 1000" size="small" variant="outlined" />
+                    <Chip
+                      color={hasCollectorBooster ? 'success' : 'warning'}
+                      label={hasCollectorBooster ? 'Collector Booster Ready' : 'Collector Booster unlocks at 1,000'}
+                      size="small"
+                    />
+                    <Chip color="secondary" label="Duplicates grant 100" size="small" variant="outlined" />
                   </Stack>
                 </Box>
               )}
@@ -274,54 +478,22 @@ export default function Home() {
       <Card sx={{ mb: 4 }}>
         <CardContent>
           <Typography variant="h5" gutterBottom>
-            Quick Actions
+            How it works
           </Typography>
-          <Stack direction="row" flexWrap="wrap" gap={1.5}>
-            {stats.totalCards > 0 && (
-              <Button component={Link} startIcon={<CollectionsBookmarkIcon />} to="/collection" variant="outlined">
-                View Collection
-              </Button>
-            )}
-            <Button component={Link} startIcon={<AutoAwesomeIcon />} to="/sets" variant="contained">
-              Open Packs
-            </Button>
-            <Button component={Link} startIcon={<StyleIcon />} to="/sets" variant="outlined">
-              Browse Sets
-            </Button>
-            {hasCollectorBooster && (
-              <Button component={Link} color="warning" startIcon={<LocalAtmIcon />} to="/sets" variant="contained">
-                Open Collector Booster
-              </Button>
-            )}
+          <Stack
+            direction={{ xs: 'row', md: 'row' }}
+            gap={1.5}
+            sx={{ overflowX: { xs: 'auto', md: 'visible' }, pb: { xs: 1, md: 0 } }}
+          >
+            {flowSteps.map((step) => (
+              <Box key={step.label} sx={{ flex: { xs: '0 0 auto', md: 1 } }}>
+                <HowItWorksStep {...step} />
+              </Box>
+            ))}
           </Stack>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent>
-          <Typography variant="h5" gutterBottom>
-            How it works
-          </Typography>
-          <Grid container spacing={1.5}>
-            {flowSteps.map((step, index) => (
-              <Grid key={step.label} item xs={12} sm>
-                <Button
-                  aria-label={`Step ${index + 1}: ${step.label}`}
-                  component={Link}
-                  endIcon={index < flowSteps.length - 1 ? <KeyboardArrowRightIcon /> : undefined}
-                  startIcon={step.icon}
-                  to={step.to}
-                  variant="outlined"
-                  fullWidth
-                  sx={{ justifyContent: 'flex-start', minHeight: 48 }}
-                >
-                  {step.label}
-                </Button>
-              </Grid>
-            ))}
-          </Grid>
-        </CardContent>
-      </Card>
     </Box>
   );
 }
