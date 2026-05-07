@@ -300,9 +300,6 @@ function RevealCard({ card, cardNumber, exitX, onAdvance }) {
           pointerEvents: 'none',
         }}
       >
-        <Typography color={isFinale ? 'warning.main' : 'text.secondary'} fontWeight={900}>
-          {card.rarity?.toUpperCase()} • {card.packSlot}
-        </Typography>
         {card.isFoil && (
           <Chip
             color={

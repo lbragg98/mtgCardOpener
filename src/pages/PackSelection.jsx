@@ -131,10 +131,14 @@ function normalizeAngle(angle) {
   return ((angle % 360) + 360) % 360;
 }
 
+function wrapIndex(index, length) {
+  return length ? ((index % length) + length) % length : 0;
+}
+
 function getCenteredIndexFromRotation(rotationValue, itemCount) {
   const angleStep = 360 / itemCount;
   const rawIndex = Math.round(-rotationValue / angleStep);
-  return ((rawIndex % itemCount) + itemCount) % itemCount;
+  return wrapIndex(rawIndex, itemCount);
 }
 
 function clamp(value, min, max) {
@@ -142,17 +146,19 @@ function clamp(value, min, max) {
 }
 
 function getShortestAngle(angle) {
-  return ((angle + 180) % 360) - 180;
+  const normalizedAngle = normalizeAngle(angle);
+  return normalizedAngle > 180 ? normalizedAngle - 360 : normalizedAngle;
 }
 
 function getPackWheelStyle(index, rotationValue, packCount, radius, isMobile = false) {
   const angleStep = 360 / packCount;
   const angle = index * angleStep + rotationValue;
+  const normalizedAngle = normalizeAngle(angle);
   const radians = (angle * Math.PI) / 180;
   const x = Math.sin(radians) * radius;
   const z = Math.cos(radians) * radius;
   const depth = (z + radius) / (radius * 2);
-  const shortestAngle = getShortestAngle(angle);
+  const shortestAngle = getShortestAngle(normalizedAngle);
   const frontAngle = Math.abs(shortestAngle);
   const visibleRange = isMobile ? 2 : 3;
   const isVisible = frontAngle <= angleStep * visibleRange;
@@ -330,7 +336,8 @@ export default function PackSelection() {
     cards,
     normalizedSetCode,
   ]);
-  const activePack = packOptions[activeIndex] || packOptions[0];
+  const wrappedActiveIndex = packOptions.length ? wrapIndex(activeIndex, packOptions.length) : 0;
+  const activePack = packOptions[wrappedActiveIndex] || packOptions[0];
   const angleStep = packOptions.length ? 360 / packOptions.length : 0;
   const dragSensitivity = isMobile ? MOBILE_DRAG_SENSITIVITY : DESKTOP_DRAG_SENSITIVITY;
   const velocityProjection = isMobile ? MOBILE_VELOCITY_PROJECTION : DESKTOP_VELOCITY_PROJECTION;
@@ -380,7 +387,8 @@ export default function PackSelection() {
   }, [packOptions.length, rotation]);
 
   function openPack(pack, boosterType = 'play') {
-    const selectedPack = pack || packOptions[liveActiveIndexRef.current] || packOptions[activeIndex] || activePack;
+    const centeredIndex = wrapIndex(liveActiveIndexRef.current, packOptions.length);
+    const selectedPack = pack || packOptions[centeredIndex] || activePack;
 
     if (!selectedPack || (boosterType === 'collector' && packShards < COLLECTOR_BOOSTER_COST)) {
       return;
@@ -407,7 +415,7 @@ export default function PackSelection() {
 
   function openSelectedPack(boosterType = 'play') {
     setIsBoosterDialogOpen(false);
-    openPack(activePack, boosterType);
+    openPack(packOptions[wrappedActiveIndex], boosterType);
   }
 
   function handleDragEnd(_, info) {
@@ -582,7 +590,7 @@ export default function PackSelection() {
                 <WheelPack
                   key={pack.id}
                   index={index}
-                  isActive={index === activeIndex}
+                  isActive={index === wrappedActiveIndex}
                   isDragging={isDragging}
                   isMobile={isMobile}
                   onCenterPack={centerPack}
@@ -648,7 +656,7 @@ export default function PackSelection() {
           </Typography>
 
           <Typography color="text.secondary" sx={{ fontSize: 13, textAlign: 'center' }}>
-            Active pack: {activeIndex + 1} / {packOptions.length}
+            Active pack: {wrappedActiveIndex + 1} / {packOptions.length}
             {activePack?.artworkCardName ? ` - ${activePack.artworkCardName}` : ''}
           </Typography>
 
