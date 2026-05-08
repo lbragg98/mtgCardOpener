@@ -95,10 +95,12 @@ function getFoilRevealConfig(card) {
 
   return (
     configs[foilTreatment] || {
-      intensity: 0,
-      auraClassName: "",
+      intensity: card?.isFoil ? 1 : 0,
+      auraClassName: card?.isFoil ? "foilRevealAura foilRevealAura-rainbow" : "",
       screenShake: false,
-      transition: { duration: 0.26, ease: "easeOut" },
+      transition: card?.isFoil
+        ? { type: "spring", stiffness: 260, damping: 18, mass: 0.9 }
+        : { duration: 0.26, ease: "easeOut" },
     }
   );
 }
@@ -294,9 +296,16 @@ function RevealCard({ card, cardNumber, exitX, onAdvance }) {
   const cardKey =
     card.collectionTempId || card.id || `${card.name}-${cardNumber}`;
   const foilRevealConfig = getFoilRevealConfig(card);
-  const isFoilReveal = card.isFoil && foilRevealConfig.intensity > 0;
+  const isFoilReveal = Boolean(card.isFoil);
   const revealInitial = isFoilReveal
-    ? { opacity: 0, rotateY: 75, rotateX: -8, scale: 0.88, y: -40 }
+    ? {
+        opacity: 0,
+        rotateY: 82,
+        rotateX: -8,
+        scale: 0.88,
+        transformPerspective: 1000,
+        y: -40,
+      }
     : { opacity: 0, y: 34, scale: 0.9 };
   const revealAnimate = isFoilReveal
     ? {
@@ -304,6 +313,7 @@ function RevealCard({ card, cardNumber, exitX, onAdvance }) {
         rotateY: 0,
         rotateX: 0,
         scale: [0.88, 1.08, 1],
+        transformPerspective: 1000,
         y: [-40, 8, 0],
       }
     : { opacity: 1, y: 0, scale: 1 };

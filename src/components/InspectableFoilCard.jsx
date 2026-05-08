@@ -6,7 +6,10 @@ import CardImage from './CardImage.jsx';
 const DEFAULT_FOIL_POSITION = {
   x: '50%',
   y: '20%',
-  intensity: 0.38,
+  bandX: '50%',
+  bandY: '38%',
+  intensity: 0.28,
+  shadow: 'drop-shadow(0 24px 42px rgba(0, 0, 0, 0.42))',
 };
 
 function clamp(value, min, max) {
@@ -52,14 +55,21 @@ export default function InspectableFoilCard({
     const y = clamp((clientY - rect.top) / rect.height, 0, 1);
     const nextRotateY = clamp((x - 0.5) * 36, -18, 18);
     const nextRotateX = clamp((0.5 - y) * 28, -14, 14);
-    const lightBoost = Math.max(0, 1 - Math.abs(x - 0.5) * 1.2) * Math.max(0, 1 - y);
+    const lightBoost = Math.max(0, 1 - Math.abs(x - 0.5) * 1.15) * Math.max(0, 1 - y * 0.86);
+    const shadowX = (x - 0.5) * -30;
+    const shadowY = 24 + y * 14;
+    const shadowBlur = 38 + lightBoost * 18;
+    const shadowAlpha = 0.36 + lightBoost * 0.18;
 
     rotateX.set(nextRotateX);
     rotateY.set(nextRotateY);
     setFoilPosition({
       x: `${x * 100}%`,
       y: `${y * 100}%`,
-      intensity: 0.34 + lightBoost * 0.46,
+      bandX: `${(0.5 + (x - 0.5) * 0.45) * 100}%`,
+      bandY: `${(0.2 + y * 0.58) * 100}%`,
+      intensity: 0.22 + lightBoost * 0.56,
+      shadow: `drop-shadow(${shadowX}px ${shadowY}px ${shadowBlur}px rgba(0, 0, 0, ${shadowAlpha}))`,
     });
   }
 
@@ -87,6 +97,7 @@ export default function InspectableFoilCard({
         rotate: swipeRotate,
         rotateX,
         rotateY,
+        filter: foilPosition.shadow,
         transformStyle: 'preserve-3d',
       }}
       sx={{
@@ -106,6 +117,8 @@ export default function InspectableFoilCard({
         foilStyle={{
           '--foil-x': foilPosition.x,
           '--foil-y': foilPosition.y,
+          '--foil-band-x': foilPosition.bandX,
+          '--foil-band-y': foilPosition.bandY,
           '--foil-intensity': foilPosition.intensity,
         }}
       />

@@ -207,9 +207,11 @@ function HomeActionCard({ actionLabel, ariaLabel, body, children, icon, onClick,
       onClick={onClick}
       onKeyDown={(event) => handleKeyboardActivate(event, onClick)}
       sx={{
+        width: '100%',
         height: '100%',
         cursor: 'pointer',
         overflow: 'hidden',
+        borderRadius: { xs: 3, sm: 3.5 },
         transition: 'transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease',
         '&:hover, &:focus-visible': {
           borderColor: tone === 'warning' ? 'rgba(244, 201, 93, 0.58)' : 'rgba(76, 201, 240, 0.38)',
@@ -219,8 +221,17 @@ function HomeActionCard({ actionLabel, ariaLabel, body, children, icon, onClick,
         },
       }}
     >
-      <CardActionArea component="div" sx={{ height: '100%', alignItems: 'stretch' }}>
-        <CardContent sx={{ display: 'flex', flexDirection: 'column', minHeight: '100%', gap: 1.2, p: { xs: 2, sm: 2.25 } }}>
+      <CardActionArea component="div" sx={{ width: '100%', height: '100%', alignItems: 'stretch' }}>
+        <CardContent
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            minWidth: 0,
+            minHeight: '100%',
+            gap: { xs: 1, sm: 1.2 },
+            p: { xs: 2, sm: 2.25 },
+          }}
+        >
           <MiniVisual icon={icon} tone={tone} />
           <Typography variant="h5" sx={{ fontSize: { xs: 20, sm: 24 } }}>
             {title}
@@ -233,11 +244,12 @@ function HomeActionCard({ actionLabel, ariaLabel, body, children, icon, onClick,
             endIcon={<KeyboardArrowRightIcon />}
             size="small"
             sx={{
-              alignSelf: 'flex-start',
+              alignSelf: { xs: 'stretch', sm: 'flex-start' },
               mt: 'auto',
               maxWidth: '100%',
+              width: { xs: '100%', sm: 'auto' },
               whiteSpace: 'normal',
-              textAlign: 'left',
+              textAlign: 'center',
             }}
             variant={tone === 'warning' ? 'contained' : 'outlined'}
           >
@@ -266,11 +278,12 @@ function RecommendedAction({ hasCollectorBooster, hasCollection, navigate }) {
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: 2,
+          p: { xs: 2, sm: 3 },
           background:
             'radial-gradient(circle at 12% 50%, rgba(244, 201, 93, 0.14), transparent 22rem), linear-gradient(90deg, rgba(18, 20, 38, 0.96), rgba(5, 7, 17, 0.92))',
         }}
       >
-        <Box>
+        <Box sx={{ minWidth: 0 }}>
           <Typography color="warning.main" fontWeight={950}>
             Recommended next action
           </Typography>
@@ -280,6 +293,7 @@ function RecommendedAction({ hasCollectorBooster, hasCollection, navigate }) {
           onClick={() => navigate('/sets')}
           startIcon={hasCollectorBooster ? <LocalAtmIcon /> : <AutoAwesomeIcon />}
           variant="contained"
+          sx={{ width: { xs: '100%', sm: 'auto' } }}
         >
           {buttonLabel}
         </Button>
@@ -375,6 +389,8 @@ export default function Home() {
     <Box
       sx={{
         position: 'relative',
+        maxWidth: '100%',
+        overflowX: 'clip',
         '&::before': {
           content: '""',
           position: 'absolute',
@@ -387,7 +403,7 @@ export default function Home() {
         },
       }}
     >
-      <Grid container spacing={{ xs: 3, md: 5 }} alignItems="center" sx={{ mb: { xs: 4, md: 5 } }}>
+      <Grid container spacing={{ xs: 3, md: 5 }} alignItems="center" sx={{ mb: { xs: 4, md: 5 }, width: '100%' }}>
         <Grid size={{ xs: 12, md: 7 }}>
           <Chip color="warning" label="MTG Pack Opener" sx={{ mb: 2, fontWeight: 900 }} variant="outlined" />
           <Typography variant="h1" sx={{ maxWidth: 740, fontSize: { xs: 42, md: 64 }, lineHeight: 0.96, mb: 2 }}>
@@ -396,11 +412,11 @@ export default function Home() {
           <Typography color="text.secondary" sx={{ maxWidth: 680, fontSize: { xs: 17, md: 20 }, mb: 3 }}>
             Choose real MTG sets, spin through sealed boosters, tear packs open, reveal foils, and save your pulls locally.
           </Typography>
-          <Stack direction="row" flexWrap="wrap" gap={2}>
-            <Button component={Link} to="/sets" size="large" variant="contained" startIcon={<AutoAwesomeIcon />}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} flexWrap="wrap" gap={2} sx={{ width: { xs: '100%', sm: 'auto' } }}>
+            <Button component={Link} to="/sets" size="large" variant="contained" startIcon={<AutoAwesomeIcon />} sx={{ width: { xs: '100%', sm: 'auto' } }}>
               Open Packs
             </Button>
-            <Button component={Link} to="/collection" size="large" variant="outlined" startIcon={<CollectionsBookmarkIcon />}>
+            <Button component={Link} to="/collection" size="large" variant="outlined" startIcon={<CollectionsBookmarkIcon />} sx={{ width: { xs: '100%', sm: 'auto' } }}>
               View Collection
             </Button>
           </Stack>
@@ -416,7 +432,7 @@ export default function Home() {
         navigate={navigate}
       />
 
-      <Grid container spacing={1.5} sx={{ mb: 4 }}>
+      <Grid container spacing={1.5} sx={{ mb: 4, width: '100%' }}>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <HomeStatCard icon={<CollectionsBookmarkIcon />} label="Cards Saved" value={stats.totalCards} helper="Local collection" />
         </Grid>
@@ -431,7 +447,7 @@ export default function Home() {
         </Grid>
       </Grid>
 
-      <Grid container spacing={3} sx={{ mb: 4 }}>
+      <Grid container spacing={3} sx={{ mb: 4, width: '100%' }}>
         {cards.map((card) => (
           <Grid key={card.title} size={{ xs: 12, md: card.shardCard ? 12 : 4 }}>
             <HomeActionCard
@@ -463,19 +479,22 @@ export default function Home() {
                 <Box
                   sx={{
                     display: 'grid',
-                    gap: 1.25,
-                    p: 1.5,
+                    minWidth: 0,
+                    maxWidth: '100%',
+                    gap: { xs: 1, sm: 1.25 },
+                    p: { xs: 1.25, sm: 1.5 },
+                    overflow: 'hidden',
                     border: '1px solid rgba(244, 201, 93, 0.18)',
                     borderRadius: 2,
                     background:
                       'linear-gradient(135deg, rgba(244, 201, 93, 0.12), rgba(143, 124, 255, 0.1), rgba(5, 7, 17, 0.52))',
                   }}
                 >
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>
-                    <Typography color="text.secondary" sx={{ fontSize: 13, fontWeight: 800 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1, minWidth: 0 }}>
+                    <Typography color="text.secondary" sx={{ minWidth: 0, fontSize: { xs: 12, sm: 13 }, fontWeight: 800, lineHeight: 1.25 }}>
                       {packShards.toLocaleString()} / {COLLECTOR_BOOSTER_COST.toLocaleString()} Pack Shards
                     </Typography>
-                    <Typography color="warning.main" sx={{ fontSize: 13, fontWeight: 900 }}>
+                    <Typography color="warning.main" sx={{ fontSize: { xs: 12, sm: 13 }, fontWeight: 900, lineHeight: 1.25 }}>
                       {Math.round(collectorProgress * 100)}%
                     </Typography>
                   </Box>
@@ -483,16 +502,45 @@ export default function Home() {
                     color="warning"
                     value={collectorProgress * 100}
                     variant="determinate"
-                    sx={{ height: 11, borderRadius: 999, bgcolor: 'rgba(248, 247, 255, 0.08)' }}
+                    sx={{ width: '100%', height: { xs: 9, sm: 11 }, borderRadius: 999, bgcolor: 'rgba(248, 247, 255, 0.08)' }}
                   />
-                  <Stack direction="row" flexWrap="wrap" gap={1}>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, maxWidth: '100%', overflow: 'hidden' }}>
                     <Chip
                       color={hasCollectorBooster ? 'success' : 'warning'}
                       label={hasCollectorBooster ? 'Collector Booster Ready' : 'Collector Booster unlocks at 1,000'}
                       size="small"
+                      sx={{
+                        maxWidth: '100%',
+                        height: 'auto',
+                        '& .MuiChip-label': {
+                          whiteSpace: 'normal',
+                          overflow: 'visible',
+                          textOverflow: 'clip',
+                          lineHeight: 1.2,
+                          py: 0.5,
+                          fontSize: { xs: 11, sm: 12 },
+                        },
+                      }}
                     />
-                    <Chip color="secondary" label="Duplicates grant 100" size="small" variant="outlined" />
-                  </Stack>
+                    <Chip
+                      color="secondary"
+                      label="Duplicates grant 100"
+                      size="small"
+                      variant="outlined"
+                      sx={{
+                        maxWidth: '100%',
+                        height: 'auto',
+                        '& .MuiChip-label': {
+                          whiteSpace: 'normal',
+                          overflow: 'visible',
+                          textOverflow: 'clip',
+                          lineHeight: 1.2,
+                          py: 0.5,
+                          fontSize: { xs: 11, sm: 12 },
+                        },
+                      }}
+                    />
+                  </Box>
                 </Box>
               )}
             </HomeActionCard>

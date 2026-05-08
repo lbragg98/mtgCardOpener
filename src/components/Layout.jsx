@@ -71,9 +71,21 @@ export default function Layout() {
     <Box sx={{ minHeight: '100vh' }}>
       {!isPackReveal && (
       <AppBar position="sticky">
-        <Toolbar sx={{ gap: 2 }}>
+        <Toolbar sx={{ gap: { xs: 1, sm: 2 }, minWidth: 0, px: { xs: 1.5, sm: 3 } }}>
           <StyleIcon color="warning" />
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 800 }}>
+          <Typography
+            variant="h6"
+            component="div"
+            sx={{
+              flexGrow: 1,
+              minWidth: 0,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              fontWeight: 800,
+              fontSize: { xs: 18, sm: 20 },
+            }}
+          >
             MTG Pack Opener
           </Typography>
 

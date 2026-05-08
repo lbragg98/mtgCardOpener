@@ -4,10 +4,14 @@
 
 html {
   min-height: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 body {
   min-height: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
   margin: 0;
   background:
     radial-gradient(circle at top left, rgba(143, 124, 255, 0.16), transparent 34rem),
@@ -29,6 +33,11 @@ a {
   overflow: hidden;
   border-radius: 16px;
   background: rgba(0, 0, 0, 0.32);
+}
+
+#root {
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .interactiveFoil {
@@ -554,6 +563,10 @@ a {
 .revealCardMotion .card-image-wrapper {
   position: relative;
   z-index: 3;
+}
+
+.revealCardMotion .foilVariant-reveal {
+  animation: none;
 }
 
 .foilRevealAura,
@@ -1384,6 +1397,146 @@ a {
     radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.72), transparent 14%),
     radial-gradient(circle at 50% 50%, rgba(244, 201, 93, 0.62), transparent 40%),
     radial-gradient(circle at 50% 50%, rgba(143, 124, 255, 0.42), transparent 78%);
+}
+
+.interactiveFoil {
+  --foil-band-x: 50%;
+  --foil-band-y: 38%;
+  transform-style: preserve-3d;
+}
+
+.interactiveFoil .foilOverlay {
+  animation-duration: 14s;
+  opacity: 0.18;
+}
+
+.interactiveFoil .foilSweep {
+  animation: none;
+  background:
+    linear-gradient(
+      116deg,
+      transparent 16%,
+      rgba(255, 255, 255, 0.05) 38%,
+      rgba(255, 255, 255, 0.18) 50%,
+      rgba(255, 255, 255, 0.06) 62%,
+      transparent 84%
+    );
+  opacity: 0.26;
+  transform: none;
+}
+
+.interactiveFoil .foilSparkles {
+  animation-duration: 8s;
+  opacity: 0.16;
+}
+
+.interactiveFoil .foilAura {
+  opacity: 0.28;
+}
+
+.interactiveFoil .foilTexturePattern {
+  opacity: 0.2;
+}
+
+.interactiveFoil .foilBorderGlow {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.32),
+    inset 9px 0 16px rgba(255, 255, 255, 0.08),
+    inset -9px 0 16px rgba(0, 0, 0, 0.18);
+}
+
+.interactiveFoil .realisticFoilLayer {
+  background:
+    radial-gradient(
+      ellipse 36% 24% at var(--foil-x) var(--foil-y),
+      rgba(255, 255, 255, 0.96) 0%,
+      rgba(255, 255, 255, 0.55) 9%,
+      rgba(255, 255, 255, 0.18) 23%,
+      transparent 48%
+    ),
+    radial-gradient(
+      ellipse 72% 16% at var(--foil-band-x) var(--foil-band-y),
+      rgba(255, 255, 255, 0.34) 0%,
+      rgba(255, 255, 255, 0.16) 32%,
+      transparent 68%
+    ),
+    linear-gradient(
+      105deg,
+      rgba(255, 255, 255, 0.08),
+      transparent 18%,
+      rgba(255, 255, 255, 0.1) 46%,
+      transparent 72%,
+      rgba(255, 255, 255, 0.07)
+    ),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.16), transparent 8%, transparent 92%, rgba(255, 255, 255, 0.1));
+  filter: saturate(1.04) contrast(1.03);
+  mix-blend-mode: screen;
+  opacity: var(--foil-intensity);
+}
+
+.interactiveFoil.foilRainbow .realisticFoilLayer,
+.interactiveFoil.foil-rainbow .realisticFoilLayer {
+  background:
+    radial-gradient(ellipse 36% 24% at var(--foil-x) var(--foil-y), rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.42) 10%, transparent 46%),
+    radial-gradient(ellipse 72% 16% at var(--foil-band-x) var(--foil-band-y), rgba(255, 255, 255, 0.28), transparent 68%),
+    conic-gradient(from 140deg at var(--foil-x) var(--foil-y), rgba(255, 65, 216, 0.18), rgba(255, 236, 92, 0.14), rgba(72, 255, 147, 0.12), rgba(76, 220, 255, 0.16), rgba(117, 92, 255, 0.14), rgba(255, 65, 216, 0.18)),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.13), transparent 9%, transparent 91%, rgba(255, 255, 255, 0.09));
+}
+
+.interactiveFoil.foilEtched .realisticFoilLayer,
+.interactiveFoil.foil-etched .realisticFoilLayer {
+  background:
+    radial-gradient(ellipse 34% 22% at var(--foil-x) var(--foil-y), rgba(255, 250, 226, 0.9), rgba(255, 255, 255, 0.3) 13%, transparent 46%),
+    radial-gradient(ellipse 68% 14% at var(--foil-band-x) var(--foil-band-y), rgba(255, 244, 204, 0.26), transparent 70%),
+    repeating-linear-gradient(64deg, rgba(255, 255, 255, 0.06) 0 1px, transparent 1px 7px);
+}
+
+.interactiveFoil.foilGalaxy .realisticFoilLayer,
+.interactiveFoil.foil-galaxy .realisticFoilLayer {
+  background:
+    radial-gradient(ellipse 36% 24% at var(--foil-x) var(--foil-y), rgba(255, 255, 255, 0.94), rgba(76, 201, 240, 0.2) 13%, rgba(143, 124, 255, 0.1) 26%, transparent 50%),
+    radial-gradient(ellipse 72% 16% at var(--foil-band-x) var(--foil-band-y), rgba(185, 178, 255, 0.22), transparent 70%),
+    radial-gradient(circle at 28% 22%, rgba(255, 255, 255, 0.26) 0 1px, transparent 2px);
+}
+
+.interactiveFoil.foilGilded .realisticFoilLayer,
+.interactiveFoil.foil-gilded .realisticFoilLayer {
+  background:
+    radial-gradient(ellipse 36% 24% at var(--foil-x) var(--foil-y), rgba(255, 255, 255, 0.94), rgba(255, 221, 124, 0.28) 12%, transparent 48%),
+    radial-gradient(ellipse 72% 16% at var(--foil-band-x) var(--foil-band-y), rgba(244, 201, 93, 0.24), transparent 70%),
+    linear-gradient(90deg, rgba(244, 201, 93, 0.18), transparent 11%, transparent 89%, rgba(244, 201, 93, 0.15));
+}
+
+.interactiveFoil.foilTextured .realisticFoilLayer,
+.interactiveFoil.foil-textured .realisticFoilLayer {
+  background:
+    radial-gradient(ellipse 36% 24% at var(--foil-x) var(--foil-y), rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.36) 12%, transparent 50%),
+    radial-gradient(ellipse 72% 16% at var(--foil-band-x) var(--foil-band-y), rgba(244, 201, 93, 0.18), transparent 70%),
+    repeating-linear-gradient(38deg, rgba(255, 255, 255, 0.06) 0 1px, transparent 1px 7px);
+}
+
+.interactiveFoil.foilNeonInk .realisticFoilLayer,
+.interactiveFoil.foil-neonInk .realisticFoilLayer {
+  background:
+    radial-gradient(ellipse 36% 24% at var(--foil-x) var(--foil-y), rgba(255, 255, 255, 0.96), rgba(0, 255, 255, 0.24) 11%, rgba(255, 0, 200, 0.12) 24%, transparent 50%),
+    radial-gradient(ellipse 72% 16% at var(--foil-band-x) var(--foil-band-y), rgba(0, 255, 255, 0.16), rgba(255, 0, 200, 0.1) 38%, transparent 72%),
+    repeating-linear-gradient(115deg, transparent 0 13px, rgba(0, 255, 255, 0.11) 14px, rgba(255, 0, 200, 0.08) 16px, transparent 21px);
+}
+
+.interactiveFoil.foilRainbow .foilOverlay,
+.interactiveFoil.foil-rainbow .foilOverlay,
+.interactiveFoil.foil-standard .foilOverlay {
+  animation-duration: 18s;
+  opacity: 0.18;
+}
+
+.interactiveFoil.foilGilded .foilOverlay,
+.interactiveFoil.foil-gilded .foilOverlay,
+.interactiveFoil.foilTextured .foilOverlay,
+.interactiveFoil.foil-textured .foilOverlay,
+.interactiveFoil.foilNeonInk .foilOverlay,
+.interactiveFoil.foil-neonInk .foilOverlay {
+  opacity: 0.24;
 }
 
 .reveal-special-pulse {
