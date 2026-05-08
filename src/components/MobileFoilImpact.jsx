@@ -12,7 +12,6 @@ export default function MobileFoilImpact({ active, card }) {
     <Box className={`mobileFoilImpact mobileFoilImpact-${treatment}`}>
       <Box className="mobileImpactAura" />
       <Box className="mobileImpactRing" />
-      <Box className="mobileImpactDust" />
       <Box className="mobileImpactSparks" />
     </Box>
   );

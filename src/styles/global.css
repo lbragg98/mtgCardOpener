@@ -2462,7 +2462,12 @@ a {
   touch-action: none;
 }
 
-.mobileRevealSwipeWrapper {
+.revealCardOuter,
+.mobileFoilSwipeWrapper {
+  touch-action: none;
+}
+
+.mobileFoilSwipeWrapper {
   position: relative;
   z-index: 1;
   display: grid;
@@ -2471,36 +2476,21 @@ a {
   will-change: transform;
 }
 
-.mobileRevealCardWrapper,
-.mobileInspectTiltWrapper,
+.mobileFoilRevealWrapper,
+.mobileFoilImageWrapper,
 .mobileFoilReveal .cardImageWrapper {
   transform: translateZ(0);
   will-change: transform;
 }
 
-.mobileRevealCardWrapper {
+.mobileFoilRevealWrapper {
   position: relative;
   z-index: 2;
-  transform-style: preserve-3d;
 }
 
-.mobileRevealCardWrapper::before {
-  content: "";
-  position: absolute;
-  inset: -7%;
-  z-index: -1;
-  border-radius: 22px;
-  background:
-    radial-gradient(circle at 50% 50%, var(--impact-primary, rgba(244, 201, 93, 0.56)), transparent 58%);
-  opacity: 0;
-  transform: scale(0.86);
-  animation: mobileCardLandGlow 1150ms ease-out 620ms forwards;
-}
-
-.mobileInspectTiltWrapper {
+.mobileFoilImageWrapper {
   position: relative;
   z-index: 2;
-  transform-style: preserve-3d;
 }
 
 .mobileFoilReveal .foilRevealBurst {
@@ -2508,26 +2498,25 @@ a {
 }
 
 .mobileFoilReveal .mobileFoilInspect.foilVariant-reveal.foilCard {
-  --foil-strength: 0.38;
-  --foil-band-opacity: 0.34;
-  --foil-color-opacity: 0.7;
-  --foil-glare-size: 25%;
-  animation: mobileCardBorderGlow 1450ms ease-out 620ms both;
+  --foil-strength: 0.26;
+  --foil-band-opacity: 0.22;
+  --foil-color-opacity: 0.58;
+  --foil-glare-size: 22%;
 }
 
 .mobileFoilReveal .mobileFoilInspect.interactiveFoil.foilVariant-reveal .foilOverlay {
   animation: none !important;
-  opacity: 0.27;
+  opacity: 0.2;
 }
 
 .mobileFoilReveal .mobileFoilInspect.interactiveFoil.foilVariant-reveal .foilSweep {
   animation: none !important;
-  opacity: 0.31;
+  opacity: 0.22;
 }
 
 .mobileFoilReveal .mobileFoilInspect.interactiveFoil.foilVariant-reveal .foilSparkles {
   animation: none !important;
-  opacity: 0.29;
+  opacity: 0.18;
 }
 
 .mobileFoilImpact,
@@ -2536,8 +2525,8 @@ a {
 }
 
 .mobileFoilImpact {
-  --impact-primary: rgba(244, 201, 93, 0.92);
-  --impact-secondary: rgba(76, 201, 240, 0.58);
+  --impact-primary: rgba(244, 201, 93, 0.82);
+  --impact-secondary: rgba(76, 201, 240, 0.46);
   position: absolute;
   inset: 0;
   z-index: 0;
@@ -2547,85 +2536,69 @@ a {
 }
 
 .mobileFoilImpact-rainbow {
-  --impact-primary: rgba(255, 236, 92, 0.98);
-  --impact-secondary: rgba(76, 220, 255, 0.68);
+  --impact-primary: rgba(255, 236, 92, 0.86);
+  --impact-secondary: rgba(76, 220, 255, 0.52);
 }
 
 .mobileFoilImpact-etched {
-  --impact-primary: rgba(245, 241, 222, 0.98);
-  --impact-secondary: rgba(244, 201, 93, 0.58);
+  --impact-primary: rgba(245, 241, 222, 0.86);
+  --impact-secondary: rgba(244, 201, 93, 0.42);
 }
 
 .mobileFoilImpact-galaxy {
-  --impact-primary: rgba(143, 124, 255, 0.98);
-  --impact-secondary: rgba(76, 201, 240, 0.72);
+  --impact-primary: rgba(143, 124, 255, 0.86);
+  --impact-secondary: rgba(76, 201, 240, 0.58);
 }
 
 .mobileFoilImpact-gilded {
-  --impact-primary: rgba(255, 218, 105, 1);
-  --impact-secondary: rgba(255, 159, 52, 0.68);
+  --impact-primary: rgba(255, 218, 105, 0.9);
+  --impact-secondary: rgba(255, 159, 52, 0.52);
 }
 
 .mobileFoilImpact-textured {
-  --impact-primary: rgba(255, 255, 255, 0.98);
-  --impact-secondary: rgba(143, 124, 255, 0.68);
+  --impact-primary: rgba(255, 255, 255, 0.88);
+  --impact-secondary: rgba(143, 124, 255, 0.52);
 }
 
 .mobileFoilImpact-neonInk {
-  --impact-primary: rgba(0, 255, 255, 1);
-  --impact-secondary: rgba(255, 0, 200, 0.74);
+  --impact-primary: rgba(0, 255, 255, 0.9);
+  --impact-secondary: rgba(255, 0, 200, 0.58);
 }
 
 .mobileImpactAura {
-  width: min(108vw, 420px);
-  height: min(108vw, 420px);
+  width: min(92vw, 360px);
+  height: min(92vw, 360px);
   border-radius: 999px;
   background:
-    radial-gradient(circle, var(--impact-primary), var(--impact-secondary) 38%, transparent 66%);
+    radial-gradient(circle, var(--impact-primary), var(--impact-secondary) 34%, transparent 62%);
   opacity: 0;
-  animation: mobileAuraPop 1350ms ease-out forwards;
+  animation: mobileAuraPop 1000ms ease-out forwards;
 }
 
 .mobileImpactRing {
   position: absolute;
-  width: min(96vw, 380px);
-  height: min(96vw, 380px);
-  border: 3px solid var(--impact-primary);
+  width: min(82vw, 320px);
+  height: min(82vw, 320px);
+  border: 2px solid var(--impact-primary);
   border-radius: 999px;
-  box-shadow:
-    0 0 18px var(--impact-primary),
-    0 0 32px var(--impact-secondary);
+  box-shadow: 0 0 16px var(--impact-primary);
   opacity: 0;
-  animation: mobileRingExpand 1050ms ease-out forwards;
-}
-
-.mobileImpactDust {
-  position: absolute;
-  top: 62%;
-  width: min(88vw, 340px);
-  height: 90px;
-  border-radius: 50%;
-  background: radial-gradient(ellipse, rgba(220, 220, 230, 0.35), transparent 65%);
-  opacity: 0;
-  animation: mobileDustPuff 900ms ease-out forwards;
+  animation: mobileRingExpand 850ms ease-out forwards;
 }
 
 .mobileImpactSparks {
   position: absolute;
-  width: min(104vw, 400px);
-  height: min(104vw, 400px);
+  width: min(88vw, 340px);
+  height: min(88vw, 340px);
   border-radius: 999px;
   background:
-    radial-gradient(circle at 14% 24%, rgba(255, 255, 255, 0.98) 0 2px, transparent 4px),
-    radial-gradient(circle at 24% 66%, var(--impact-secondary) 0 2px, transparent 4px),
-    radial-gradient(circle at 72% 18%, var(--impact-primary) 0 3px, transparent 5px),
+    radial-gradient(circle at 16% 24%, rgba(255, 255, 255, 0.88) 0 2px, transparent 4px),
+    radial-gradient(circle at 72% 20%, var(--impact-primary) 0 2px, transparent 4px),
     radial-gradient(circle at 84% 72%, var(--impact-secondary) 0 2px, transparent 4px),
-    radial-gradient(circle at 33% 84%, rgba(255, 255, 255, 0.88) 0 2px, transparent 4px),
-    radial-gradient(circle at 50% 8%, var(--impact-primary) 0 2px, transparent 4px),
-    radial-gradient(circle at 62% 88%, rgba(255, 255, 255, 0.82) 0 1px, transparent 3px),
-    radial-gradient(circle at 10% 48%, var(--impact-primary) 0 1px, transparent 3px);
+    radial-gradient(circle at 30% 80%, rgba(255, 255, 255, 0.72) 0 1px, transparent 3px),
+    radial-gradient(circle at 50% 10%, var(--impact-primary) 0 1px, transparent 3px);
   opacity: 0;
-  animation: mobileSparkPop 1250ms ease-out forwards;
+  animation: mobileSparkPop 950ms ease-out forwards;
 }
 
 .mobileFoilHelper {
@@ -2648,18 +2621,13 @@ a {
   }
 
   25% {
-    opacity: 0.95;
+    opacity: 0.72;
     transform: scale(1);
-  }
-
-  52% {
-    opacity: 0.58;
-    transform: scale(1.18);
   }
 
   100% {
     opacity: 0;
-    transform: scale(1.48);
+    transform: scale(1.32);
   }
 }
 
@@ -2675,23 +2643,7 @@ a {
 
   100% {
     opacity: 0;
-    transform: scale(1.62);
-  }
-}
-
-@keyframes mobileDustPuff {
-  0% {
-    opacity: 0;
-    transform: scale(0.35);
-  }
-
-  30% {
-    opacity: 0.7;
-  }
-
-  100% {
-    opacity: 0;
-    transform: scale(1.45);
+    transform: scale(1.38);
   }
 }
 
@@ -2702,56 +2654,12 @@ a {
   }
 
   26% {
-    opacity: 1;
-  }
-
-  58% {
-    opacity: 0.66;
+    opacity: 0.82;
   }
 
   100% {
     opacity: 0;
-    transform: scale(1.38) rotate(12deg);
-  }
-}
-
-@keyframes mobileCardLandGlow {
-  0% {
-    opacity: 0;
-    transform: scale(0.82);
-  }
-
-  28% {
-    opacity: 0.78;
-    transform: scale(1.02);
-  }
-
-  100% {
-    opacity: 0;
-    transform: scale(1.2);
-  }
-}
-
-@keyframes mobileCardBorderGlow {
-  0% {
-    box-shadow:
-      0 0 34px var(--impact-primary, rgba(244, 201, 93, 0.52)),
-      0 0 62px var(--impact-secondary, rgba(143, 124, 255, 0.28)),
-      0 24px 64px rgba(0, 0, 0, 0.62);
-  }
-
-  34% {
-    box-shadow:
-      0 0 48px var(--impact-primary, rgba(244, 201, 93, 0.72)),
-      0 0 92px var(--impact-secondary, rgba(143, 124, 255, 0.44)),
-      0 26px 68px rgba(0, 0, 0, 0.64);
-  }
-
-  100% {
-    box-shadow:
-      0 0 28px var(--impact-primary, rgba(244, 201, 93, 0.42)),
-      0 0 56px var(--impact-secondary, rgba(143, 124, 255, 0.24)),
-      0 24px 64px rgba(0, 0, 0, 0.62);
+    transform: scale(1.18);
   }
 }
 

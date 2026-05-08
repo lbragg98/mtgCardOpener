@@ -1,22 +1,20 @@
 import { Box, Typography } from '@mui/material';
-import { animate, motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
+import { animate, motion, useMotionValue } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
 import CardImage from './CardImage.jsx';
 import MobileFoilImpact from './MobileFoilImpact.jsx';
 
-const MOBILE_SWIPE_START_THRESHOLD = 22;
-const MOBILE_SWIPE_AWAY_THRESHOLD = 95;
-const HORIZONTAL_INTENT_RATIO = 1.35;
-const MOBILE_MAX_ROTATE_Y = 1.8;
-const MOBILE_MAX_ROTATE_X = 1.4;
+const MOBILE_SWIPE_START_THRESHOLD = 24;
+const MOBILE_SWIPE_AWAY_THRESHOLD = 105;
+const HORIZONTAL_INTENT_RATIO = 1.45;
 const DEFAULT_FOIL_POSITION = {
   x: '50%',
-  y: '22%',
+  y: '18%',
   bandX: '50%',
   bandY: '38%',
-  brightness: 0.34,
+  brightness: 0.26,
   xNum: 0.5,
-  yNum: 0.22,
+  yNum: 0.18,
 };
 
 function clamp(value, min, max) {
@@ -28,19 +26,12 @@ export default function MobileFoilRevealCard({ card, cardKey, className = '', on
   const touchStartRef = useRef(null);
   const isSwipingRef = useRef(false);
   const swipeX = useMotionValue(0);
-  const rawRotateX = useMotionValue(0);
-  const rawRotateY = useMotionValue(0);
-  const smoothRotateX = useSpring(rawRotateX, { stiffness: 150, damping: 24, mass: 0.35 });
-  const smoothRotateY = useSpring(rawRotateY, { stiffness: 150, damping: 24, mass: 0.35 });
   const [canInspect, setCanInspect] = useState(false);
   const [impactActive, setImpactActive] = useState(false);
   const [foilPosition, setFoilPosition] = useState(DEFAULT_FOIL_POSITION);
-  const swipeOpacity = useTransform(swipeX, [-180, 0, 180], [0.9, 1, 0.9]);
 
   function resetMobileFoilState() {
     swipeX.set(0);
-    rawRotateX.set(0);
-    rawRotateY.set(0);
     setFoilPosition(DEFAULT_FOIL_POSITION);
     touchStartRef.current = null;
     isSwipingRef.current = false;
@@ -71,14 +62,9 @@ export default function MobileFoilRevealCard({ card, cardKey, className = '', on
     const clampedX = clamp((clientX - rect.left) / rect.width, 0, 1);
     const clampedY = clamp((clientY - rect.top) / rect.height, 0, 1);
     const dx = clampedX - 0.5;
-    const dy = clampedY - 0.5;
-    const targetRotateY = dx * MOBILE_MAX_ROTATE_Y * 2;
-    const targetRotateX = -dy * MOBILE_MAX_ROTATE_X * 2;
     const lightY = Math.max(0.03, clampedY * 0.78);
-    const brightness = 0.32 + (1 - Math.abs(dx)) * 0.1;
+    const brightness = 0.26 + (1 - Math.abs(dx)) * 0.06;
 
-    rawRotateX.set(targetRotateX);
-    rawRotateY.set(targetRotateY);
     setFoilPosition({
       x: `${clampedX * 100}%`,
       y: `${lightY * 100}%`,
@@ -91,7 +77,7 @@ export default function MobileFoilRevealCard({ card, cardKey, className = '', on
   }
 
   function handlePointerDown(event) {
-    if (event.pointerType === 'mouse' || !canInspect) {
+    if (event.pointerType !== 'touch' || !canInspect) {
       return;
     }
 
@@ -107,7 +93,7 @@ export default function MobileFoilRevealCard({ card, cardKey, className = '', on
   }
 
   function handlePointerMove(event) {
-    if (event.pointerType === 'mouse' || !touchStartRef.current) {
+    if (event.pointerType !== 'touch' || !touchStartRef.current) {
       return;
     }
 
@@ -126,17 +112,16 @@ export default function MobileFoilRevealCard({ card, cardKey, className = '', on
 
     if (isSwipingRef.current) {
       swipeX.set(clamp(dx, -180, 180));
-      rawRotateX.set(0);
-      rawRotateY.set(0);
       updateMobileFoil(event.clientX, event.clientY);
       return;
     }
 
+    swipeX.set(0);
     updateMobileFoil(event.clientX, event.clientY);
   }
 
   function handlePointerUp(event) {
-    if (event.pointerType === 'mouse') {
+    if (event.pointerType !== 'touch') {
       return;
     }
 
@@ -152,9 +137,7 @@ export default function MobileFoilRevealCard({ card, cardKey, className = '', on
     if (isSwipingRef.current && Math.abs(dx) > MOBILE_SWIPE_AWAY_THRESHOLD) {
       onSwipeAway(dx > 0 ? 1 : -1);
     } else {
-      animate(swipeX, 0, { type: 'spring', stiffness: 180, damping: 24 });
-      rawRotateX.set(0);
-      rawRotateY.set(0);
+      animate(swipeX, 0, { type: 'spring', stiffness: 220, damping: 26 });
     }
 
     touchStartRef.current = null;
@@ -162,48 +145,41 @@ export default function MobileFoilRevealCard({ card, cardKey, className = '', on
   }
 
   return (
-    <Box className="mobileFoilReveal">
+    <Box className="mobileFoilReveal revealCardOuter">
       <Box
-        className="mobileRevealSwipeWrapper"
+        className="mobileFoilSwipeWrapper"
         component={motion.div}
         onPointerCancel={handlePointerUp}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
-        style={{ x: swipeX, opacity: swipeOpacity }}
+        style={{ x: swipeX }}
       >
         <MobileFoilImpact active={impactActive} card={card} />
         <Box
-          className="mobileRevealCardWrapper"
+          className="mobileFoilRevealWrapper"
           component={motion.div}
           initial={{
             opacity: 0,
-            y: 90,
-            scale: 0.78,
-            rotateZ: -4,
-            rotateY: 18,
+            y: 70,
+            scale: 0.84,
+            rotateZ: -2,
           }}
           animate={{
             opacity: 1,
-            y: [90, -18, 8, -3, 0],
-            scale: [0.78, 1.16, 0.94, 1.03, 1],
-            rotateZ: [-4, 2, -1, 0.5, 0],
-            rotateY: [18, 6, 0, 0, 0],
+            y: [70, -8, 4, 0],
+            scale: [0.84, 1.07, 0.98, 1],
+            rotateZ: [-2, 1, 0],
           }}
           transition={{
-            duration: 0.9,
-            times: [0, 0.43, 0.66, 0.84, 1],
-            ease: [0.16, 1, 0.3, 1],
+            duration: 0.65,
+            times: [0, 0.5, 0.78, 1],
+            ease: 'easeOut',
           }}
         >
           <Box
-            className="mobileInspectTiltWrapper"
-            component={motion.div}
+            className="mobileFoilImageWrapper"
             ref={cardRef}
-            style={{
-              rotateX: smoothRotateX,
-              rotateY: smoothRotateY,
-            }}
           >
             <CardImage
               card={card}
