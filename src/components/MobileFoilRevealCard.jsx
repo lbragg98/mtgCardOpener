@@ -185,14 +185,14 @@ export default function MobileFoilRevealCard({ card, cardKey, className = '', on
           }}
           animate={{
             opacity: 1,
-            y: [90, -12, 6, 0],
-            scale: [0.78, 1.12, 0.96, 1],
-            rotateZ: [-4, 2, -1, 0],
-            rotateY: [18, 6, 0, 0],
+            y: [90, -18, 8, -3, 0],
+            scale: [0.78, 1.16, 0.94, 1.03, 1],
+            rotateZ: [-4, 2, -1, 0.5, 0],
+            rotateY: [18, 6, 0, 0, 0],
           }}
           transition={{
-            duration: 0.78,
-            times: [0, 0.48, 0.74, 1],
+            duration: 0.9,
+            times: [0, 0.43, 0.66, 0.84, 1],
             ease: [0.16, 1, 0.3, 1],
           }}
         >
