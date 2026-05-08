@@ -29,6 +29,7 @@ function isRealSaveableCard(card) {
 
 function normalizeCollectionCard(card, openedAt) {
   const isFoil = Boolean(card.isFoil);
+  const prices = card.prices || {};
 
   return {
     collectionId: createCollectionId(),
@@ -39,6 +40,13 @@ function normalizeCollectionCard(card, openedAt) {
     set: card.set,
     set_name: card.set_name,
     collector_number: card.collector_number,
+    prices,
+    usd: prices.usd ?? card.usd ?? null,
+    usd_foil: prices.usd_foil ?? card.usd_foil ?? null,
+    usd_etched: prices.usd_etched ?? card.usd_etched ?? null,
+    eur: prices.eur ?? card.eur ?? null,
+    eur_foil: prices.eur_foil ?? card.eur_foil ?? null,
+    tix: prices.tix ?? card.tix ?? null,
     isFoil,
     foilTreatment: normalizeFoilTreatment({ ...card, isFoil }),
     openedAt,
@@ -47,9 +55,17 @@ function normalizeCollectionCard(card, openedAt) {
 
 function normalizeStoredCollectionCard(card) {
   const isFoil = Boolean(card.isFoil);
+  const prices = card.prices || {};
 
   return {
     ...card,
+    prices,
+    usd: prices.usd ?? card.usd ?? null,
+    usd_foil: prices.usd_foil ?? card.usd_foil ?? null,
+    usd_etched: prices.usd_etched ?? card.usd_etched ?? null,
+    eur: prices.eur ?? card.eur ?? null,
+    eur_foil: prices.eur_foil ?? card.eur_foil ?? null,
+    tix: prices.tix ?? card.tix ?? null,
     isFoil,
     foilTreatment: normalizeFoilTreatment({ ...card, isFoil }),
   };

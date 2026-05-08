@@ -33,13 +33,15 @@ function buildSearchUrl(query) {
   return url.toString();
 }
 
-async function fetchJson(url) {
+async function fetchJson(url, options = {}) {
   let response;
 
   try {
     response = await fetch(url, {
+      ...options,
       headers: {
         Accept: 'application/json',
+        ...(options.headers || {}),
       },
     });
   } catch {
@@ -104,6 +106,7 @@ function normalizeSet(set) {
 
 function normalizeCard(card) {
   const imageUrl = getCardImage(card);
+  const prices = card.prices || {};
 
   return {
     id: card.id,
@@ -120,6 +123,13 @@ function normalizeCard(card) {
     color_identity: card.color_identity || [],
     image: imageUrl,
     image_uris: card.image_uris || card.card_faces?.[0]?.image_uris || null,
+    prices,
+    usd: prices.usd || null,
+    usd_foil: prices.usd_foil || null,
+    usd_etched: prices.usd_etched || null,
+    eur: prices.eur || null,
+    eur_foil: prices.eur_foil || null,
+    tix: prices.tix || null,
     isFoil: false,
     foilTreatment: FOIL_TREATMENTS.NONE,
     scryfall_uri: card.scryfall_uri,
@@ -152,6 +162,30 @@ export async function getSets() {
 export async function getCardsBySet(setCode) {
   const cards = await fetchPaginatedCards(buildSearchUrl(`set:${setCode.trim()}`));
   return normalizeCardsWithImages(cards);
+}
+
+export async function getCardById(cardId) {
+  const card = await fetchJson(`${SCRYFALL_BASE_URL}/cards/${encodeURIComponent(cardId)}`);
+
+  return normalizeCard(card);
+}
+
+export async function getCardsByIds(cardIds) {
+  const identifiers = [...new Set(cardIds.filter(Boolean))].map((id) => ({ id }));
+
+  if (!identifiers.length) {
+    return [];
+  }
+
+  const payload = await fetchJson(`${SCRYFALL_BASE_URL}/cards/collection`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ identifiers }),
+  });
+
+  return (payload.data || []).map(normalizeCard);
 }
 
 export async function getArtCardsBySet(setCode) {

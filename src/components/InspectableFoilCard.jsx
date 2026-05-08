@@ -29,6 +29,9 @@ export default function InspectableFoilCard({
 }) {
   const cardRef = useRef(null);
   const isPointerInsideRef = useRef(false);
+  const touchStartRef = useRef(null);
+  const isSwipingRef = useRef(false);
+  const isInspectingRef = useRef(false);
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down('sm'));
   const swipeX = useMotionValue(0);
   const swipeRotate = useTransform(swipeX, [-260, 260], [-13, 13]);
@@ -37,13 +40,17 @@ export default function InspectableFoilCard({
   const smoothRotateX = useSpring(rawRotateX, { stiffness: 120, damping: 22, mass: 0.4 });
   const smoothRotateY = useSpring(rawRotateY, { stiffness: 120, damping: 22, mass: 0.4 });
   const [foilPosition, setFoilPosition] = useState(DEFAULT_FOIL_POSITION);
+  const canSwipeAway = Boolean(onSwipeAway);
 
   useEffect(() => {
     rawRotateX.set(0);
     rawRotateY.set(0);
     swipeX.set(0);
     setFoilPosition(DEFAULT_FOIL_POSITION);
-  }, [card?.id, rawRotateX, rawRotateY, swipeX]);
+    touchStartRef.current = null;
+    isSwipingRef.current = false;
+    isInspectingRef.current = false;
+  }, [canInspect, card?.id, rawRotateX, rawRotateY, swipeX]);
 
   function resetTilt() {
     rawRotateX.set(0);
@@ -51,11 +58,12 @@ export default function InspectableFoilCard({
     setFoilPosition(DEFAULT_FOIL_POSITION);
   }
 
-  function updateTilt(clientX, clientY) {
+  function updateTilt(clientX, clientY, options = {}) {
     if (!canInspect || !cardRef.current) {
       return;
     }
 
+    const { mobileShineOnly = false } = options;
     const rect = cardRef.current.getBoundingClientRect();
     const clampedX = clamp((clientX - rect.left) / rect.width, 0, 1);
     const clampedY = clamp((clientY - rect.top) / rect.height, 0, 1);
@@ -64,8 +72,8 @@ export default function InspectableFoilCard({
     const deadZone = 0.04;
     const adjustedX = Math.abs(dx) < deadZone ? 0 : dx;
     const adjustedY = Math.abs(dy) < deadZone ? 0 : dy;
-    const maxRotateY = isMobile ? 6 : 8;
-    const maxRotateX = isMobile ? 5 : 6;
+    const maxRotateY = isMobile ? 2.5 : 8;
+    const maxRotateX = isMobile ? 2 : 6;
     const targetRotateY = adjustedX * maxRotateY * 2;
     const targetRotateX = -adjustedY * maxRotateX * 2;
     const lightY = Math.max(0, clampedY * 0.75);
@@ -76,8 +84,8 @@ export default function InspectableFoilCard({
     const shadowBlur = 36 + brightness * 18;
     const shadowAlpha = 0.34 + brightness * 0.18;
 
-    rawRotateX.set(targetRotateX);
-    rawRotateY.set(targetRotateY);
+    rawRotateX.set(mobileShineOnly ? 0 : targetRotateX);
+    rawRotateY.set(mobileShineOnly ? 0 : targetRotateY);
     setFoilPosition({
       x: `${clampedX * 100}%`,
       y: `${lightY * 100}%`,
@@ -90,15 +98,100 @@ export default function InspectableFoilCard({
     });
   }
 
+  function handleMobilePointerDown(event) {
+    if (!isMobile || event.pointerType === 'mouse' || !canInspect) {
+      return;
+    }
+
+    touchStartRef.current = {
+      startX: event.clientX,
+      startY: event.clientY,
+      currentX: event.clientX,
+      currentY: event.clientY,
+    };
+    isSwipingRef.current = false;
+    isInspectingRef.current = true;
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    updateTilt(event.clientX, event.clientY, { mobileShineOnly: true });
+  }
+
+  function handleMobilePointerMove(event) {
+    if (!isMobile || event.pointerType === 'mouse' || !touchStartRef.current) {
+      return;
+    }
+
+    const start = touchStartRef.current;
+    const dx = event.clientX - start.startX;
+    const dy = event.clientY - start.startY;
+    start.currentX = event.clientX;
+    start.currentY = event.clientY;
+
+    const isHorizontalSwipe = Math.abs(dx) > 18 && Math.abs(dx) > Math.abs(dy) * 1.3;
+
+    if (isHorizontalSwipe) {
+      isSwipingRef.current = true;
+      isInspectingRef.current = false;
+      swipeX.set(clamp(dx, -180, 180));
+      rawRotateX.set(0);
+      rawRotateY.set(0);
+      updateTilt(event.clientX, event.clientY, { mobileShineOnly: true });
+      return;
+    }
+
+    if (canInspect) {
+      isInspectingRef.current = true;
+      updateTilt(event.clientX, event.clientY, { mobileShineOnly: false });
+    }
+  }
+
+  function handleMobilePointerUp(event) {
+    if (!isMobile || event.pointerType === 'mouse') {
+      return;
+    }
+
+    const start = touchStartRef.current;
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+
+    if (!start) {
+      return;
+    }
+
+    const dx = (start.currentX ?? event.clientX) - start.startX;
+    const dy = (start.currentY ?? event.clientY) - start.startY;
+    const effectiveSwipeAwayThreshold = 95;
+    const shouldSwipeAway =
+      Math.abs(dx) > effectiveSwipeAwayThreshold && Math.abs(dx) > Math.abs(dy) * 1.15;
+
+    if (shouldSwipeAway && canSwipeAway) {
+      onSwipeAway(dx >= 0 ? 1 : -1);
+    } else {
+      animate(swipeX, 0, { type: 'spring', stiffness: 320, damping: 30 });
+      rawRotateX.set(0);
+      rawRotateY.set(0);
+    }
+
+    touchStartRef.current = null;
+    isSwipingRef.current = false;
+    isInspectingRef.current = false;
+  }
+
   return (
     <Box
       component={motion.div}
-      drag="x"
+      drag={isMobile || !canSwipeAway ? false : 'x'}
       dragConstraints={{ left: 0, right: 0 }}
       dragElastic={0.24}
-      onDrag={(_, info) => updateTilt(info.point.x, info.point.y)}
+      onDrag={(_, info) => {
+        if (!isMobile) {
+          updateTilt(info.point.x, info.point.y);
+        }
+      }}
       onDragEnd={(_, info) => {
-        if (Math.abs(info.offset.x) > swipeAwayThreshold || Math.abs(info.velocity.x) > 650) {
+        if (isMobile) {
+          return;
+        }
+
+        if (canSwipeAway && (Math.abs(info.offset.x) > swipeAwayThreshold || Math.abs(info.velocity.x) > 650)) {
           onSwipeAway(info.offset.x >= 0 ? 1 : -1);
           return;
         }
@@ -113,10 +206,26 @@ export default function InspectableFoilCard({
       }}
       onPointerLeave={() => {
         isPointerInsideRef.current = false;
-        resetTilt();
+        if (!isMobile) {
+          resetTilt();
+        }
       }}
-      onPointerMove={(event) => updateTilt(event.clientX, event.clientY)}
-      onPointerUp={() => {
+      onPointerDown={handleMobilePointerDown}
+      onPointerCancel={handleMobilePointerUp}
+      onPointerMove={(event) => {
+        if (isMobile) {
+          handleMobilePointerMove(event);
+          return;
+        }
+
+        updateTilt(event.clientX, event.clientY);
+      }}
+      onPointerUp={(event) => {
+        if (isMobile) {
+          handleMobilePointerUp(event);
+          return;
+        }
+
         if (!isPointerInsideRef.current) {
           resetTilt();
         }

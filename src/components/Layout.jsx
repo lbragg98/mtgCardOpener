@@ -1,7 +1,9 @@
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import CollectionsBookmarkIcon from '@mui/icons-material/CollectionsBookmark';
 import HomeIcon from '@mui/icons-material/Home';
+import Inventory2Icon from '@mui/icons-material/Inventory2';
 import MenuIcon from '@mui/icons-material/Menu';
+import StorefrontIcon from '@mui/icons-material/Storefront';
 import StyleIcon from '@mui/icons-material/Style';
 import {
   AppBar,
@@ -27,6 +29,8 @@ const navItems = [
   { label: 'Home', path: '/', icon: <HomeIcon /> },
   { label: 'Open Packs', path: '/sets', icon: <AutoAwesomeIcon /> },
   { label: 'Collection', path: '/collection', icon: <CollectionsBookmarkIcon /> },
+  { label: 'Shop', path: '/shop', icon: <StorefrontIcon /> },
+  { label: 'Binders', path: '/binders', icon: <Inventory2Icon /> },
 ];
 
 export default function Layout() {

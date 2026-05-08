@@ -13,6 +13,7 @@ import {
   Fade,
   Snackbar,
   Typography,
+  useMediaQuery,
   Zoom,
 } from "@mui/material";
 import {
@@ -108,7 +109,9 @@ function getFoilRevealConfig(card) {
   return (
     configs[foilTreatment] || {
       intensity: card?.isFoil ? 1 : 0,
-      auraClassName: card?.isFoil ? "foilRevealAura foilRevealAura-rainbow" : "",
+      auraClassName: card?.isFoil
+        ? "foilRevealAura foilRevealAura-rainbow"
+        : "",
       impactClassName: card?.isFoil ? "impactRainbow" : "",
       screenShake: false,
       transition: card?.isFoil
@@ -297,6 +300,7 @@ function PackCuttingScreen({
 }
 
 function RevealCard({ card, cardNumber, exitX, onAdvance }) {
+  const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-260, 260], [-13, 13]);
   const scale = useTransform(x, [-260, 0, 260], [0.94, 1, 0.94]);
@@ -311,28 +315,53 @@ function RevealCard({ card, cardNumber, exitX, onAdvance }) {
     card.collectionTempId || card.id || `${card.name}-${cardNumber}`;
   const foilRevealConfig = getFoilRevealConfig(card);
   const isFoilReveal = Boolean(card.isFoil);
+  const mobileFoilRevealTransition = {
+    duration: 0.75,
+    times: [0, 0.52, 0.76, 1],
+    ease: [0.16, 1, 0.3, 1],
+  };
   const revealInitial = isFoilReveal
-    ? {
-        opacity: 0,
-        rotateY: 92,
-        rotateX: -18,
-        scale: 0.66,
-        transformPerspective: 1000,
-        y: -160,
-      }
+    ? isMobile
+      ? {
+          opacity: 0,
+          rotateY: 55,
+          rotateX: -8,
+          scale: 0.82,
+          transformPerspective: 1000,
+          y: -80,
+        }
+      : {
+          opacity: 0,
+          rotateY: 92,
+          rotateX: -18,
+          scale: 0.66,
+          transformPerspective: 1000,
+          y: -160,
+        }
     : { opacity: 0, y: 20, scale: 0.96 };
   const revealAnimate = isFoilReveal
-    ? {
-        opacity: [0, 1, 1, 1, 1],
-        rotateY: [92, 28, -4, 0, 0],
-        rotateX: [-18, 10, -2, 0, 0],
-        scale: [0.66, 1.22, 0.86, 1.08, 1],
-        transformPerspective: 1000,
-        y: [-160, 32, -18, 6, 0],
-      }
+    ? isMobile
+      ? {
+          opacity: 1,
+          rotateY: [55, 10, 0],
+          rotateX: [-8, 4, 0],
+          scale: [0.82, 1.08, 0.96, 1],
+          transformPerspective: 1000,
+          y: [-80, 14, -4, 0],
+        }
+      : {
+          opacity: [0, 1, 1, 1, 1],
+          rotateY: [92, 28, -4, 0, 0],
+          rotateX: [-18, 10, -2, 0, 0],
+          scale: [0.66, 1.22, 0.86, 1.08, 1],
+          transformPerspective: 1000,
+          y: [-160, 32, -18, 6, 0],
+        }
     : { opacity: 1, y: 0, scale: 1 };
   const revealTransition = isFoilReveal
-    ? foilRevealConfig.transition
+    ? isMobile
+      ? mobileFoilRevealTransition
+      : foilRevealConfig.transition
     : { duration: 0.26, ease: "easeOut" };
 
   useEffect(() => {
@@ -343,14 +372,14 @@ function RevealCard({ card, cardNumber, exitX, onAdvance }) {
       return undefined;
     }
 
-    const boomTimer = setTimeout(() => setFoilImpactBoom(true), 420);
-    const cleanupTimer = setTimeout(() => setFoilImpactBoom(false), 4600);
+    const boomTimer = setTimeout(() => setFoilImpactBoom(true), isMobile ? 320 : 420);
+    const cleanupTimer = setTimeout(() => setFoilImpactBoom(false), isMobile ? 3200 : 4600);
 
     return () => {
       clearTimeout(boomTimer);
       clearTimeout(cleanupTimer);
     };
-  }, [card?.isFoil, cardKey]);
+  }, [card?.isFoil, cardKey, isMobile]);
 
   return (
     <>
@@ -362,7 +391,9 @@ function RevealCard({ card, cardNumber, exitX, onAdvance }) {
             isFoilReveal
               ? `foilRevealSlam foilRevealIntensity-${foilRevealConfig.intensity}`
               : "",
-            foilRevealConfig.screenShake ? "foilRevealScreenShake" : "",
+            foilRevealConfig.screenShake && !isMobile
+              ? "foilRevealScreenShake"
+              : "",
           ]
             .filter(Boolean)
             .join(" ")}
@@ -401,13 +432,17 @@ function RevealCard({ card, cardNumber, exitX, onAdvance }) {
             rotate,
             ...(isFoilReveal ? {} : { scale }),
             cursor: "grab",
-            touchAction: "pan-y",
+            touchAction: isFoilReveal && isMobile ? "none" : "pan-y",
           }}
         >
           {isFoilReveal && (
             <>
               <Box className={foilRevealConfig.auraClassName} />
-              <FoilImpactScene active={foilImpactBoom} card={card} intensity={foilRevealConfig.intensity} />
+              <FoilImpactScene
+                active={foilImpactBoom}
+                card={card}
+                intensity={foilRevealConfig.intensity}
+              />
             </>
           )}
           {isFoilReveal ? (
@@ -416,7 +451,7 @@ function RevealCard({ card, cardNumber, exitX, onAdvance }) {
               card={card}
               className={isFinale ? "reveal-special-pulse" : ""}
               onSwipeAway={onAdvance}
-              swipeAwayThreshold={window.innerWidth < 600 ? 90 : SWIPE_THRESHOLD}
+              swipeAwayThreshold={isMobile ? 95 : SWIPE_THRESHOLD}
               sx={{
                 position: "relative",
                 width: REVEAL_CARD_WIDTH,
@@ -491,7 +526,10 @@ function RevealCard({ card, cardNumber, exitX, onAdvance }) {
           />
         )}
         {isFoilReveal && canInspectFoil && (
-          <Typography color="text.secondary" sx={{ mt: 1, fontSize: 13, fontWeight: 800 }}>
+          <Typography
+            color="text.secondary"
+            sx={{ mt: 1, fontSize: 13, fontWeight: 800 }}
+          >
             Drag to inspect the foil shine
           </Typography>
         )}

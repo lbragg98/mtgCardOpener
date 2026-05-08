@@ -1,4 +1,5 @@
 import DeleteIcon from '@mui/icons-material/Delete';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import SearchIcon from '@mui/icons-material/Search';
 import StyleIcon from '@mui/icons-material/Style';
 import {
@@ -23,10 +24,13 @@ import {
 } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import CardInspectionDialog from '../components/CardInspectionDialog.jsx';
 import CardImage from '../components/CardImage.jsx';
 import PageHeader from '../components/PageHeader.jsx';
+import { formatPrice, getCardPrice, getCardPriceLabel, getCollectionValue } from '../utils/cardPricing.js';
 import { clearCollection, getCollection, getPackShards, recycleCard } from '../utils/collectionStorage.js';
 import { FOIL_LABELS, normalizeFoilTreatment } from '../utils/foilTypes.js';
+import { refreshCollectionPrices } from '../utils/priceRefresh.js';
 
 const ALL_FILTER = 'all';
 const SORT_OPTIONS = {
@@ -34,6 +38,8 @@ const SORT_OPTIONS = {
   oldest: 'oldest',
   name: 'name',
   rarity: 'rarity',
+  valueHigh: 'valueHigh',
+  valueLow: 'valueLow',
 };
 
 const RARITY_ORDER = {
@@ -47,20 +53,6 @@ function sortOptions(values) {
   return [...new Set(values.filter(Boolean))].sort((a, b) => a.localeCompare(b));
 }
 
-function formatOpenedDate(date) {
-  if (!date) {
-    return 'Unknown';
-  }
-
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(new Date(date));
-}
-
 export default function Collection() {
   const [collection, setCollection] = useState([]);
   const [search, setSearch] = useState('');
@@ -71,6 +63,7 @@ export default function Collection() {
   const [packShards, setPackShards] = useState(() => getPackShards());
   const [cardToRecycle, setCardToRecycle] = useState(null);
   const [isRecycling, setIsRecycling] = useState(false);
+  const [isRefreshingPrices, setIsRefreshingPrices] = useState(false);
   const [recycleMessage, setRecycleMessage] = useState('');
   const [recycleSeverity, setRecycleSeverity] = useState('success');
 
@@ -106,6 +99,12 @@ export default function Collection() {
   const duplicateCopyCount = useMemo(() => {
     return Object.values(duplicateCounts).reduce((total, count) => total + Math.max(0, count - 1), 0);
   }, [duplicateCounts]);
+  const totalCollectionValue = useMemo(() => getCollectionValue(collection), [collection]);
+  const foilCollectionValue = useMemo(
+    () => collection.filter((card) => card.isFoil).reduce((total, card) => total + getCardPrice(card), 0),
+    [collection],
+  );
+  const uniqueCardCount = useMemo(() => new Set(collection.map((card) => card.id)).size, [collection]);
 
   const filteredCollection = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
@@ -129,6 +128,14 @@ export default function Collection() {
 
       if (sortBy === SORT_OPTIONS.rarity) {
         return (RARITY_ORDER[a.rarity] || 99) - (RARITY_ORDER[b.rarity] || 99) || a.name.localeCompare(b.name);
+      }
+
+      if (sortBy === SORT_OPTIONS.valueHigh) {
+        return getCardPrice(b) - getCardPrice(a) || a.name.localeCompare(b.name);
+      }
+
+      if (sortBy === SORT_OPTIONS.valueLow) {
+        return getCardPrice(a) - getCardPrice(b) || a.name.localeCompare(b.name);
       }
 
       return new Date(b.openedAt) - new Date(a.openedAt);
@@ -180,6 +187,34 @@ export default function Collection() {
     }
   }
 
+  async function handleRefreshPrices() {
+    if (collection.length === 0 || isRefreshingPrices) {
+      return;
+    }
+
+    setIsRefreshingPrices(true);
+
+    try {
+      const result = await refreshCollectionPrices(collection);
+
+      setCollection(result.updatedCollection);
+      setSelectedCard((card) =>
+        card ? result.updatedCollection.find((updatedCard) => updatedCard.collectionId === card.collectionId) || card : null,
+      );
+      setRecycleSeverity(result.failedCount > 0 ? 'warning' : 'success');
+      setRecycleMessage(
+        result.failedCount > 0
+          ? `Updated ${result.updatedCount} cards. ${result.failedCount} could not be refreshed.`
+          : `Updated prices for ${result.updatedCount} cards.`,
+      );
+    } catch (error) {
+      setRecycleSeverity('error');
+      setRecycleMessage(error.message || 'Unable to refresh prices right now.');
+    } finally {
+      setIsRefreshingPrices(false);
+    }
+  }
+
   return (
     <Box>
       <PageHeader eyebrow="Collection" title="Your saved cards">
@@ -203,8 +238,16 @@ export default function Collection() {
           variant="outlined"
         />
         <Button
+          disabled={collection.length === 0 || isRefreshingPrices}
+          onClick={handleRefreshPrices}
+          startIcon={<RefreshIcon />}
+          variant="outlined"
+        >
+          {isRefreshingPrices ? 'Refreshing...' : 'Refresh Prices'}
+        </Button>
+        <Button
           color="error"
-          disabled={collection.length === 0}
+          disabled={collection.length === 0 || isRefreshingPrices}
           onClick={handleClearCollection}
           startIcon={<DeleteIcon />}
           variant="outlined"
@@ -216,6 +259,40 @@ export default function Collection() {
       <Alert severity="info" sx={{ mb: 3 }} variant="outlined">
         Duplicate cards reward 100 Pack Shards when they are opened. Foil and non-foil copies count separately.
       </Alert>
+
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', md: 'repeat(4, minmax(0, 1fr))' },
+          gap: 1.5,
+          mb: 2,
+        }}
+      >
+        {[
+          { label: 'Total Estimated Value', value: formatPrice(totalCollectionValue), helper: 'Scryfall market data' },
+          { label: 'Total Cards', value: collection.length.toLocaleString(), helper: 'Saved locally' },
+          { label: 'Unique Cards', value: uniqueCardCount.toLocaleString(), helper: 'By Scryfall card ID' },
+          { label: 'Foil Value', value: formatPrice(foilCollectionValue), helper: 'Foil copies only' },
+        ].map((stat) => (
+          <Card key={stat.label} sx={{ borderColor: 'rgba(244, 201, 93, 0.24)' }}>
+            <CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
+              <Typography color="text.secondary" sx={{ fontSize: 12, fontWeight: 800 }}>
+                {stat.label}
+              </Typography>
+              <Typography color="warning.main" fontWeight={950} sx={{ fontSize: { xs: 20, sm: 24 } }}>
+                {stat.value}
+              </Typography>
+              <Typography color="text.secondary" sx={{ fontSize: 11 }}>
+                {stat.helper}
+              </Typography>
+            </CardContent>
+          </Card>
+        ))}
+      </Box>
+
+      <Typography color="text.secondary" sx={{ mb: 3, fontSize: 12 }}>
+        Prices are estimates from Scryfall and may be missing or outdated.
+      </Typography>
 
       <Box
         sx={{
@@ -285,6 +362,8 @@ export default function Collection() {
             <MenuItem value={SORT_OPTIONS.oldest}>Oldest first</MenuItem>
             <MenuItem value={SORT_OPTIONS.name}>Name A-Z</MenuItem>
             <MenuItem value={SORT_OPTIONS.rarity}>Rarity</MenuItem>
+            <MenuItem value={SORT_OPTIONS.valueHigh}>Value high to low</MenuItem>
+            <MenuItem value={SORT_OPTIONS.valueLow}>Value low to high</MenuItem>
           </Select>
         </FormControl>
       </Box>
@@ -362,6 +441,9 @@ export default function Collection() {
                 <Typography variant="caption" color="text.secondary" display="block">
                   {card.rarity} - {card.set?.toUpperCase()} #{card.collector_number}
                 </Typography>
+                <Typography color={getCardPrice(card) ? 'warning.main' : 'text.secondary'} fontWeight={900} sx={{ mt: 0.5 }}>
+                  {getCardPrice(card) ? getCardPriceLabel(card) : 'No price'}
+                </Typography>
                 {card.isFoil && (
                   <Chip
                     color="warning"
@@ -388,62 +470,13 @@ export default function Collection() {
         </Box>
       )}
 
-      <Dialog
-        fullWidth
-        maxWidth="md"
+      <CardInspectionDialog
+        card={selectedCard}
         onClose={() => setSelectedCard(null)}
+        onRecycle={requestRecycle}
         open={Boolean(selectedCard)}
-      >
-        {selectedCard && (
-          <>
-            <DialogTitle>{selectedCard.name}</DialogTitle>
-            <DialogContent>
-              <Box
-                sx={{
-                  display: 'grid',
-                  gridTemplateColumns: { xs: '1fr', md: 'minmax(260px, 360px) 1fr' },
-                  gap: 3,
-                  alignItems: 'start',
-                }}
-              >
-                <CardImage card={selectedCard} large variant="detail" />
-
-                <Box sx={{ display: 'grid', gap: 1.5 }}>
-                  <Typography>
-                    <strong>Rarity:</strong> {selectedCard.rarity}
-                  </Typography>
-                  <Typography>
-                    <strong>Set:</strong> {selectedCard.set_name || selectedCard.set?.toUpperCase()}
-                  </Typography>
-                  <Typography>
-                    <strong>Collector number:</strong> {selectedCard.collector_number}
-                  </Typography>
-                  <Typography>
-                    <strong>Foil:</strong> {selectedCard.isFoil ? 'Yes' : 'No'}
-                  </Typography>
-                  <Typography>
-                    <strong>Foil Treatment:</strong> {FOIL_LABELS[normalizeFoilTreatment(selectedCard)]}
-                  </Typography>
-                  <Typography>
-                    <strong>Opened:</strong> {formatOpenedDate(selectedCard.openedAt)}
-                  </Typography>
-                  <Typography>
-                    <strong>Copies owned:</strong> {duplicateCounts[selectedCard.id] || 1}
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mt: 2 }}>
-                    <Button color="warning" onClick={() => requestRecycle(selectedCard)} variant="outlined">
-                      Recycle for 25 Shards
-                    </Button>
-                    <Button onClick={() => setSelectedCard(null)} variant="contained">
-                      Close
-                    </Button>
-                  </Box>
-                </Box>
-              </Box>
-            </DialogContent>
-          </>
-        )}
-      </Dialog>
+        sourceContext="collection"
+      />
 
       <Dialog fullWidth maxWidth="xs" onClose={closeRecycleDialog} open={Boolean(cardToRecycle)}>
         <DialogTitle>Recycle card?</DialogTitle>
