@@ -1,6 +1,7 @@
 import { Box, Typography } from '@mui/material';
 import { animate, motion, useMotionValue } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
+import { normalizeFoilTreatment } from '../utils/foilTypes.js';
 import CardImage from './CardImage.jsx';
 import MobileFoilImpact from './MobileFoilImpact.jsx';
 
@@ -29,6 +30,7 @@ export default function MobileFoilRevealCard({ card, cardKey, className = '', on
   const [canInspect, setCanInspect] = useState(false);
   const [impactActive, setImpactActive] = useState(false);
   const [foilPosition, setFoilPosition] = useState(DEFAULT_FOIL_POSITION);
+  const treatment = normalizeFoilTreatment(card);
 
   function resetMobileFoilState() {
     swipeX.set(0);
@@ -145,7 +147,7 @@ export default function MobileFoilRevealCard({ card, cardKey, className = '', on
   }
 
   return (
-    <Box className="mobileFoilReveal revealCardOuter">
+    <Box className={`mobileFoilReveal mobileFoilReveal-${treatment} revealCardOuter`}>
       <Box
         className="mobileFoilSwipeWrapper"
         component={motion.div}
