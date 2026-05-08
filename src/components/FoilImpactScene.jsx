@@ -1,22 +1,12 @@
 import { Box } from '@mui/material';
-import { FOIL_TREATMENTS, normalizeFoilTreatment } from '../utils/foilTypes.js';
-
-const IMPACT_CLASS_BY_TREATMENT = {
-  [FOIL_TREATMENTS.RAINBOW]: 'impactRainbow',
-  [FOIL_TREATMENTS.ETCHED]: 'impactEtched',
-  [FOIL_TREATMENTS.GALAXY]: 'impactGalaxy',
-  [FOIL_TREATMENTS.GILDED]: 'impactGilded',
-  [FOIL_TREATMENTS.TEXTURED]: 'impactTextured',
-  [FOIL_TREATMENTS.NEON_INK]: 'impactNeonInk',
-};
+import { getFoilAnimationConfig } from '../utils/foilAnimations.js';
 
 export default function FoilImpactScene({ active = false, card, intensity = 1 }) {
   if (!active || !card?.isFoil) {
     return null;
   }
 
-  const treatment = normalizeFoilTreatment(card);
-  const impactClassName = IMPACT_CLASS_BY_TREATMENT[treatment] || IMPACT_CLASS_BY_TREATMENT[FOIL_TREATMENTS.RAINBOW];
+  const config = getFoilAnimationConfig(card);
   const debris = [
     [-148, -36, 0, 5],
     [-116, 28, 28, 4],
@@ -45,7 +35,15 @@ export default function FoilImpactScene({ active = false, card, intensity = 1 })
   ];
 
   return (
-    <Box className={`foilImpactScene ${impactClassName} impactIntensity-${intensity}`} aria-hidden="true">
+    <Box
+      className={`foilImpactScene ${config.impactClass} impactIntensity-${intensity}`}
+      aria-hidden="true"
+      sx={{
+        '--impact-primary': config.colors.primary,
+        '--impact-secondary': config.colors.secondary,
+        '--impact-accent': config.colors.accent,
+      }}
+    >
       <Box className="impactGroundGlow" />
       <Box className="impactShockwave impactShockwavePrimary" />
       <Box className="impactShockwave impactShockwaveSecondary" />

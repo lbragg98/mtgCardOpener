@@ -2870,17 +2870,17 @@ a {
 
 .foilVariant-reveal.foilGalaxy .foilColorLayer,
 .foilVariant-reveal.foil-galaxy .foilColorLayer {
-  opacity: 0.42;
+  opacity: 0.38;
 }
 
 .foilVariant-grid.foilGalaxy .foilColorLayer,
 .foilVariant-grid.foil-galaxy .foilColorLayer {
-  opacity: 0.22;
+  opacity: 0.18;
 }
 
 .foilVariant-detail.foilGalaxy .foilColorLayer,
 .foilVariant-detail.foil-galaxy .foilColorLayer {
-  opacity: 0.36;
+  opacity: 0.32;
 }
 
 .foilVariant-reveal.foilGalaxy .foilSparkles,
@@ -2953,27 +2953,411 @@ a {
 }
 
 .impactRainbow {
+  --impact-primary: rgba(255, 236, 92, 0.9);
+  --impact-secondary: rgba(76, 220, 255, 0.62);
+  --impact-accent: rgba(255, 65, 216, 0.48);
   background: radial-gradient(circle, rgba(255, 255, 255, 0.58), rgba(76, 220, 255, 0.32) 35%, rgba(255, 65, 216, 0.22) 58%, transparent 72%);
 }
 
 .impactEtched {
+  --impact-primary: rgba(245, 241, 222, 0.88);
+  --impact-secondary: rgba(244, 201, 93, 0.5);
+  --impact-accent: rgba(210, 220, 235, 0.52);
   background: radial-gradient(circle, rgba(255, 250, 226, 0.5), rgba(220, 226, 238, 0.28) 48%, transparent 74%);
 }
 
 .impactGalaxy {
+  --impact-primary: rgba(110, 150, 255, 0.95);
+  --impact-secondary: rgba(190, 80, 255, 0.7);
+  --impact-accent: rgba(0, 220, 255, 0.65);
   background: radial-gradient(circle, rgba(255, 255, 255, 0.56), rgba(76, 201, 240, 0.38) 34%, rgba(143, 124, 255, 0.34) 62%, transparent 78%);
 }
 
 .impactGilded {
+  --impact-primary: rgba(255, 218, 105, 0.94);
+  --impact-secondary: rgba(255, 159, 52, 0.62);
+  --impact-accent: rgba(255, 245, 180, 0.72);
   background: radial-gradient(circle, rgba(255, 250, 210, 0.64), rgba(244, 201, 93, 0.5) 42%, rgba(255, 150, 20, 0.28) 68%, transparent 82%);
 }
 
 .impactTextured {
+  --impact-primary: rgba(255, 255, 255, 0.9);
+  --impact-secondary: rgba(143, 124, 255, 0.62);
+  --impact-accent: rgba(244, 201, 93, 0.5);
   background: radial-gradient(circle, rgba(255, 255, 255, 0.72), rgba(244, 201, 93, 0.48) 38%, rgba(143, 124, 255, 0.34) 68%, transparent 86%);
 }
 
 .impactNeonInk {
+  --impact-primary: rgba(0, 255, 255, 0.94);
+  --impact-secondary: rgba(255, 0, 200, 0.68);
+  --impact-accent: rgba(173, 255, 47, 0.42);
   background: radial-gradient(circle, rgba(255, 255, 255, 0.72), rgba(0, 255, 255, 0.55) 34%, rgba(255, 0, 220, 0.42) 62%, transparent 84%);
+}
+
+.foilAmbientScene {
+  position: absolute;
+  inset: -34vh -34vw;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0.92;
+}
+
+.foilAmbientScene > * {
+  position: absolute;
+  inset: 0;
+  display: none;
+  pointer-events: none;
+}
+
+.revealCardOuter {
+  position: relative;
+  z-index: 2;
+}
+
+.ambientRainbow .ambientCore,
+.ambientRainbow .rainbowRays,
+.ambientRainbow .rainbowParticles,
+.ambientEtched .etchedMetalAura,
+.ambientEtched .etchedGlintLines,
+.ambientGalaxy .galaxyNebula,
+.ambientGalaxy .galaxyStars,
+.ambientGalaxy .galaxyShootingStar,
+.ambientGalaxy .galaxyDust,
+.ambientGilded .gildedAura,
+.ambientGilded .gildedSparks,
+.ambientGilded .gildedDust,
+.ambientTextured .texturedPremiumAura,
+.ambientTextured .texturedRipple,
+.ambientTextured .texturedPatternPulse,
+.ambientNeonInk .neonInkPulse,
+.ambientNeonInk .neonInkLines,
+.ambientNeonInk .neonInkArcs {
+  display: block;
+}
+
+.ambientCore {
+  background:
+    radial-gradient(circle at 50% 44%, var(--ambient-primary), var(--ambient-secondary) 32%, transparent 66%);
+  opacity: 0.34;
+  animation: ambientCorePulse 4.6s ease-in-out infinite;
+}
+
+.rainbowRays {
+  background:
+    conic-gradient(from 0deg at 50% 48%, rgba(255, 65, 216, 0.16), rgba(255, 236, 92, 0.18), rgba(72, 255, 147, 0.14), rgba(76, 220, 255, 0.16), rgba(117, 92, 255, 0.14), rgba(255, 65, 216, 0.16));
+  opacity: 0.34;
+  animation: ambientSpin 10s linear infinite;
+}
+
+.rainbowParticles {
+  background:
+    radial-gradient(circle at 18% 24%, rgba(255, 255, 255, 0.72) 0 1px, transparent 2px),
+    radial-gradient(circle at 78% 30%, rgba(76, 220, 255, 0.68) 0 1px, transparent 2px),
+    radial-gradient(circle at 28% 78%, rgba(255, 65, 216, 0.56) 0 1px, transparent 2px),
+    radial-gradient(circle at 70% 82%, rgba(255, 236, 92, 0.58) 0 1px, transparent 2px);
+  background-size: 130px 130px;
+  opacity: 0.46;
+  animation: ambientParticleDrift 9s linear infinite;
+}
+
+.etchedMetalAura {
+  background:
+    radial-gradient(circle at 50% 45%, rgba(245, 241, 222, 0.32), rgba(244, 201, 93, 0.16) 36%, transparent 68%);
+  opacity: 0.5;
+  animation: ambientCorePulse 5.8s ease-in-out infinite;
+}
+
+.etchedGlintLines {
+  background:
+    repeating-linear-gradient(105deg, transparent 0 38px, rgba(255, 250, 226, 0.16) 42px, transparent 46px),
+    linear-gradient(115deg, transparent 30%, rgba(255, 250, 226, 0.22) 48%, transparent 66%);
+  background-size: 100% 100%, 260% 260%;
+  opacity: 0.42;
+  animation: etchedAmbientGlint 5.6s ease-in-out infinite;
+}
+
+.galaxyNebula {
+  inset: 10%;
+  background:
+    radial-gradient(circle at 25% 35%, rgba(90, 120, 255, 0.38), transparent 34%),
+    radial-gradient(circle at 75% 55%, rgba(190, 80, 255, 0.32), transparent 36%),
+    radial-gradient(circle at 50% 72%, rgba(0, 220, 255, 0.18), transparent 40%);
+  filter: blur(18px);
+  opacity: 0.86;
+  animation: galaxyNebulaPulse 5s ease-in-out infinite;
+}
+
+.galaxyStars {
+  background:
+    radial-gradient(circle at 12% 24%, rgba(255, 255, 255, 0.9) 0 1px, transparent 2px),
+    radial-gradient(circle at 84% 30%, rgba(170, 220, 255, 0.8) 0 1px, transparent 2px),
+    radial-gradient(circle at 28% 78%, rgba(255, 160, 255, 0.75) 0 1px, transparent 2px),
+    radial-gradient(circle at 70% 82%, rgba(255, 255, 255, 0.65) 0 1px, transparent 2px),
+    radial-gradient(circle at 92% 56%, rgba(110, 150, 255, 0.64) 0 1px, transparent 2px);
+  background-size: 180px 180px;
+  opacity: 0.68;
+  animation: starDrift 12s linear infinite;
+}
+
+.galaxyDust {
+  background:
+    radial-gradient(circle at 8% 40%, rgba(110, 150, 255, 0.2), transparent 24%),
+    radial-gradient(circle at 92% 46%, rgba(190, 80, 255, 0.18), transparent 26%);
+  opacity: 0.66;
+  animation: galaxyDustDrift 8s ease-in-out infinite;
+}
+
+.galaxyShootingStar {
+  top: 18%;
+  left: 0;
+  width: 140px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.95), rgba(120, 190, 255, 0.7), transparent);
+  opacity: 0;
+  transform: rotate(-25deg);
+  animation: shootingStar 3.8s ease-in-out infinite;
+}
+
+.galaxyShootingStar.delay1 {
+  top: 44%;
+  animation-delay: 1.4s;
+}
+
+.galaxyShootingStar.delay2 {
+  top: 66%;
+  animation-delay: 2.8s;
+}
+
+.gildedAura {
+  background:
+    radial-gradient(circle at 50% 48%, rgba(255, 218, 105, 0.48), rgba(255, 159, 52, 0.22) 38%, transparent 70%);
+  animation: ambientCorePulse 4.6s ease-in-out infinite;
+}
+
+.gildedSparks,
+.gildedDust {
+  background:
+    radial-gradient(circle at 20% 28%, rgba(255, 245, 180, 0.82) 0 2px, transparent 4px),
+    radial-gradient(circle at 80% 34%, rgba(255, 218, 105, 0.72) 0 2px, transparent 4px),
+    radial-gradient(circle at 28% 78%, rgba(255, 159, 52, 0.68) 0 1px, transparent 3px),
+    radial-gradient(circle at 72% 80%, rgba(255, 245, 180, 0.66) 0 1px, transparent 3px);
+  background-size: 150px 150px;
+  opacity: 0.56;
+  animation: gildedDustRise 6s ease-in-out infinite;
+}
+
+.gildedDust {
+  opacity: 0.28;
+  animation-duration: 10s;
+}
+
+.texturedPremiumAura {
+  background:
+    radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.4), rgba(143, 124, 255, 0.2) 38%, transparent 68%);
+  animation: ambientCorePulse 4s ease-in-out infinite;
+}
+
+.texturedRipple {
+  border-radius: 999px;
+  inset: 18%;
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  box-shadow:
+    0 0 26px rgba(255, 255, 255, 0.18),
+    0 0 44px rgba(143, 124, 255, 0.2);
+  animation: texturedRipplePulse 2.2s ease-out infinite;
+}
+
+.texturedPatternPulse {
+  background:
+    repeating-radial-gradient(circle at 50% 50%, transparent 0 18px, rgba(255, 255, 255, 0.08) 20px, transparent 24px);
+  opacity: 0.5;
+  animation: ambientCorePulse 3.4s ease-in-out infinite;
+}
+
+.neonInkPulse {
+  background:
+    radial-gradient(circle at 45% 45%, rgba(0, 255, 255, 0.3), rgba(255, 0, 200, 0.18) 38%, transparent 68%);
+  animation: neonAmbientPulse 2.4s ease-in-out infinite;
+}
+
+.neonInkLines {
+  background:
+    repeating-linear-gradient(115deg, transparent 0 28px, rgba(0, 255, 255, 0.18) 30px, rgba(255, 0, 200, 0.14) 32px, transparent 38px);
+  opacity: 0.58;
+  animation: neonLineDrift 5s linear infinite;
+}
+
+.neonInkArcs {
+  background:
+    radial-gradient(circle at 18% 36%, rgba(0, 255, 255, 0.65) 0 1px, transparent 3px),
+    radial-gradient(circle at 82% 64%, rgba(255, 0, 200, 0.62) 0 1px, transparent 3px),
+    linear-gradient(120deg, transparent 34%, rgba(0, 255, 255, 0.22) 44%, rgba(255, 0, 200, 0.18) 48%, transparent 58%);
+  opacity: 0.48;
+  animation: neonArcFlicker 2.8s steps(2, end) infinite;
+}
+
+@keyframes ambientCorePulse {
+  0%,
+  100% {
+    opacity: 0.28;
+    transform: scale(0.96);
+  }
+
+  50% {
+    opacity: 0.56;
+    transform: scale(1.06);
+  }
+}
+
+@keyframes ambientSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes ambientParticleDrift {
+  to {
+    background-position: 120px 90px;
+  }
+}
+
+@keyframes etchedAmbientGlint {
+  0%,
+  100% {
+    background-position: 0 0, 0 0;
+  }
+
+  50% {
+    background-position: 0 0, 100% 100%;
+  }
+}
+
+@keyframes galaxyNebulaPulse {
+  0%,
+  100% {
+    opacity: 0.58;
+    transform: scale(0.96);
+  }
+
+  50% {
+    opacity: 0.9;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes starDrift {
+  to {
+    background-position: 180px 90px;
+  }
+}
+
+@keyframes galaxyDustDrift {
+  0%,
+  100% {
+    transform: translateX(-12px);
+  }
+
+  50% {
+    transform: translateX(12px);
+  }
+}
+
+@keyframes shootingStar {
+  0%,
+  65% {
+    opacity: 0;
+    transform: translate(-30vw, -10vh) rotate(-25deg);
+  }
+
+  72% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(120vw, 45vh) rotate(-25deg);
+  }
+}
+
+@keyframes gildedDustRise {
+  0%,
+  100% {
+    transform: translateY(18px);
+  }
+
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+@keyframes texturedRipplePulse {
+  0% {
+    opacity: 0;
+    transform: scale(0.65);
+  }
+
+  36% {
+    opacity: 0.62;
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.48);
+  }
+}
+
+@keyframes neonAmbientPulse {
+  0%,
+  100% {
+    opacity: 0.36;
+  }
+
+  50% {
+    opacity: 0.72;
+  }
+}
+
+@keyframes neonLineDrift {
+  to {
+    background-position: 180px 180px;
+  }
+}
+
+@keyframes neonArcFlicker {
+  0%,
+  100% {
+    opacity: 0.36;
+  }
+
+  50% {
+    opacity: 0.68;
+  }
+}
+
+@media (max-width: 600px) {
+  .foilAmbientScene {
+    inset: -22vh -24vw;
+    opacity: 0.82;
+  }
+
+  .foilAmbientScene-mobile .galaxyShootingStar.delay2,
+  .foilAmbientScene-mobile .gildedDust,
+  .foilAmbientScene-mobile .neonInkArcs,
+  .foilAmbientScene-mobile .texturedPatternPulse {
+    display: none;
+  }
+
+  .foilAmbientScene-mobile .galaxyNebula {
+    filter: none;
+    opacity: 0.58;
+  }
+
+  .foilAmbientScene-mobile .galaxyStars,
+  .foilAmbientScene-mobile .rainbowParticles,
+  .foilAmbientScene-mobile .gildedSparks {
+    opacity: 0.42;
+  }
 }
 
 .foilImpactScene {

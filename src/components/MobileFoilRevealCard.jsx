@@ -3,6 +3,7 @@ import { animate, motion, useMotionValue } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
 import { normalizeFoilTreatment } from '../utils/foilTypes.js';
 import CardImage from './CardImage.jsx';
+import FoilAmbientScene from './FoilAmbientScene.jsx';
 import MobileFoilImpact from './MobileFoilImpact.jsx';
 
 const MOBILE_SWIPE_START_THRESHOLD = 24;
@@ -157,6 +158,7 @@ export default function MobileFoilRevealCard({ card, cardKey, className = '', on
         onPointerUp={handlePointerUp}
         style={{ x: swipeX }}
       >
+        <FoilAmbientScene active={canInspect} card={card} isMobile />
         <MobileFoilImpact active={impactActive} card={card} />
         <Box
           className="mobileFoilRevealWrapper"
