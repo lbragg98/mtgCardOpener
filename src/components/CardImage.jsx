@@ -94,11 +94,15 @@ export default function CardImage({
 
       {card?.isFoil && (
         <>
-          <Box className="foilRevealBurst" />
+        <Box className="foilRevealBurst" />
+          <Box className="foilColorLayer" />
           <Box className="foilOverlay" />
           <Box className="realisticFoilLayer" />
+          <Box className="foilSpecularHotspot" />
+          <Box className="foilReflectiveBand" />
           <Box className="foilSweep" />
           <Box className="foilSparkles" />
+          <Box className="foilTreatmentTexture" />
           <Box className="foilTexturePattern" />
           <Box className="foilBorderGlow" />
           {foilLabel && (

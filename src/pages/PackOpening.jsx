@@ -25,6 +25,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import CardImage from "../components/CardImage.jsx";
+import FoilImpactScene from "../components/FoilImpactScene.jsx";
 import InspectableFoilCard from "../components/InspectableFoilCard.jsx";
 import SealedPack from "../components/SealedPack.jsx";
 import {
@@ -46,6 +47,11 @@ const SWIPE_THRESHOLD = 120;
 const CUT_THRESHOLD = 170;
 const COLLECTOR_BOOSTER_COST = 1000;
 const REVEAL_CARD_WIDTH = { xs: "min(76vw, 42vh)", sm: 360, md: 420 };
+const FOIL_REVEAL_TRANSITION = {
+  duration: 1.05,
+  times: [0, 0.48, 0.66, 0.82, 1],
+  ease: [0.16, 1, 0.3, 1],
+};
 const PHASES = {
   cutPack: "cutPack",
   revealCards: "revealCards",
@@ -58,38 +64,44 @@ function getFoilRevealConfig(card) {
     [FOIL_TREATMENTS.RAINBOW]: {
       intensity: 1,
       auraClassName: "foilRevealAura foilRevealAura-rainbow",
+      impactClassName: "impactRainbow",
       screenShake: false,
-      transition: { type: "spring", stiffness: 240, damping: 20, mass: 0.9 },
+      transition: FOIL_REVEAL_TRANSITION,
     },
     [FOIL_TREATMENTS.ETCHED]: {
       intensity: 2,
       auraClassName: "foilRevealAura foilRevealAura-etched",
+      impactClassName: "impactEtched",
       screenShake: false,
-      transition: { type: "spring", stiffness: 255, damping: 19, mass: 0.9 },
+      transition: FOIL_REVEAL_TRANSITION,
     },
     [FOIL_TREATMENTS.GALAXY]: {
       intensity: 3,
       auraClassName: "foilRevealAura foilRevealAura-galaxy",
+      impactClassName: "impactGalaxy",
       screenShake: true,
-      transition: { type: "spring", stiffness: 270, damping: 18, mass: 0.88 },
+      transition: FOIL_REVEAL_TRANSITION,
     },
     [FOIL_TREATMENTS.GILDED]: {
       intensity: 3,
       auraClassName: "foilRevealAura foilRevealAura-gilded",
+      impactClassName: "impactGilded",
       screenShake: true,
-      transition: { type: "spring", stiffness: 275, damping: 18, mass: 0.88 },
+      transition: FOIL_REVEAL_TRANSITION,
     },
     [FOIL_TREATMENTS.TEXTURED]: {
       intensity: 5,
       auraClassName: "foilRevealAura foilRevealAura-textured",
+      impactClassName: "impactTextured",
       screenShake: true,
-      transition: { type: "spring", stiffness: 290, damping: 16, mass: 0.86 },
+      transition: FOIL_REVEAL_TRANSITION,
     },
     [FOIL_TREATMENTS.NEON_INK]: {
       intensity: 6,
       auraClassName: "foilRevealAura foilRevealAura-neonInk",
+      impactClassName: "impactNeonInk",
       screenShake: true,
-      transition: { type: "spring", stiffness: 300, damping: 16, mass: 0.84 },
+      transition: FOIL_REVEAL_TRANSITION,
     },
   };
 
@@ -97,9 +109,10 @@ function getFoilRevealConfig(card) {
     configs[foilTreatment] || {
       intensity: card?.isFoil ? 1 : 0,
       auraClassName: card?.isFoil ? "foilRevealAura foilRevealAura-rainbow" : "",
+      impactClassName: card?.isFoil ? "impactRainbow" : "",
       screenShake: false,
       transition: card?.isFoil
-        ? { type: "spring", stiffness: 260, damping: 18, mass: 0.9 }
+        ? FOIL_REVEAL_TRANSITION
         : { duration: 0.26, ease: "easeOut" },
     }
   );
@@ -288,6 +301,7 @@ function RevealCard({ card, cardNumber, exitX, onAdvance }) {
   const rotate = useTransform(x, [-260, 260], [-13, 13]);
   const scale = useTransform(x, [-260, 0, 260], [0.94, 1, 0.94]);
   const [canInspectFoil, setCanInspectFoil] = useState(false);
+  const [foilImpactBoom, setFoilImpactBoom] = useState(false);
   const foilTreatment = normalizeFoilTreatment(card);
   const isFinale = card.isFoil || ["rare", "mythic"].includes(card.rarity);
   const rarityLabel = card.isFoil
@@ -300,21 +314,21 @@ function RevealCard({ card, cardNumber, exitX, onAdvance }) {
   const revealInitial = isFoilReveal
     ? {
         opacity: 0,
-        rotateY: 82,
-        rotateX: -8,
-        scale: 0.88,
+        rotateY: 92,
+        rotateX: -18,
+        scale: 0.66,
         transformPerspective: 1000,
-        y: -40,
+        y: -160,
       }
-    : { opacity: 0, y: 34, scale: 0.9 };
+    : { opacity: 0, y: 20, scale: 0.96 };
   const revealAnimate = isFoilReveal
     ? {
-        opacity: 1,
-        rotateY: 0,
-        rotateX: 0,
-        scale: [0.88, 1.08, 1],
+        opacity: [0, 1, 1, 1, 1],
+        rotateY: [92, 28, -4, 0, 0],
+        rotateX: [-18, 10, -2, 0, 0],
+        scale: [0.66, 1.22, 0.86, 1.08, 1],
         transformPerspective: 1000,
-        y: [-40, 8, 0],
+        y: [-160, 32, -18, 6, 0],
       }
     : { opacity: 1, y: 0, scale: 1 };
   const revealTransition = isFoilReveal
@@ -323,7 +337,20 @@ function RevealCard({ card, cardNumber, exitX, onAdvance }) {
 
   useEffect(() => {
     setCanInspectFoil(false);
-  }, [cardKey]);
+    setFoilImpactBoom(false);
+
+    if (!card?.isFoil) {
+      return undefined;
+    }
+
+    const boomTimer = setTimeout(() => setFoilImpactBoom(true), 420);
+    const cleanupTimer = setTimeout(() => setFoilImpactBoom(false), 4600);
+
+    return () => {
+      clearTimeout(boomTimer);
+      clearTimeout(cleanupTimer);
+    };
+  }, [card?.isFoil, cardKey]);
 
   return (
     <>
@@ -380,8 +407,7 @@ function RevealCard({ card, cardNumber, exitX, onAdvance }) {
           {isFoilReveal && (
             <>
               <Box className={foilRevealConfig.auraClassName} />
-              <Box className="foilImpactBurst" />
-              <Box className="foilImpactSparkles" />
+              <FoilImpactScene active={foilImpactBoom} card={card} intensity={foilRevealConfig.intensity} />
             </>
           )}
           {isFoilReveal ? (
