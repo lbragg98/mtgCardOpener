@@ -1,24 +1,55 @@
-import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
-import CollectionsBookmarkIcon from '@mui/icons-material/CollectionsBookmark';
-import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
-import StyleIcon from '@mui/icons-material/Style';
-import { Alert, Box, Button, Card, CardContent, Chip, CircularProgress, Fade, Snackbar, Typography, Zoom } from '@mui/material';
-import { AnimatePresence, motion, useAnimation, useMotionValue, useTransform } from 'framer-motion';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useLocation, useParams } from 'react-router-dom';
-import CardImage from '../components/CardImage.jsx';
-import SealedPack from '../components/SealedPack.jsx';
-import { getPackShards, saveCardsToCollection, spendPackShards } from '../utils/collectionStorage.js';
-import { FOIL_LABELS, FOIL_TREATMENTS, normalizeFoilTreatment } from '../utils/foilTypes.js';
-import { generateCollectorBooster, generatePlayBooster } from '../utils/packGenerator.js';
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import CollectionsBookmarkIcon from "@mui/icons-material/CollectionsBookmark";
+import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
+import StyleIcon from "@mui/icons-material/Style";
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  CircularProgress,
+  Fade,
+  Snackbar,
+  Typography,
+  Zoom,
+} from "@mui/material";
+import {
+  AnimatePresence,
+  motion,
+  useAnimation,
+  useMotionValue,
+  useTransform,
+} from "framer-motion";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Link, useLocation, useParams } from "react-router-dom";
+import CardImage from "../components/CardImage.jsx";
+import InspectableFoilCard from "../components/InspectableFoilCard.jsx";
+import SealedPack from "../components/SealedPack.jsx";
+import {
+  getPackShards,
+  saveCardsToCollection,
+  spendPackShards,
+} from "../utils/collectionStorage.js";
+import {
+  FOIL_LABELS,
+  FOIL_TREATMENTS,
+  normalizeFoilTreatment,
+} from "../utils/foilTypes.js";
+import {
+  generateCollectorBooster,
+  generatePlayBooster,
+} from "../utils/packGenerator.js";
 
 const SWIPE_THRESHOLD = 120;
 const CUT_THRESHOLD = 170;
 const COLLECTOR_BOOSTER_COST = 1000;
+const REVEAL_CARD_WIDTH = { xs: "min(76vw, 42vh)", sm: 360, md: 420 };
 const PHASES = {
-  cutPack: 'cutPack',
-  revealCards: 'revealCards',
-  summary: 'summary',
+  cutPack: "cutPack",
+  revealCards: "revealCards",
+  summary: "summary",
 };
 
 function getFoilRevealConfig(card) {
@@ -26,47 +57,60 @@ function getFoilRevealConfig(card) {
   const configs = {
     [FOIL_TREATMENTS.RAINBOW]: {
       intensity: 1,
-      auraClassName: 'foilRevealAura foilRevealAura-rainbow',
+      auraClassName: "foilRevealAura foilRevealAura-rainbow",
       screenShake: false,
-      transition: { type: 'spring', stiffness: 240, damping: 20, mass: 0.9 },
+      transition: { type: "spring", stiffness: 240, damping: 20, mass: 0.9 },
     },
     [FOIL_TREATMENTS.ETCHED]: {
       intensity: 2,
-      auraClassName: 'foilRevealAura foilRevealAura-etched',
+      auraClassName: "foilRevealAura foilRevealAura-etched",
       screenShake: false,
-      transition: { type: 'spring', stiffness: 255, damping: 19, mass: 0.9 },
+      transition: { type: "spring", stiffness: 255, damping: 19, mass: 0.9 },
     },
     [FOIL_TREATMENTS.GALAXY]: {
       intensity: 3,
-      auraClassName: 'foilRevealAura foilRevealAura-galaxy',
+      auraClassName: "foilRevealAura foilRevealAura-galaxy",
       screenShake: true,
-      transition: { type: 'spring', stiffness: 270, damping: 18, mass: 0.88 },
+      transition: { type: "spring", stiffness: 270, damping: 18, mass: 0.88 },
     },
     [FOIL_TREATMENTS.GILDED]: {
       intensity: 3,
-      auraClassName: 'foilRevealAura foilRevealAura-gilded',
+      auraClassName: "foilRevealAura foilRevealAura-gilded",
       screenShake: true,
-      transition: { type: 'spring', stiffness: 275, damping: 18, mass: 0.88 },
+      transition: { type: "spring", stiffness: 275, damping: 18, mass: 0.88 },
     },
     [FOIL_TREATMENTS.TEXTURED]: {
-      intensity: 4,
-      auraClassName: 'foilRevealAura foilRevealAura-textured',
+      intensity: 5,
+      auraClassName: "foilRevealAura foilRevealAura-textured",
       screenShake: true,
-      transition: { type: 'spring', stiffness: 290, damping: 16, mass: 0.86 },
+      transition: { type: "spring", stiffness: 290, damping: 16, mass: 0.86 },
+    },
+    [FOIL_TREATMENTS.NEON_INK]: {
+      intensity: 6,
+      auraClassName: "foilRevealAura foilRevealAura-neonInk",
+      screenShake: true,
+      transition: { type: "spring", stiffness: 300, damping: 16, mass: 0.84 },
     },
   };
 
   return (
     configs[foilTreatment] || {
       intensity: 0,
-      auraClassName: '',
+      auraClassName: "",
       screenShake: false,
-      transition: { duration: 0.26, ease: 'easeOut' },
+      transition: { duration: 0.26, ease: "easeOut" },
     }
   );
 }
 
-function PackCuttingScreen({ artwork, boosterLabel, setCode, setIconUrl, setName, onCutComplete }) {
+function PackCuttingScreen({
+  artwork,
+  boosterLabel,
+  setCode,
+  setIconUrl,
+  setName,
+  onCutComplete,
+}) {
   const cutterControls = useAnimation();
   const cutterTrackRef = useRef(null);
   const [isCut, setIsCut] = useState(false);
@@ -78,46 +122,76 @@ function PackCuttingScreen({ artwork, boosterLabel, setCode, setIconUrl, setName
 
     if (info.offset.x > CUT_THRESHOLD || info.velocity.x > 760) {
       setIsCut(true);
-      const trackWidth = cutterTrackRef.current?.getBoundingClientRect().width || 287;
-      await cutterControls.start({ x: Math.max(trackWidth - 42, 0), scale: 1.08, transition: { duration: 0.18 } });
+      const trackWidth =
+        cutterTrackRef.current?.getBoundingClientRect().width || 287;
+      await cutterControls.start({
+        x: Math.max(trackWidth - 42, 0),
+        scale: 1.08,
+        transition: { duration: 0.18 },
+      });
       window.setTimeout(onCutComplete, 900);
       return;
     }
 
-    cutterControls.start({ x: 0, scale: 1, transition: { type: 'spring', stiffness: 420, damping: 28 } });
+    cutterControls.start({
+      x: 0,
+      scale: 1,
+      transition: { type: "spring", stiffness: 420, damping: 28 },
+    });
   }
 
   return (
     <Box
       sx={{
-        position: 'relative',
-        display: 'grid',
-        minHeight: '100vh',
-        overflow: 'hidden',
-        placeItems: 'center',
-        bgcolor: '#03050d',
+        position: "relative",
+        display: "grid",
+        minHeight: "100vh",
+        overflow: "hidden",
+        placeItems: "center",
+        bgcolor: "#03050d",
         background:
-          'radial-gradient(circle at 50% 36%, rgba(76, 201, 240, 0.18), transparent 28rem), radial-gradient(circle at 50% 90%, rgba(244, 201, 93, 0.12), transparent 30rem), #03050d',
+          "radial-gradient(circle at 50% 36%, rgba(76, 201, 240, 0.18), transparent 28rem), radial-gradient(circle at 50% 90%, rgba(244, 201, 93, 0.12), transparent 30rem), #03050d",
         px: 2,
       }}
     >
-      <Box sx={{ position: 'absolute', top: { xs: 24, md: 34 }, left: 0, right: 0, textAlign: 'center' }}>
+      <Box
+        sx={{
+          position: "absolute",
+          top: { xs: 24, md: 34 },
+          left: 0,
+          right: 0,
+          textAlign: "center",
+        }}
+      >
         <Typography color="warning.main" fontWeight={900}>
           {setCode.toUpperCase()} {boosterLabel}
         </Typography>
-        <Typography color="text.secondary">Swipe across the top seal to open</Typography>
+        <Typography color="text.secondary">
+          Swipe across the top seal to open
+        </Typography>
       </Box>
 
-      <Box sx={{ position: 'relative', width: { xs: '76vw', sm: 320 }, maxWidth: 340, height: { xs: 500, sm: 520 } }}>
+      <Box
+        sx={{
+          position: "relative",
+          width: { xs: "76vw", sm: 320 },
+          maxWidth: 340,
+          height: { xs: 500, sm: 520 },
+        }}
+      >
         <motion.div
-          animate={isCut ? { y: -96, rotate: -3, opacity: 0.96 } : { y: 0, rotate: 0, opacity: 1 }}
+          animate={
+            isCut
+              ? { y: -96, rotate: -3, opacity: 0.96 }
+              : { y: 0, rotate: 0, opacity: 1 }
+          }
           transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
           className="tornTopStrip"
           style={{
-            position: 'absolute',
+            position: "absolute",
             inset: 0,
-            overflow: 'hidden',
-            clipPath: 'inset(0 0 88% 0)',
+            overflow: "hidden",
+            clipPath: "inset(0 0 88% 0)",
           }}
         >
           <SealedPack
@@ -132,10 +206,10 @@ function PackCuttingScreen({ artwork, boosterLabel, setCode, setIconUrl, setName
           animate={isCut ? { y: 42, scale: 0.98 } : { y: 0, scale: 1 }}
           transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
           style={{
-            position: 'absolute',
+            position: "absolute",
             inset: 0,
-            overflow: 'hidden',
-            clipPath: 'inset(12% 0 0 0)',
+            overflow: "hidden",
+            clipPath: "inset(12% 0 0 0)",
           }}
         >
           <SealedPack
@@ -149,8 +223,8 @@ function PackCuttingScreen({ artwork, boosterLabel, setCode, setIconUrl, setName
 
         <Box className="tearSeam">
           <motion.div
-            animate={{ x: ['-8%', '108%'] }}
-            transition={{ duration: 1.25, repeat: Infinity, ease: 'linear' }}
+            animate={{ x: ["-8%", "108%"] }}
+            transition={{ duration: 1.25, repeat: Infinity, ease: "linear" }}
             className="tearProgress"
           />
         </Box>
@@ -161,15 +235,16 @@ function PackCuttingScreen({ artwork, boosterLabel, setCode, setIconUrl, setName
             animate={{ opacity: [0, 1, 0], scale: [0.35, 1.6, 2.2] }}
             transition={{ duration: 0.75 }}
             style={{
-              position: 'absolute',
-              top: '7%',
-              left: '50%',
+              position: "absolute",
+              top: "7%",
+              left: "50%",
               width: 180,
               height: 180,
               marginLeft: -90,
-              borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(244,201,93,0.75), rgba(143,124,255,0.24) 45%, transparent 70%)',
-              pointerEvents: 'none',
+              borderRadius: "50%",
+              background:
+                "radial-gradient(circle, rgba(244,201,93,0.75), rgba(143,124,255,0.24) 45%, transparent 70%)",
+              pointerEvents: "none",
             }}
           />
         )}
@@ -177,8 +252,8 @@ function PackCuttingScreen({ artwork, boosterLabel, setCode, setIconUrl, setName
         <Box
           ref={cutterTrackRef}
           sx={{
-            position: 'absolute',
-            top: 'calc(12% - 18px)',
+            position: "absolute",
+            top: "calc(12% - 18px)",
             left: -24,
             right: -24,
             height: 40,
@@ -194,10 +269,10 @@ function PackCuttingScreen({ artwork, boosterLabel, setCode, setIconUrl, setName
               width: 42,
               height: 42,
               borderRadius: 999,
-              background: 'linear-gradient(135deg, #f4c95d, #fff4ba)',
-              boxShadow: '0 0 22px rgba(244, 201, 93, 0.96)',
-              cursor: 'grab',
-              touchAction: 'none',
+              background: "linear-gradient(135deg, #f4c95d, #fff4ba)",
+              boxShadow: "0 0 22px rgba(244, 201, 93, 0.96)",
+              cursor: "grab",
+              touchAction: "none",
             }}
           />
         </Box>
@@ -210,112 +285,183 @@ function RevealCard({ card, cardNumber, exitX, onAdvance }) {
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-260, 260], [-13, 13]);
   const scale = useTransform(x, [-260, 0, 260], [0.94, 1, 0.94]);
+  const [canInspectFoil, setCanInspectFoil] = useState(false);
   const foilTreatment = normalizeFoilTreatment(card);
-  const isFinale = card.isFoil || ['rare', 'mythic'].includes(card.rarity);
-  const rarityLabel = card.isFoil ? FOIL_LABELS[foilTreatment] : card.rarity?.toUpperCase();
-  const cardKey = card.collectionTempId || card.id || `${card.name}-${cardNumber}`;
+  const isFinale = card.isFoil || ["rare", "mythic"].includes(card.rarity);
+  const rarityLabel = card.isFoil
+    ? FOIL_LABELS[foilTreatment]
+    : card.rarity?.toUpperCase();
+  const cardKey =
+    card.collectionTempId || card.id || `${card.name}-${cardNumber}`;
   const foilRevealConfig = getFoilRevealConfig(card);
   const isFoilReveal = card.isFoil && foilRevealConfig.intensity > 0;
   const revealInitial = isFoilReveal
     ? { opacity: 0, rotateY: 75, rotateX: -8, scale: 0.88, y: -40 }
     : { opacity: 0, y: 34, scale: 0.9 };
   const revealAnimate = isFoilReveal
-    ? { opacity: 1, rotateY: 0, rotateX: 0, scale: [0.88, 1.08, 1], y: [-40, 8, 0] }
+    ? {
+        opacity: 1,
+        rotateY: 0,
+        rotateX: 0,
+        scale: [0.88, 1.08, 1],
+        y: [-40, 8, 0],
+      }
     : { opacity: 1, y: 0, scale: 1 };
-  const revealTransition = isFoilReveal ? foilRevealConfig.transition : { duration: 0.26, ease: 'easeOut' };
+  const revealTransition = isFoilReveal
+    ? foilRevealConfig.transition
+    : { duration: 0.26, ease: "easeOut" };
+
+  useEffect(() => {
+    setCanInspectFoil(false);
+  }, [cardKey]);
 
   return (
     <>
-    <AnimatePresence custom={exitX} mode="wait">
-      <motion.div
-        key={`${cardKey}-${cardNumber}`}
-        className={[
-          'revealCardMotion',
-          isFoilReveal ? `foilRevealSlam foilRevealIntensity-${foilRevealConfig.intensity}` : '',
-          foilRevealConfig.screenShake ? 'foilRevealScreenShake' : '',
-        ]
-          .filter(Boolean)
-          .join(' ')}
-        drag="x"
-        dragConstraints={{ left: 0, right: 0 }}
-        dragElastic={0.28}
-        initial={revealInitial}
-        animate={revealAnimate}
-        exit={(customExitX) => ({
-          opacity: 0,
-          x: customExitX,
-          rotate: customExitX > 0 ? 18 : -18,
-          scale: 0.86,
-        })}
-        transition={revealTransition}
-        onClick={() => onAdvance(1)}
-        onDragEnd={(_, info) => {
-          if (Math.abs(info.offset.x) > SWIPE_THRESHOLD || Math.abs(info.velocity.x) > 650) {
-            onAdvance(info.offset.x >= 0 ? 1 : -1);
-          }
-        }}
-        style={{
-          x,
-          rotate,
-          ...(isFoilReveal ? {} : { scale }),
-          cursor: 'grab',
-          touchAction: 'pan-y',
-        }}
-      >
-        {isFoilReveal && (
-          <>
-            <Box className={foilRevealConfig.auraClassName} />
-            <Box className="foilImpactBurst" />
-            <Box className="foilImpactSparkles" />
-          </>
-        )}
-        <CardImage
-          card={card}
-          className={isFinale ? 'reveal-special-pulse' : ''}
-          large
-          variant="reveal"
-          sx={{
-            position: 'relative',
-            width: { xs: '78vw', sm: 360, md: 420 },
-            maxWidth: 440,
-            boxShadow: card.isFoil
-              ? [FOIL_TREATMENTS.GALAXY, FOIL_TREATMENTS.GILDED, FOIL_TREATMENTS.TEXTURED].includes(foilTreatment)
-                ? '0 0 82px rgba(244, 201, 93, 0.5), 0 0 150px rgba(143, 124, 255, 0.42), 0 32px 90px rgba(0, 0, 0, 0.64)'
-                : '0 0 58px rgba(244, 201, 93, 0.38), 0 0 115px rgba(76, 201, 240, 0.24), 0 28px 80px rgba(0, 0, 0, 0.6)'
-              : isFinale
-                ? '0 0 54px rgba(244, 201, 93, 0.42), 0 0 120px rgba(143, 124, 255, 0.3)'
-                : '0 20px 70px rgba(0, 0, 0, 0.58)',
+      <AnimatePresence custom={exitX} mode="wait">
+        <motion.div
+          key={`${cardKey}-${cardNumber}`}
+          className={[
+            "revealCardMotion",
+            isFoilReveal
+              ? `foilRevealSlam foilRevealIntensity-${foilRevealConfig.intensity}`
+              : "",
+            foilRevealConfig.screenShake ? "foilRevealScreenShake" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+          drag={isFoilReveal ? false : "x"}
+          dragConstraints={{ left: 0, right: 0 }}
+          dragElastic={0.28}
+          initial={revealInitial}
+          animate={revealAnimate}
+          exit={(customExitX) => ({
+            opacity: 0,
+            x: customExitX,
+            rotate: customExitX > 0 ? 18 : -18,
+            scale: 0.86,
+          })}
+          transition={revealTransition}
+          onAnimationComplete={() => {
+            if (isFoilReveal) {
+              setCanInspectFoil(true);
+            }
           }}
-        />
-      </motion.div>
-    </AnimatePresence>
+          onClick={() => {
+            if (!isFoilReveal) {
+              onAdvance(1);
+            }
+          }}
+          onDragEnd={(_, info) => {
+            if (
+              Math.abs(info.offset.x) > SWIPE_THRESHOLD ||
+              Math.abs(info.velocity.x) > 650
+            ) {
+              onAdvance(info.offset.x >= 0 ? 1 : -1);
+            }
+          }}
+          style={{
+            x,
+            rotate,
+            ...(isFoilReveal ? {} : { scale }),
+            cursor: "grab",
+            touchAction: "pan-y",
+          }}
+        >
+          {isFoilReveal && (
+            <>
+              <Box className={foilRevealConfig.auraClassName} />
+              <Box className="foilImpactBurst" />
+              <Box className="foilImpactSparkles" />
+            </>
+          )}
+          {isFoilReveal ? (
+            <InspectableFoilCard
+              canInspect={canInspectFoil}
+              card={card}
+              className={isFinale ? "reveal-special-pulse" : ""}
+              onSwipeAway={onAdvance}
+              swipeAwayThreshold={window.innerWidth < 600 ? 90 : SWIPE_THRESHOLD}
+              sx={{
+                position: "relative",
+                width: REVEAL_CARD_WIDTH,
+                maxWidth: 440,
+                boxShadow: [
+                  FOIL_TREATMENTS.GALAXY,
+                  FOIL_TREATMENTS.GILDED,
+                  FOIL_TREATMENTS.TEXTURED,
+                  FOIL_TREATMENTS.NEON_INK,
+                ].includes(foilTreatment)
+                  ? foilTreatment === FOIL_TREATMENTS.NEON_INK
+                    ? "0 0 76px rgba(0, 255, 255, 0.44), 0 0 138px rgba(255, 0, 200, 0.34), 0 32px 90px rgba(0, 0, 0, 0.64)"
+                    : "0 0 82px rgba(244, 201, 93, 0.5), 0 0 150px rgba(143, 124, 255, 0.42), 0 32px 90px rgba(0, 0, 0, 0.64)"
+                  : "0 0 58px rgba(244, 201, 93, 0.38), 0 0 115px rgba(76, 201, 240, 0.24), 0 28px 80px rgba(0, 0, 0, 0.6)",
+              }}
+            />
+          ) : (
+            <CardImage
+              card={card}
+              className={isFinale ? "reveal-special-pulse" : ""}
+              large
+              variant="reveal"
+              sx={{
+                position: "relative",
+                width: REVEAL_CARD_WIDTH,
+                maxWidth: 440,
+                boxShadow: isFinale
+                  ? "0 0 54px rgba(244, 201, 93, 0.42), 0 0 120px rgba(143, 124, 255, 0.3)"
+                  : "0 20px 70px rgba(0, 0, 0, 0.58)",
+              }}
+            />
+          )}
+        </motion.div>
+      </AnimatePresence>
 
       <Box
         sx={{
-          position: 'absolute',
-          bottom: { xs: 92, md: 78 },
+          position: "absolute",
+          bottom: { xs: 76, sm: 92, md: 78 },
           left: 0,
           right: 0,
-          textAlign: 'center',
-          pointerEvents: 'none',
+          textAlign: "center",
+          pointerEvents: "none",
         }}
       >
         {card.isFoil && (
           <Chip
             color={
-              [FOIL_TREATMENTS.GALAXY, FOIL_TREATMENTS.GILDED, FOIL_TREATMENTS.TEXTURED].includes(foilTreatment) ||
-              card.rarity === 'mythic'
-                ? 'warning'
-                : 'secondary'
+              [
+                FOIL_TREATMENTS.GALAXY,
+                FOIL_TREATMENTS.GILDED,
+                FOIL_TREATMENTS.TEXTURED,
+                FOIL_TREATMENTS.NEON_INK,
+              ].includes(foilTreatment) || card.rarity === "mythic"
+                ? "warning"
+                : "secondary"
             }
             label={rarityLabel}
             size="small"
-            sx={{ mt: 1, fontWeight: 900 }}
+            sx={
+              foilTreatment === FOIL_TREATMENTS.NEON_INK
+                ? {
+                    mt: 1,
+                    border: "1px solid rgba(0, 255, 255, 0.72)",
+                    bgcolor: "rgba(5, 7, 17, 0.86)",
+                    boxShadow: "0 0 18px rgba(255, 0, 200, 0.36)",
+                    color: "#8ff",
+                    fontWeight: 900,
+                  }
+                : { mt: 1, fontWeight: 900 }
+            }
           />
+        )}
+        {isFoilReveal && canInspectFoil && (
+          <Typography color="text.secondary" sx={{ mt: 1, fontSize: 13, fontWeight: 800 }}>
+            Drag to inspect the foil shine
+          </Typography>
         )}
         {isFinale && !card.isFoil && (
           <Chip
-            color={card.rarity === 'mythic' ? 'warning' : 'secondary'}
+            color={card.rarity === "mythic" ? "warning" : "secondary"}
             label={rarityLabel}
             size="small"
             sx={{ mt: 1, fontWeight: 900 }}
@@ -328,38 +474,55 @@ function RevealCard({ card, cardNumber, exitX, onAdvance }) {
 
 function SummaryGrid({ boosterLabel, pack, saveResult, setCode }) {
   return (
-    <Box sx={{ minHeight: '100vh', px: { xs: 2, md: 4 }, py: { xs: 3, md: 4 } }}>
-      <Box sx={{ mx: 'auto', maxWidth: 920 }}>
+    <Box
+      sx={{ minHeight: "100vh", px: { xs: 2, md: 4 }, py: { xs: 3, md: 4 } }}
+    >
+      <Box sx={{ mx: "auto", maxWidth: 920 }}>
         <Typography color="warning.main" fontWeight={900} gutterBottom>
           {setCode.toUpperCase()} {boosterLabel} opened
         </Typography>
-        <Typography variant="h3" component="h1" sx={{ mb: 3, fontSize: { xs: 32, md: 40 } }}>
+        <Typography
+          variant="h3"
+          component="h1"
+          sx={{ mb: 3, fontSize: { xs: 32, md: 40 } }}
+        >
           Pack Summary
         </Typography>
 
         {saveResult && (
           <Box
             sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(5, minmax(0, 1fr))' },
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr 1fr",
+                md: "repeat(5, minmax(0, 1fr))",
+              },
               gap: 1.5,
               mb: 3,
             }}
           >
             {[
-              { label: 'Booster', value: boosterLabel },
-              { label: 'Cards added', value: saveResult.savedCards.length },
-              { label: 'Duplicates', value: saveResult.duplicateCount },
-              { label: 'Shards earned', value: saveResult.shardsAwarded },
-              { label: 'Shard balance', value: saveResult.newShardBalance },
+              { label: "Booster", value: boosterLabel },
+              { label: "Cards added", value: saveResult.savedCards.length },
+              { label: "Duplicates", value: saveResult.duplicateCount },
+              { label: "Shards earned", value: saveResult.shardsAwarded },
+              { label: "Shard balance", value: saveResult.newShardBalance },
             ].map((stat) => (
-              <Card key={stat.label} sx={{ borderColor: 'rgba(244, 201, 93, 0.28)' }}>
+              <Card
+                key={stat.label}
+                sx={{ borderColor: "rgba(244, 201, 93, 0.28)" }}
+              >
                 <CardContent sx={{ p: 1.5 }}>
-                  <Typography color="text.secondary" sx={{ fontSize: 12, fontWeight: 800 }}>
+                  <Typography
+                    color="text.secondary"
+                    sx={{ fontSize: 12, fontWeight: 800 }}
+                  >
                     {stat.label}
                   </Typography>
                   <Typography color="warning.main" fontWeight={950}>
-                    {typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}
+                    {typeof stat.value === "number"
+                      ? stat.value.toLocaleString()
+                      : stat.value}
                   </Typography>
                 </CardContent>
               </Card>
@@ -369,11 +532,11 @@ function SummaryGrid({ boosterLabel, pack, saveResult, setCode }) {
 
         <Box
           sx={{
-            display: 'grid',
+            display: "grid",
             gridTemplateColumns: {
-              xs: 'repeat(2, minmax(0, 1fr))',
-              sm: 'repeat(3, minmax(0, 1fr))',
-              md: 'repeat(5, minmax(0, 1fr))',
+              xs: "repeat(2, minmax(0, 1fr))",
+              sm: "repeat(3, minmax(0, 1fr))",
+              md: "repeat(5, minmax(0, 1fr))",
             },
             gap: { xs: 1.5, md: 1.75 },
             mb: 4,
@@ -382,7 +545,7 @@ function SummaryGrid({ boosterLabel, pack, saveResult, setCode }) {
           {pack.map((card) => (
             <Card
               key={`${card.id}-${card.packSlot}`}
-              sx={{ position: 'relative', overflow: 'hidden', minWidth: 0 }}
+              sx={{ position: "relative", overflow: "hidden", minWidth: 0 }}
             >
               <CardImage card={card} variant="grid" />
               <CardContent sx={{ p: 1 }}>
@@ -397,7 +560,18 @@ function SummaryGrid({ boosterLabel, pack, saveResult, setCode }) {
                     color="warning"
                     label={FOIL_LABELS[normalizeFoilTreatment(card)]}
                     size="small"
-                    sx={{ mt: 0.75, maxWidth: '100%', fontWeight: 900 }}
+                    sx={
+                      normalizeFoilTreatment(card) === FOIL_TREATMENTS.NEON_INK
+                        ? {
+                            mt: 0.75,
+                            maxWidth: "100%",
+                            border: "1px solid rgba(0, 255, 255, 0.65)",
+                            bgcolor: "rgba(5, 7, 17, 0.86)",
+                            color: "#8ff",
+                            fontWeight: 900,
+                          }
+                        : { mt: 0.75, maxWidth: "100%", fontWeight: 900 }
+                    }
                   />
                 )}
               </CardContent>
@@ -405,14 +579,29 @@ function SummaryGrid({ boosterLabel, pack, saveResult, setCode }) {
           ))}
         </Box>
 
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-          <Button component={Link} startIcon={<AutoAwesomeIcon />} to={`/packs/${setCode}`} variant="contained">
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
+          <Button
+            component={Link}
+            startIcon={<AutoAwesomeIcon />}
+            to={`/packs/${setCode}`}
+            variant="contained"
+          >
             Open another pack
           </Button>
-          <Button component={Link} startIcon={<StyleIcon />} to="/sets" variant="outlined">
+          <Button
+            component={Link}
+            startIcon={<StyleIcon />}
+            to="/sets"
+            variant="outlined"
+          >
             Choose another set
           </Button>
-          <Button component={Link} startIcon={<CollectionsBookmarkIcon />} to="/collection" variant="outlined">
+          <Button
+            component={Link}
+            startIcon={<CollectionsBookmarkIcon />}
+            to="/collection"
+            variant="outlined"
+          >
             View Collection
           </Button>
         </Box>
@@ -424,18 +613,20 @@ function SummaryGrid({ boosterLabel, pack, saveResult, setCode }) {
 export default function PackOpening() {
   const { setCode } = useParams();
   const { state } = useLocation();
-  const normalizedSetCode = setCode?.trim().toLowerCase() || '';
-  const boosterType = state?.boosterType === 'collector' ? 'collector' : 'play';
-  const boosterLabel = boosterType === 'collector' ? 'Collector Booster' : 'Play Booster';
-  const openingId = state?.openingId || `${normalizedSetCode}-${boosterType}-direct`;
+  const normalizedSetCode = setCode?.trim().toLowerCase() || "";
+  const boosterType = state?.boosterType === "collector" ? "collector" : "play";
+  const boosterLabel =
+    boosterType === "collector" ? "Collector Booster" : "Play Booster";
+  const openingId =
+    state?.openingId || `${normalizedSetCode}-${boosterType}-direct`;
   const [pack, setPack] = useState([]);
   const [phase, setPhase] = useState(PHASES.cutPack);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [exitX, setExitX] = useState(520);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [savedMessage, setSavedMessage] = useState('');
-  const [savedMessageSeverity, setSavedMessageSeverity] = useState('success');
+  const [error, setError] = useState("");
+  const [savedMessage, setSavedMessage] = useState("");
+  const [savedMessageSeverity, setSavedMessageSeverity] = useState("success");
   const [saveResult, setSaveResult] = useState(null);
   const hasSavedRef = useRef(false);
   const isAnimatingRef = useRef(false);
@@ -446,28 +637,33 @@ export default function PackOpening() {
     async function loadPack() {
       try {
         setIsLoading(true);
-        setError('');
+        setError("");
         setPhase(PHASES.cutPack);
         setCurrentIndex(0);
         hasSavedRef.current = false;
         isAnimatingRef.current = false;
-        setSavedMessage('');
-        setSavedMessageSeverity('success');
+        setSavedMessage("");
+        setSavedMessageSeverity("success");
         setSaveResult(null);
         const generatedPack =
-          boosterType === 'collector'
+          boosterType === "collector"
             ? await generateCollectorBooster(normalizedSetCode)
             : await generatePlayBooster(normalizedSetCode);
 
-        if (boosterType === 'collector') {
+        if (boosterType === "collector") {
           const spentKey = `collector-booster-spent-${openingId}`;
 
           if (!sessionStorage.getItem(spentKey)) {
-            if (getPackShards() < COLLECTOR_BOOSTER_COST || !spendPackShards(COLLECTOR_BOOSTER_COST)) {
-              throw new Error('You need 1,000 pack shards to open a Collector Booster.');
+            if (
+              getPackShards() < COLLECTOR_BOOSTER_COST ||
+              !spendPackShards(COLLECTOR_BOOSTER_COST)
+            ) {
+              throw new Error(
+                "You need 1,000 pack shards to open a Collector Booster.",
+              );
             }
 
-            sessionStorage.setItem(spentKey, 'true');
+            sessionStorage.setItem(spentKey, "true");
           }
         }
 
@@ -476,7 +672,7 @@ export default function PackOpening() {
         }
       } catch (packError) {
         if (isMounted) {
-          setError(packError.message || 'Unable to generate this pack.');
+          setError(packError.message || "Unable to generate this pack.");
         }
       } finally {
         if (isMounted) {
@@ -497,28 +693,31 @@ export default function PackOpening() {
   const revealedPack = pack;
   const isFinished = currentIndex >= revealedPack.length;
 
-  const advanceCard = useCallback((direction = 1) => {
-    if (isAnimatingRef.current) {
-      return;
-    }
-
-    isAnimatingRef.current = true;
-    setExitX(direction >= 0 ? 520 : -520);
-    setCurrentIndex((previousIndex) => {
-      const nextIndex = previousIndex + 1;
-
-      if (nextIndex >= revealedPack.length) {
-        setPhase(PHASES.summary);
-        return revealedPack.length;
+  const advanceCard = useCallback(
+    (direction = 1) => {
+      if (isAnimatingRef.current) {
+        return;
       }
 
-      return nextIndex;
-    });
+      isAnimatingRef.current = true;
+      setExitX(direction >= 0 ? 520 : -520);
+      setCurrentIndex((previousIndex) => {
+        const nextIndex = previousIndex + 1;
 
-    window.setTimeout(() => {
-      isAnimatingRef.current = false;
-    }, 280);
-  }, [revealedPack.length]);
+        if (nextIndex >= revealedPack.length) {
+          setPhase(PHASES.summary);
+          return revealedPack.length;
+        }
+
+        return nextIndex;
+      });
+
+      window.setTimeout(() => {
+        isAnimatingRef.current = false;
+      }, 280);
+    },
+    [revealedPack.length],
+  );
 
   useEffect(() => {
     if (phase === PHASES.summary) {
@@ -527,35 +726,49 @@ export default function PackOpening() {
   }, [phase]);
 
   useEffect(() => {
-    if (phase === PHASES.revealCards && revealedPack.length > 0 && currentIndex >= revealedPack.length) {
+    if (
+      phase === PHASES.revealCards &&
+      revealedPack.length > 0 &&
+      currentIndex >= revealedPack.length
+    ) {
       setPhase(PHASES.summary);
     }
   }, [phase, currentIndex, revealedPack.length]);
 
   useEffect(() => {
     function handleKeyDown(event) {
-      if (phase === PHASES.revealCards && event.key === 'ArrowRight' && currentIndex < revealedPack.length) {
+      if (
+        phase === PHASES.revealCards &&
+        event.key === "ArrowRight" &&
+        currentIndex < revealedPack.length
+      ) {
         advanceCard();
       }
     }
 
-    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener("keydown", handleKeyDown);
     };
   }, [advanceCard, currentIndex, revealedPack.length, phase]);
 
   useEffect(() => {
-    if (phase === PHASES.summary && revealedPack.length > 0 && !hasSavedRef.current) {
+    if (
+      phase === PHASES.summary &&
+      revealedPack.length > 0 &&
+      !hasSavedRef.current
+    ) {
       hasSavedRef.current = true;
 
       try {
         const saveResult = saveCardsToCollection(revealedPack);
         setSaveResult(saveResult);
-        window.dispatchEvent(new Event('packShardsUpdated'));
+        window.dispatchEvent(new Event("packShardsUpdated"));
 
-        const messages = [`${saveResult.savedCards.length} cards added to your collection.`];
+        const messages = [
+          `${saveResult.savedCards.length} cards added to your collection.`,
+        ];
 
         if (saveResult.shardsAwarded > 0) {
           messages.push(
@@ -563,11 +776,13 @@ export default function PackOpening() {
           );
         }
 
-        setSavedMessageSeverity('success');
-        setSavedMessage(messages.join(' '));
+        setSavedMessageSeverity("success");
+        setSavedMessage(messages.join(" "));
       } catch {
-        setSavedMessageSeverity('error');
-        setSavedMessage('Pack summary is ready, but the collection could not be saved.');
+        setSavedMessageSeverity("error");
+        setSavedMessage(
+          "Pack summary is ready, but the collection could not be saved.",
+        );
       }
     }
   }, [revealedPack, phase]);
@@ -576,16 +791,18 @@ export default function PackOpening() {
     return (
       <Box
         sx={{
-          display: 'grid',
-          minHeight: '100vh',
-          placeItems: 'center',
-          bgcolor: '#03050d',
+          display: "grid",
+          minHeight: "100dvh",
+          placeItems: "center",
+          bgcolor: "#03050d",
           px: 2,
         }}
       >
-        <Box sx={{ textAlign: 'center' }}>
+        <Box sx={{ textAlign: "center" }}>
           <CircularProgress color="warning" sx={{ mb: 3 }} />
-          <Typography color="text.secondary">Generating {boosterLabel}...</Typography>
+          <Typography color="text.secondary">
+            Generating {boosterLabel}...
+          </Typography>
         </Box>
       </Box>
     );
@@ -593,8 +810,8 @@ export default function PackOpening() {
 
   if (error) {
     return (
-      <Box sx={{ minHeight: '100vh', bgcolor: '#03050d', px: 2, py: 4 }}>
-        <Alert severity="error" sx={{ mx: 'auto', maxWidth: 720 }}>
+      <Box sx={{ minHeight: "100vh", bgcolor: "#03050d", px: 2, py: 4 }}>
+        <Alert severity="error" sx={{ mx: "auto", maxWidth: 720 }}>
           {error}
         </Alert>
       </Box>
@@ -602,19 +819,29 @@ export default function PackOpening() {
   }
 
   const shouldShowSummary =
-    phase === PHASES.summary || (phase === PHASES.revealCards && revealedPack.length > 0 && isFinished);
+    phase === PHASES.summary ||
+    (phase === PHASES.revealCards && revealedPack.length > 0 && isFinished);
 
   if (shouldShowSummary) {
     return (
       <>
-        <SummaryGrid boosterLabel={boosterLabel} pack={revealedPack} saveResult={saveResult} setCode={normalizedSetCode} />
+        <SummaryGrid
+          boosterLabel={boosterLabel}
+          pack={revealedPack}
+          saveResult={saveResult}
+          setCode={normalizedSetCode}
+        />
         <Snackbar
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
           autoHideDuration={4200}
-          onClose={() => setSavedMessage('')}
+          onClose={() => setSavedMessage("")}
           open={Boolean(savedMessage)}
         >
-          <Alert severity={savedMessageSeverity} variant="filled" sx={{ width: '100%' }}>
+          <Alert
+            severity={savedMessageSeverity}
+            variant="filled"
+            sx={{ width: "100%" }}
+          >
             {savedMessage}
           </Alert>
         </Snackbar>
@@ -623,8 +850,11 @@ export default function PackOpening() {
   }
 
   if (phase === PHASES.cutPack) {
-    const fallbackArtwork = pack.find((card) => card.rarity === 'mythic')?.image || pack.find((card) => card.image)?.image;
-    const packSetName = state?.setName || pack[0]?.set_name || normalizedSetCode.toUpperCase();
+    const fallbackArtwork =
+      pack.find((card) => card.rarity === "mythic")?.image ||
+      pack.find((card) => card.image)?.image;
+    const packSetName =
+      state?.setName || pack[0]?.set_name || normalizedSetCode.toUpperCase();
 
     return (
       <AnimatePresence mode="wait">
@@ -648,14 +878,17 @@ export default function PackOpening() {
     );
   }
 
-  if (phase === PHASES.revealCards && (revealedPack.length === 0 || isFinished)) {
+  if (
+    phase === PHASES.revealCards &&
+    (revealedPack.length === 0 || isFinished)
+  ) {
     return (
       <Box
         sx={{
-          display: 'grid',
-          minHeight: '100vh',
-          placeItems: 'center',
-          bgcolor: '#03050d',
+          display: "grid",
+          minHeight: "100vh",
+          placeItems: "center",
+          bgcolor: "#03050d",
           px: 2,
         }}
       >
@@ -664,16 +897,17 @@ export default function PackOpening() {
     );
   }
 
-  const activeCard = phase === PHASES.revealCards ? revealedPack[currentIndex] : null;
+  const activeCard =
+    phase === PHASES.revealCards ? revealedPack[currentIndex] : null;
 
   if (!activeCard) {
     return (
       <Box
         sx={{
-          display: 'grid',
-          minHeight: '100vh',
-          placeItems: 'center',
-          bgcolor: '#03050d',
+          display: "grid",
+          minHeight: "100vh",
+          placeItems: "center",
+          bgcolor: "#03050d",
           px: 2,
         }}
       >
@@ -682,32 +916,44 @@ export default function PackOpening() {
     );
   }
 
-  const activeCardKey = activeCard.collectionTempId || activeCard.id || `${activeCard.name}-${currentIndex}`;
+  const activeCardKey =
+    activeCard.collectionTempId ||
+    activeCard.id ||
+    `${activeCard.name}-${currentIndex}`;
   const isFinalStretch = currentIndex >= revealedPack.length - 3;
 
   return (
     <Box
       sx={{
-        position: 'relative',
-        display: 'grid',
-        minHeight: '100vh',
-        overflow: 'hidden',
-        placeItems: 'center',
-        bgcolor: '#03050d',
+        position: "relative",
+        display: "grid",
+        minHeight: "100dvh",
+        overflow: "hidden",
+        placeItems: "center",
+        bgcolor: "#03050d",
         background:
-          'radial-gradient(circle at 50% 42%, rgba(143, 124, 255, 0.2), transparent 28rem), radial-gradient(circle at 50% 100%, rgba(244, 201, 93, 0.12), transparent 30rem), #03050d',
+          "radial-gradient(circle at 50% 42%, rgba(143, 124, 255, 0.2), transparent 28rem), radial-gradient(circle at 50% 100%, rgba(244, 201, 93, 0.12), transparent 30rem), #03050d",
         px: 2,
       }}
     >
-      <Box sx={{ position: 'absolute', top: { xs: 20, md: 28 }, left: 0, right: 0, textAlign: 'center' }}>
+      <Box
+        sx={{
+          position: "absolute",
+          top: { xs: 14, sm: 20, md: 28 },
+          left: 0,
+          right: 0,
+          textAlign: "center",
+        }}
+      >
         <Typography color="text.secondary" fontWeight={800}>
-          Opening {boosterLabel} ·{' '}
-          Card {Math.min(currentIndex + 1, revealedPack.length)} / {revealedPack.length}
+          Opening {boosterLabel} · Card{" "}
+          {Math.min(currentIndex + 1, revealedPack.length)} /{" "}
+          {revealedPack.length}
         </Typography>
       </Box>
 
       <Fade in timeout={260} key={`fade-${activeCardKey}-${currentIndex}`}>
-        <Box sx={{ position: 'relative' }}>
+        <Box sx={{ position: "relative" }}>
           <Zoom in timeout={260}>
             <Box>
               <RevealCard
@@ -725,7 +971,11 @@ export default function PackOpening() {
         <Typography
           color="warning.main"
           fontWeight={900}
-          sx={{ position: 'absolute', top: { xs: 52, md: 62 }, textAlign: 'center' }}
+          sx={{
+            position: "absolute",
+            top: { xs: 42, sm: 52, md: 62 },
+            textAlign: "center",
+          }}
         >
           Final reveal
         </Typography>
@@ -735,7 +985,7 @@ export default function PackOpening() {
         endIcon={<KeyboardArrowRightIcon />}
         onClick={advanceCard}
         variant="contained"
-        sx={{ position: 'absolute', bottom: { xs: 24, md: 32 } }}
+        sx={{ position: "absolute", bottom: { xs: 16, sm: 24, md: 32 } }}
       >
         Next
       </Button>

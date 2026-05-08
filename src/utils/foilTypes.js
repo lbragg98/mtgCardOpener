@@ -5,6 +5,7 @@ export const FOIL_TREATMENTS = {
   GALAXY: 'galaxy',
   GILDED: 'gilded',
   TEXTURED: 'textured',
+  NEON_INK: 'neonInk',
 };
 
 export const FOIL_LABELS = {
@@ -14,6 +15,7 @@ export const FOIL_LABELS = {
   galaxy: 'Galaxy Foil',
   gilded: 'Gilded Foil',
   textured: 'Textured Foil',
+  neonInk: 'Neon Ink Foil',
 };
 
 const FOIL_ONLY_TREATMENTS = [
@@ -22,6 +24,7 @@ const FOIL_ONLY_TREATMENTS = [
   FOIL_TREATMENTS.GALAXY,
   FOIL_TREATMENTS.GILDED,
   FOIL_TREATMENTS.TEXTURED,
+  FOIL_TREATMENTS.NEON_INK,
 ];
 
 export function normalizeFoilTreatment(card) {

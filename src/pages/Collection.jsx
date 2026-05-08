@@ -9,6 +9,7 @@ import {
   CardContent,
   Chip,
   Dialog,
+  DialogActions,
   DialogContent,
   DialogTitle,
   FormControl,
@@ -16,6 +17,7 @@ import {
   InputLabel,
   MenuItem,
   Select,
+  Snackbar,
   TextField,
   Typography,
 } from '@mui/material';
@@ -23,7 +25,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import CardImage from '../components/CardImage.jsx';
 import PageHeader from '../components/PageHeader.jsx';
-import { clearCollection, getCollection, getPackShards, removeCardFromCollection } from '../utils/collectionStorage.js';
+import { clearCollection, getCollection, getPackShards, recycleCard } from '../utils/collectionStorage.js';
 import { FOIL_LABELS, normalizeFoilTreatment } from '../utils/foilTypes.js';
 
 const ALL_FILTER = 'all';
@@ -67,22 +69,29 @@ export default function Collection() {
   const [sortBy, setSortBy] = useState(SORT_OPTIONS.newest);
   const [selectedCard, setSelectedCard] = useState(null);
   const [packShards, setPackShards] = useState(() => getPackShards());
+  const [cardToRecycle, setCardToRecycle] = useState(null);
+  const [isRecycling, setIsRecycling] = useState(false);
+  const [recycleMessage, setRecycleMessage] = useState('');
+  const [recycleSeverity, setRecycleSeverity] = useState('success');
 
   useEffect(() => {
     setCollection(getCollection());
   }, []);
 
   useEffect(() => {
-    function refreshPackShards() {
+    function refreshLocalState() {
       setPackShards(getPackShards());
+      setCollection(getCollection());
     }
 
-    window.addEventListener('packShardsUpdated', refreshPackShards);
-    window.addEventListener('storage', refreshPackShards);
+    window.addEventListener('packShardsUpdated', refreshLocalState);
+    window.addEventListener('collectionUpdated', refreshLocalState);
+    window.addEventListener('storage', refreshLocalState);
 
     return () => {
-      window.removeEventListener('packShardsUpdated', refreshPackShards);
-      window.removeEventListener('storage', refreshPackShards);
+      window.removeEventListener('packShardsUpdated', refreshLocalState);
+      window.removeEventListener('collectionUpdated', refreshLocalState);
+      window.removeEventListener('storage', refreshLocalState);
     };
   }, []);
 
@@ -137,10 +146,38 @@ export default function Collection() {
     }
   }
 
-  function handleRemoveCard(collectionId) {
-    const nextCollection = removeCardFromCollection(collectionId);
-    setCollection(nextCollection);
-    setSelectedCard((card) => (card?.collectionId === collectionId ? null : card));
+  function requestRecycle(card) {
+    setCardToRecycle(card);
+  }
+
+  function closeRecycleDialog() {
+    if (!isRecycling) {
+      setCardToRecycle(null);
+    }
+  }
+
+  function handleRecycleCard() {
+    if (!cardToRecycle || isRecycling) {
+      return;
+    }
+
+    setIsRecycling(true);
+
+    try {
+      const result = recycleCard(cardToRecycle.collectionId);
+
+      setCollection(result.updatedCollection);
+      setPackShards(result.newShardBalance);
+      setSelectedCard((card) => (card?.collectionId === cardToRecycle.collectionId ? null : card));
+      setCardToRecycle(null);
+      setRecycleSeverity('success');
+      setRecycleMessage('Card recycled for 25 Pack Shards.');
+    } catch (error) {
+      setRecycleSeverity('error');
+      setRecycleMessage(error.message || 'Unable to recycle that card.');
+    } finally {
+      setIsRecycling(false);
+    }
   }
 
   return (
@@ -337,13 +374,13 @@ export default function Collection() {
                   color="error"
                   onClick={(event) => {
                     event.stopPropagation();
-                    handleRemoveCard(card.collectionId);
+                    requestRecycle(card);
                   }}
                   size="small"
                   sx={{ mt: 1 }}
-                  variant="text"
+                  variant="outlined"
                 >
-                  Remove
+                  Recycle
                 </Button>
               </CardContent>
             </Card>
@@ -394,8 +431,8 @@ export default function Collection() {
                     <strong>Copies owned:</strong> {duplicateCounts[selectedCard.id] || 1}
                   </Typography>
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mt: 2 }}>
-                    <Button color="error" onClick={() => handleRemoveCard(selectedCard.collectionId)} variant="outlined">
-                      Remove this copy
+                    <Button color="warning" onClick={() => requestRecycle(selectedCard)} variant="outlined">
+                      Recycle for 25 Shards
                     </Button>
                     <Button onClick={() => setSelectedCard(null)} variant="contained">
                       Close
@@ -407,6 +444,34 @@ export default function Collection() {
           </>
         )}
       </Dialog>
+
+      <Dialog fullWidth maxWidth="xs" onClose={closeRecycleDialog} open={Boolean(cardToRecycle)}>
+        <DialogTitle>Recycle card?</DialogTitle>
+        <DialogContent>
+          <Typography color="text.secondary">
+            This will remove {cardToRecycle?.name || 'this card'} from your collection and grant 25 Pack Shards.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 3, pt: 1 }}>
+          <Button disabled={isRecycling} onClick={closeRecycleDialog} variant="outlined">
+            Cancel
+          </Button>
+          <Button color="warning" disabled={isRecycling} onClick={handleRecycleCard} variant="contained">
+            Recycle for 25 Shards
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        autoHideDuration={3600}
+        onClose={() => setRecycleMessage('')}
+        open={Boolean(recycleMessage)}
+      >
+        <Alert severity={recycleSeverity} variant="filled" sx={{ width: '100%' }}>
+          {recycleMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

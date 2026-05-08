@@ -31,11 +31,11 @@ import { getPackArtForSet } from '../utils/packArt.js';
 const PACK_COUNT = 7;
 const COLLECTOR_BOOSTER_COST = 1000;
 const DESKTOP_DRAG_SENSITIVITY = 0.045;
-const MOBILE_DRAG_SENSITIVITY = 0.028;
+const MOBILE_DRAG_SENSITIVITY = 0.075;
 const DESKTOP_VELOCITY_PROJECTION = 0.018;
-const MOBILE_VELOCITY_PROJECTION = 0.009;
+const MOBILE_VELOCITY_PROJECTION = 0.025;
 const DESKTOP_MAX_PACKS_PER_FLICK = 2;
-const MOBILE_MAX_PACKS_PER_FLICK = 1;
+const MOBILE_MAX_PACKS_PER_FLICK = 2;
 const DESKTOP_SPRING_CONFIG = {
   type: 'spring',
   stiffness: 85,
@@ -46,9 +46,9 @@ const DESKTOP_SPRING_CONFIG = {
 };
 const MOBILE_SPRING_CONFIG = {
   type: 'spring',
-  stiffness: 70,
-  damping: 40,
-  mass: 1.45,
+  stiffness: 95,
+  damping: 28,
+  mass: 1,
   restDelta: 0.01,
   restSpeed: 0.01,
 };
@@ -343,6 +343,7 @@ export default function PackSelection() {
   const velocityProjection = isMobile ? MOBILE_VELOCITY_PROJECTION : DESKTOP_VELOCITY_PROJECTION;
   const maxPacksPerFlick = isMobile ? MOBILE_MAX_PACKS_PER_FLICK : DESKTOP_MAX_PACKS_PER_FLICK;
   const springConfig = isMobile ? MOBILE_SPRING_CONFIG : DESKTOP_SPRING_CONFIG;
+  const swipeThreshold = isMobile ? 28 : 60;
   const wheelRadius = isMobile ? 190 : 360;
   const canAffordCollectorBooster = packShards >= COLLECTOR_BOOSTER_COST;
 
@@ -429,7 +430,13 @@ export default function PackSelection() {
     const projected = current + info.velocity.x * velocityProjection;
     const maxDelta = angleStep * maxPacksPerFlick;
     const clampedProjected = clamp(projected, startRotationRef.current - maxDelta, startRotationRef.current + maxDelta);
-    const snappedRotation = Math.round(clampedProjected / angleStep) * angleStep;
+    const dragDelta = clampedProjected - startRotationRef.current;
+    const thresholdRotation = angleStep * (swipeThreshold / 100);
+    const rawSnappedRotation =
+      Math.abs(dragDelta) > thresholdRotation
+        ? startRotationRef.current + Math.sign(dragDelta) * Math.max(angleStep, Math.round(Math.abs(dragDelta) / angleStep) * angleStep)
+        : Math.round(clampedProjected / angleStep) * angleStep;
+    const snappedRotation = clamp(rawSnappedRotation, startRotationRef.current - maxDelta, startRotationRef.current + maxDelta);
     const centeredIndex = getCenteredIndexFromRotation(snappedRotation, packOptions.length);
 
     animateToCenteredPack(centeredIndex, snappedRotation);
@@ -605,6 +612,7 @@ export default function PackSelection() {
 
             <Box
               component={motion.div}
+              className="dragLayer"
               drag="x"
               dragConstraints={{ left: 0, right: 0 }}
               dragElastic={0}
@@ -618,6 +626,7 @@ export default function PackSelection() {
                 zIndex: 20,
                 cursor: 'grab',
                 bgcolor: 'transparent',
+                touchAction: isMobile ? 'none' : 'pan-y',
                 '&:active': {
                   cursor: 'grabbing',
                 },

@@ -3,6 +3,7 @@ import { normalizeFoilTreatment } from './foilTypes.js';
 const COLLECTION_KEY = 'mtg-pack-opener-collection';
 const PACK_SHARDS_KEY = 'mtg-pack-opener-pack-shards';
 const DUPLICATE_SHARD_REWARD = 100;
+const RECYCLE_SHARD_REWARD = 25;
 
 function createCollectionId() {
   if (globalThis.crypto?.randomUUID) {
@@ -60,6 +61,10 @@ function isStoredCollectionCard(card) {
 
 function notifyPackShardsUpdated() {
   window.dispatchEvent(new Event('packShardsUpdated'));
+}
+
+function notifyCollectionUpdated() {
+  window.dispatchEvent(new Event('collectionUpdated'));
 }
 
 export function getCollection() {
@@ -135,6 +140,7 @@ export function saveCardsToCollection(cards) {
   const nextCollection = [...cardsToSave, ...currentCollection];
 
   localStorage.setItem(COLLECTION_KEY, JSON.stringify(nextCollection));
+  notifyCollectionUpdated();
 
   const newShardBalance = shardsAwarded > 0 ? addPackShards(shardsAwarded) : getPackShards();
 
@@ -148,12 +154,50 @@ export function saveCardsToCollection(cards) {
 
 export function clearCollection() {
   localStorage.removeItem(COLLECTION_KEY);
+  notifyCollectionUpdated();
 }
 
 export function removeCardFromCollection(collectionId) {
   const nextCollection = getCollection().filter((card) => card.collectionId !== collectionId);
 
   localStorage.setItem(COLLECTION_KEY, JSON.stringify(nextCollection));
+  notifyCollectionUpdated();
 
   return nextCollection;
+}
+
+export function recycleCards(collectionIds) {
+  const idsToRecycle = new Set(collectionIds);
+  const currentCollection = getCollection();
+  const recycledCards = currentCollection.filter((card) => idsToRecycle.has(card.collectionId));
+
+  if (!recycledCards.length) {
+    throw new Error('No matching collection cards were found to recycle.');
+  }
+
+  const updatedCollection = currentCollection.filter((card) => !idsToRecycle.has(card.collectionId));
+  const shardsAwarded = recycledCards.length * RECYCLE_SHARD_REWARD;
+
+  localStorage.setItem(COLLECTION_KEY, JSON.stringify(updatedCollection));
+  notifyCollectionUpdated();
+
+  const newShardBalance = addPackShards(shardsAwarded);
+
+  return {
+    recycledCards,
+    shardsAwarded,
+    newShardBalance,
+    updatedCollection,
+  };
+}
+
+export function recycleCard(collectionId) {
+  const result = recycleCards([collectionId]);
+
+  return {
+    recycledCard: result.recycledCards[0],
+    shardsAwarded: result.shardsAwarded,
+    newShardBalance: result.newShardBalance,
+    updatedCollection: result.updatedCollection,
+  };
 }

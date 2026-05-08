@@ -50,8 +50,9 @@ function HeroPackVisual() {
       sx={{
         position: 'relative',
         display: 'grid',
-        minHeight: { xs: 330, md: 420 },
+        minHeight: { xs: 300, sm: 330, md: 420 },
         placeItems: 'center',
+        overflow: 'hidden',
       }}
     >
       <Box
@@ -96,8 +97,8 @@ function HeroPackVisual() {
       <Box
         sx={{
           position: 'relative',
-          width: { xs: 190, sm: 230, md: 260 },
-          height: { xs: 306, sm: 370, md: 414 },
+          width: { xs: 'min(52vw, 180px)', sm: 230, md: 260 },
+          height: { xs: 'min(84vw, 290px)', sm: 370, md: 414 },
           transform: 'rotate(5deg)',
           filter: 'drop-shadow(0 32px 42px rgba(0, 0, 0, 0.48))',
         }}
@@ -158,7 +159,7 @@ function MiniVisual({ icon, tone = 'primary' }) {
       sx={{
         position: 'relative',
         display: 'grid',
-        height: 92,
+        height: { xs: 76, sm: 92 },
         mb: 1.5,
         overflow: 'hidden',
         placeItems: 'center',
@@ -219,15 +220,25 @@ function HomeActionCard({ actionLabel, ariaLabel, body, children, icon, onClick,
       }}
     >
       <CardActionArea component="div" sx={{ height: '100%', alignItems: 'stretch' }}>
-        <CardContent sx={{ display: 'grid', height: '100%', gap: 1.2, p: 2.25 }}>
+        <CardContent sx={{ display: 'flex', flexDirection: 'column', minHeight: '100%', gap: 1.2, p: { xs: 2, sm: 2.25 } }}>
           <MiniVisual icon={icon} tone={tone} />
-          <Typography variant="h5">{title}</Typography>
-          <Typography color="text.secondary">{body}</Typography>
+          <Typography variant="h5" sx={{ fontSize: { xs: 20, sm: 24 } }}>
+            {title}
+          </Typography>
+          <Typography color="text.secondary" sx={{ fontSize: { xs: 14, sm: 16 } }}>
+            {body}
+          </Typography>
           {children}
           <Button
             endIcon={<KeyboardArrowRightIcon />}
             size="small"
-            sx={{ justifySelf: 'start', mt: 'auto' }}
+            sx={{
+              alignSelf: 'flex-start',
+              mt: 'auto',
+              maxWidth: '100%',
+              whiteSpace: 'normal',
+              textAlign: 'left',
+            }}
             variant={tone === 'warning' ? 'contained' : 'outlined'}
           >
             {actionLabel}
@@ -377,7 +388,7 @@ export default function Home() {
       }}
     >
       <Grid container spacing={{ xs: 3, md: 5 }} alignItems="center" sx={{ mb: { xs: 4, md: 5 } }}>
-        <Grid item xs={12} md={7}>
+        <Grid size={{ xs: 12, md: 7 }}>
           <Chip color="warning" label="MTG Pack Opener" sx={{ mb: 2, fontWeight: 900 }} variant="outlined" />
           <Typography variant="h1" sx={{ maxWidth: 740, fontSize: { xs: 42, md: 64 }, lineHeight: 0.96, mb: 2 }}>
             Open Magic packs. Build your collection.
@@ -394,7 +405,7 @@ export default function Home() {
             </Button>
           </Stack>
         </Grid>
-        <Grid item xs={12} md={5}>
+        <Grid size={{ xs: 12, md: 5 }}>
           <HeroPackVisual />
         </Grid>
       </Grid>
@@ -406,23 +417,23 @@ export default function Home() {
       />
 
       <Grid container spacing={1.5} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <HomeStatCard icon={<CollectionsBookmarkIcon />} label="Cards Saved" value={stats.totalCards} helper="Local collection" />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <HomeStatCard icon={<AutoAwesomeIcon />} label="Foils Pulled" value={stats.foilCards} helper="Special pulls" tone="warning" />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <HomeStatCard icon={<StyleIcon />} label="Unique Cards" value={stats.uniqueCards} helper={stats.duplicateCards ? `${stats.duplicateCards} duplicates` : 'No duplicates'} />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <HomeStatCard icon={<LocalAtmIcon />} label="Pack Shards" value={packShards} helper="Currency balance" tone="warning" />
         </Grid>
       </Grid>
 
       <Grid container spacing={3} sx={{ mb: 4 }}>
         {cards.map((card) => (
-          <Grid key={card.title} item xs={12} md={card.shardCard ? 12 : 4}>
+          <Grid key={card.title} size={{ xs: 12, md: card.shardCard ? 12 : 4 }}>
             <HomeActionCard
               actionLabel={card.actionLabel}
               body={card.body}
@@ -432,7 +443,21 @@ export default function Home() {
               tone={card.tone}
             >
               {card.extra && (
-                <Chip label={card.extra} sx={{ justifySelf: 'start', maxWidth: '100%' }} variant="outlined" />
+                <Chip
+                  label={card.extra}
+                  sx={{
+                    alignSelf: 'flex-start',
+                    maxWidth: '100%',
+                    height: 'auto',
+                    '& .MuiChip-label': {
+                      display: 'block',
+                      overflow: 'hidden',
+                      py: 0.75,
+                      textOverflow: 'ellipsis',
+                    },
+                  }}
+                  variant="outlined"
+                />
               )}
               {card.shardCard && (
                 <Box

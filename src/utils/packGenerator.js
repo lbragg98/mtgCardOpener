@@ -3,25 +3,28 @@ import { FOIL_TREATMENTS, normalizeFoilTreatment } from './foilTypes.js';
 
 const PACK_SIZE = 15;
 const PLAY_FOIL_ODDS = {
-  [FOIL_TREATMENTS.RAINBOW]: 82,
-  [FOIL_TREATMENTS.ETCHED]: 10,
+  [FOIL_TREATMENTS.RAINBOW]: 78,
+  [FOIL_TREATMENTS.ETCHED]: 9,
   [FOIL_TREATMENTS.GALAXY]: 4,
   [FOIL_TREATMENTS.GILDED]: 3,
   [FOIL_TREATMENTS.TEXTURED]: 1,
+  [FOIL_TREATMENTS.NEON_INK]: 5,
 };
 const COLLECTOR_FOIL_ODDS = {
-  [FOIL_TREATMENTS.RAINBOW]: 55,
-  [FOIL_TREATMENTS.ETCHED]: 18,
+  [FOIL_TREATMENTS.RAINBOW]: 48,
+  [FOIL_TREATMENTS.ETCHED]: 16,
   [FOIL_TREATMENTS.GALAXY]: 12,
-  [FOIL_TREATMENTS.GILDED]: 10,
+  [FOIL_TREATMENTS.GILDED]: 9,
   [FOIL_TREATMENTS.TEXTURED]: 5,
+  [FOIL_TREATMENTS.NEON_INK]: 10,
 };
 const PREMIUM_COLLECTOR_FOIL_ODDS = {
-  [FOIL_TREATMENTS.RAINBOW]: 25,
-  [FOIL_TREATMENTS.ETCHED]: 20,
-  [FOIL_TREATMENTS.GALAXY]: 20,
-  [FOIL_TREATMENTS.GILDED]: 20,
-  [FOIL_TREATMENTS.TEXTURED]: 15,
+  [FOIL_TREATMENTS.RAINBOW]: 22,
+  [FOIL_TREATMENTS.ETCHED]: 17,
+  [FOIL_TREATMENTS.GALAXY]: 18,
+  [FOIL_TREATMENTS.GILDED]: 17,
+  [FOIL_TREATMENTS.TEXTURED]: 11,
+  [FOIL_TREATMENTS.NEON_INK]: 15,
 };
 
 function shuffle(cards) {
@@ -78,7 +81,7 @@ function pickWeightedTreatment(weights) {
   return FOIL_TREATMENTS.RAINBOW;
 }
 
-function adjustFoilTreatmentWeights(baseWeights, rarity) {
+function adjustFoilTreatmentWeights(baseWeights, rarity, { isPremiumSlot = false } = {}) {
   const adjustedWeights = { ...baseWeights };
   const isRareOrMythic = rarity === 'rare' || rarity === 'mythic';
 
@@ -88,6 +91,7 @@ function adjustFoilTreatmentWeights(baseWeights, rarity) {
     adjustedWeights[FOIL_TREATMENTS.GALAXY] *= 0.2;
     adjustedWeights[FOIL_TREATMENTS.GILDED] *= 0.2;
     adjustedWeights[FOIL_TREATMENTS.TEXTURED] = 0;
+    adjustedWeights[FOIL_TREATMENTS.NEON_INK] = isPremiumSlot ? adjustedWeights[FOIL_TREATMENTS.NEON_INK] * 0.15 : 0;
   }
 
   if (rarity === 'uncommon') {
@@ -95,6 +99,7 @@ function adjustFoilTreatmentWeights(baseWeights, rarity) {
     adjustedWeights[FOIL_TREATMENTS.GALAXY] *= 0.65;
     adjustedWeights[FOIL_TREATMENTS.GILDED] *= 0.65;
     adjustedWeights[FOIL_TREATMENTS.TEXTURED] = 0;
+    adjustedWeights[FOIL_TREATMENTS.NEON_INK] *= 0.7;
   }
 
   if (!isRareOrMythic) {
@@ -106,6 +111,7 @@ function adjustFoilTreatmentWeights(baseWeights, rarity) {
     adjustedWeights[FOIL_TREATMENTS.GALAXY] *= 1.35;
     adjustedWeights[FOIL_TREATMENTS.GILDED] *= 1.35;
     adjustedWeights[FOIL_TREATMENTS.TEXTURED] *= 1.2;
+    adjustedWeights[FOIL_TREATMENTS.NEON_INK] *= 1.5;
   }
 
   if (rarity === 'mythic') {
@@ -114,6 +120,7 @@ function adjustFoilTreatmentWeights(baseWeights, rarity) {
     adjustedWeights[FOIL_TREATMENTS.GALAXY] *= 1.7;
     adjustedWeights[FOIL_TREATMENTS.GILDED] *= 1.7;
     adjustedWeights[FOIL_TREATMENTS.TEXTURED] *= 1.85;
+    adjustedWeights[FOIL_TREATMENTS.NEON_INK] *= 2.15;
   }
 
   return adjustedWeights;
@@ -127,11 +134,11 @@ export function getRandomFoilTreatment({ boosterType = 'play', rarity, isPremium
         : COLLECTOR_FOIL_ODDS
       : PLAY_FOIL_ODDS;
 
-  return pickWeightedTreatment(adjustFoilTreatmentWeights(baseWeights, rarity));
+  return pickWeightedTreatment(adjustFoilTreatmentWeights(baseWeights, rarity, { isPremiumSlot }));
 }
 
 function normalizePackCard(card, { boosterType = 'play', foilTreatment, isFoil = false, isPremiumSlot = false, slot } = {}) {
-  const resolvedTreatment = isFoil
+  let resolvedTreatment = isFoil
     ? normalizeFoilTreatment({
         isFoil: true,
         foilTreatment:
@@ -143,6 +150,10 @@ function normalizePackCard(card, { boosterType = 'play', foilTreatment, isFoil =
           }),
       })
     : FOIL_TREATMENTS.NONE;
+
+  if (card.rarity === 'common' && resolvedTreatment === FOIL_TREATMENTS.NEON_INK && !isPremiumSlot) {
+    resolvedTreatment = FOIL_TREATMENTS.RAINBOW;
+  }
 
   return {
     ...card,
@@ -207,13 +218,15 @@ export function revealExcitementScore(card, boosterType = 'play') {
   };
   let score = rarityScores[card.rarity] || (card.isFoil ? 5 : 2.5);
 
-  if ([FOIL_TREATMENTS.GALAXY, FOIL_TREATMENTS.TEXTURED].includes(card.foilTreatment)) {
-    score += 3;
-  }
+  const foilBonuses = {
+    [FOIL_TREATMENTS.ETCHED]: 1,
+    [FOIL_TREATMENTS.GALAXY]: 2,
+    [FOIL_TREATMENTS.GILDED]: 2,
+    [FOIL_TREATMENTS.TEXTURED]: 3,
+    [FOIL_TREATMENTS.NEON_INK]: 4,
+  };
 
-  if ([FOIL_TREATMENTS.ETCHED, FOIL_TREATMENTS.GILDED].includes(card.foilTreatment)) {
-    score += 2;
-  }
+  score += foilBonuses[card.foilTreatment] || 0;
 
   return score;
 }

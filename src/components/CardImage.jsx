@@ -7,6 +7,7 @@ const FOIL_CLASS_BY_TREATMENT = {
   [FOIL_TREATMENTS.GALAXY]: 'foilGalaxy',
   [FOIL_TREATMENTS.GILDED]: 'foilGilded',
   [FOIL_TREATMENTS.TEXTURED]: 'foilTextured',
+  [FOIL_TREATMENTS.NEON_INK]: 'foilNeonInk',
 };
 
 export function getFoilIntensity(card) {
@@ -16,7 +17,7 @@ export function getFoilIntensity(card) {
 
   const treatment = normalizeFoilTreatment(card);
 
-  if (treatment === FOIL_TREATMENTS.TEXTURED) {
+  if (treatment === FOIL_TREATMENTS.TEXTURED || treatment === FOIL_TREATMENTS.NEON_INK) {
     return 4;
   }
 
@@ -48,7 +49,16 @@ function getFoilLabel(card) {
   return FOIL_LABELS[normalizeFoilTreatment(card)] || FOIL_LABELS[FOIL_TREATMENTS.RAINBOW];
 }
 
-export default function CardImage({ card, className = '', large = false, onClick, sx, variant = 'grid' }) {
+export default function CardImage({
+  card,
+  className = '',
+  foilStyle,
+  interactiveFoil = false,
+  large = false,
+  onClick,
+  sx,
+  variant = 'grid',
+}) {
   const imageUrl = card?.imageUrl || card?.image;
   const foilClass = getFoilClass(card);
   const foilLabel = getFoilLabel(card);
@@ -61,6 +71,7 @@ export default function CardImage({ card, className = '', large = false, onClick
         'cardImageWrapper',
         card?.isFoil ? 'foilCard' : '',
         card?.isFoil ? `foilVariant-${variant}` : '',
+        card?.isFoil && interactiveFoil ? 'interactiveFoil' : '',
         card?.isFoil ? `foilIntensity-${foilIntensity}` : '',
         rarityClass,
         foilClass,
@@ -70,7 +81,7 @@ export default function CardImage({ card, className = '', large = false, onClick
         .filter(Boolean)
         .join(' ')}
       onClick={onClick}
-      sx={sx}
+      sx={{ ...foilStyle, ...sx }}
     >
       {card?.isFoil && <Box className="foilAura" />}
       <Box
@@ -85,14 +96,24 @@ export default function CardImage({ card, className = '', large = false, onClick
         <>
           <Box className="foilRevealBurst" />
           <Box className="foilOverlay" />
+          <Box className="realisticFoilLayer" />
           <Box className="foilSweep" />
           <Box className="foilSparkles" />
           <Box className="foilTexturePattern" />
           <Box className="foilBorderGlow" />
           {foilLabel && (
             <Chip
-              className="foilLabel"
-              color={normalizeFoilTreatment(card) === FOIL_TREATMENTS.ETCHED ? 'default' : 'warning'}
+              className={[
+                'foilLabel',
+                normalizeFoilTreatment(card) === FOIL_TREATMENTS.NEON_INK ? 'foilLabelNeonInk' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              color={
+                [FOIL_TREATMENTS.ETCHED, FOIL_TREATMENTS.NEON_INK].includes(normalizeFoilTreatment(card))
+                  ? 'default'
+                  : 'warning'
+              }
               label={foilLabel}
               size="small"
               variant="filled"
