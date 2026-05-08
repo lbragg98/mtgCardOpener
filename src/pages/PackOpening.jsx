@@ -28,6 +28,7 @@ import { Link, useLocation, useParams } from "react-router-dom";
 import CardImage from "../components/CardImage.jsx";
 import FoilImpactScene from "../components/FoilImpactScene.jsx";
 import InspectableFoilCard from "../components/InspectableFoilCard.jsx";
+import MobileFoilRevealCard from "../components/MobileFoilRevealCard.jsx";
 import SealedPack from "../components/SealedPack.jsx";
 import {
   getPackShards,
@@ -380,6 +381,84 @@ function RevealCard({ card, cardNumber, exitX, onAdvance }) {
       clearTimeout(cleanupTimer);
     };
   }, [card?.isFoil, cardKey, isMobile]);
+
+  if (isMobile && isFoilReveal) {
+    return (
+      <>
+        <AnimatePresence custom={exitX} mode="wait">
+          <motion.div
+            key={`${cardKey}-${cardNumber}`}
+            className="revealCardMotion mobileFoilRevealMotion"
+            exit={(customExitX) => ({
+              opacity: 0,
+              x: customExitX,
+              rotate: customExitX > 0 ? 10 : -10,
+              scale: 0.9,
+            })}
+            transition={{ duration: 0.24, ease: "easeOut" }}
+            style={{
+              cursor: "grab",
+              touchAction: "none",
+            }}
+          >
+            <MobileFoilRevealCard
+              card={card}
+              cardKey={cardKey}
+              className={isFinale ? "reveal-special-pulse" : ""}
+              onSwipeAway={onAdvance}
+              sx={{
+                position: "relative",
+                width: REVEAL_CARD_WIDTH,
+                maxWidth: 420,
+                boxShadow:
+                  foilTreatment === FOIL_TREATMENTS.NEON_INK
+                    ? "0 0 42px rgba(0, 255, 255, 0.34), 0 0 76px rgba(255, 0, 200, 0.22), 0 24px 64px rgba(0, 0, 0, 0.62)"
+                    : "0 0 44px rgba(244, 201, 93, 0.34), 0 0 78px rgba(143, 124, 255, 0.22), 0 24px 64px rgba(0, 0, 0, 0.62)",
+              }}
+            />
+          </motion.div>
+        </AnimatePresence>
+
+        <Box
+          sx={{
+            position: "absolute",
+            bottom: { xs: 76, sm: 92, md: 78 },
+            left: 0,
+            right: 0,
+            textAlign: "center",
+            pointerEvents: "none",
+          }}
+        >
+          <Chip
+            color={
+              [
+                FOIL_TREATMENTS.GALAXY,
+                FOIL_TREATMENTS.GILDED,
+                FOIL_TREATMENTS.TEXTURED,
+                FOIL_TREATMENTS.NEON_INK,
+              ].includes(foilTreatment) || card.rarity === "mythic"
+                ? "warning"
+                : "secondary"
+            }
+            label={rarityLabel}
+            size="small"
+            sx={
+              foilTreatment === FOIL_TREATMENTS.NEON_INK
+                ? {
+                    mt: 1,
+                    border: "1px solid rgba(0, 255, 255, 0.72)",
+                    bgcolor: "rgba(5, 7, 17, 0.86)",
+                    boxShadow: "0 0 18px rgba(255, 0, 200, 0.36)",
+                    color: "#8ff",
+                    fontWeight: 900,
+                  }
+                : { mt: 1, fontWeight: 900 }
+            }
+          />
+        </Box>
+      </>
+    );
+  }
 
   return (
     <>

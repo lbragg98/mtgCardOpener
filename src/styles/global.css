@@ -2449,6 +2449,244 @@ a {
   --foil-glare-size: 28%;
 }
 
+.mobileFoilReveal,
+.mobileFoilReveal * {
+  backface-visibility: hidden;
+}
+
+.mobileFoilReveal {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  touch-action: none;
+}
+
+.mobileRevealSwipeWrapper {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+.mobileRevealCardWrapper,
+.mobileInspectTiltWrapper,
+.mobileFoilReveal .cardImageWrapper {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+.mobileRevealCardWrapper {
+  position: relative;
+  z-index: 2;
+  transform-style: preserve-3d;
+}
+
+.mobileInspectTiltWrapper {
+  position: relative;
+  z-index: 2;
+  transform-style: preserve-3d;
+}
+
+.mobileFoilReveal .foilRevealBurst {
+  display: none;
+}
+
+.mobileFoilReveal .mobileFoilInspect.foilVariant-reveal.foilCard {
+  --foil-strength: 0.32;
+  --foil-band-opacity: 0.28;
+  --foil-color-opacity: 0.62;
+  --foil-glare-size: 24%;
+}
+
+.mobileFoilReveal .mobileFoilInspect.interactiveFoil.foilVariant-reveal .foilOverlay {
+  animation: none !important;
+  opacity: 0.2;
+}
+
+.mobileFoilReveal .mobileFoilInspect.interactiveFoil.foilVariant-reveal .foilSweep {
+  animation: none !important;
+  opacity: 0.24;
+}
+
+.mobileFoilReveal .mobileFoilInspect.interactiveFoil.foilVariant-reveal .foilSparkles {
+  animation: none !important;
+  opacity: 0.18;
+}
+
+.mobileFoilImpact,
+.mobileFoilImpact * {
+  pointer-events: none;
+}
+
+.mobileFoilImpact {
+  --impact-primary: rgba(244, 201, 93, 0.78);
+  --impact-secondary: rgba(76, 201, 240, 0.42);
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: grid;
+  place-items: center;
+  overflow: visible;
+}
+
+.mobileFoilImpact-rainbow {
+  --impact-primary: rgba(255, 236, 92, 0.82);
+  --impact-secondary: rgba(76, 220, 255, 0.5);
+}
+
+.mobileFoilImpact-etched {
+  --impact-primary: rgba(235, 229, 204, 0.82);
+  --impact-secondary: rgba(244, 201, 93, 0.36);
+}
+
+.mobileFoilImpact-galaxy {
+  --impact-primary: rgba(143, 124, 255, 0.84);
+  --impact-secondary: rgba(76, 201, 240, 0.52);
+}
+
+.mobileFoilImpact-gilded {
+  --impact-primary: rgba(244, 201, 93, 0.92);
+  --impact-secondary: rgba(255, 186, 64, 0.48);
+}
+
+.mobileFoilImpact-textured {
+  --impact-primary: rgba(255, 255, 255, 0.84);
+  --impact-secondary: rgba(143, 124, 255, 0.46);
+}
+
+.mobileFoilImpact-neonInk {
+  --impact-primary: rgba(0, 255, 255, 0.86);
+  --impact-secondary: rgba(255, 0, 200, 0.52);
+}
+
+.mobileImpactAura {
+  width: min(92vw, 360px);
+  height: min(92vw, 360px);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle, var(--impact-primary), var(--impact-secondary) 34%, transparent 62%);
+  opacity: 0;
+  animation: mobileAuraPop 1200ms ease-out forwards;
+}
+
+.mobileImpactRing {
+  position: absolute;
+  width: min(80vw, 320px);
+  height: min(80vw, 320px);
+  border: 2px solid var(--impact-primary);
+  border-radius: 999px;
+  box-shadow: 0 0 18px var(--impact-primary);
+  opacity: 0;
+  animation: mobileRingExpand 900ms ease-out forwards;
+}
+
+.mobileImpactDust {
+  position: absolute;
+  top: 62%;
+  width: min(88vw, 340px);
+  height: 90px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(220, 220, 230, 0.35), transparent 65%);
+  opacity: 0;
+  animation: mobileDustPuff 900ms ease-out forwards;
+}
+
+.mobileImpactSparks {
+  position: absolute;
+  width: min(86vw, 330px);
+  height: min(86vw, 330px);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 18% 24%, rgba(255, 255, 255, 0.92) 0 2px, transparent 3px),
+    radial-gradient(circle at 72% 20%, var(--impact-primary) 0 2px, transparent 3px),
+    radial-gradient(circle at 82% 72%, var(--impact-secondary) 0 2px, transparent 3px),
+    radial-gradient(circle at 28% 78%, rgba(255, 255, 255, 0.78) 0 1px, transparent 3px),
+    radial-gradient(circle at 50% 10%, var(--impact-primary) 0 1px, transparent 3px);
+  opacity: 0;
+  animation: mobileSparkPop 1100ms ease-out forwards;
+}
+
+.mobileFoilHelper {
+  position: absolute;
+  top: calc(100% + 12px);
+  left: 50%;
+  width: max-content;
+  max-width: 80vw;
+  transform: translateX(-50%);
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  pointer-events: none;
+  text-align: center;
+}
+
+@keyframes mobileAuraPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.35);
+  }
+
+  25% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+}
+
+@keyframes mobileRingExpand {
+  0% {
+    opacity: 0;
+    transform: scale(0.25);
+  }
+
+  25% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.45);
+  }
+}
+
+@keyframes mobileDustPuff {
+  0% {
+    opacity: 0;
+    transform: scale(0.35);
+  }
+
+  30% {
+    opacity: 0.7;
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.45);
+  }
+}
+
+@keyframes mobileSparkPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.55) rotate(0deg);
+  }
+
+  26% {
+    opacity: 0.9;
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.25) rotate(10deg);
+  }
+}
+
 .foilVariant-grid.foilCard {
   --foil-strength: 0.2;
   --foil-band-opacity: 0.16;
