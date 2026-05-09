@@ -1,7 +1,19 @@
-import { getCardsBySet } from '../api/scryfall.js';
+import { getCardsBySet, getCollectorExclusiveCandidates } from '../api/scryfall.js';
+import {
+  isManualCollectorExclusive,
+  isOneOfOneRing,
+  markCollectorExclusive,
+  markOneOfOneRing,
+} from './collectorExclusiveCards.js';
+import { getCollection } from './collectionStorage.js';
 import { FOIL_TREATMENTS, normalizeFoilTreatment } from './foilTypes.js';
 
 const PACK_SIZE = 15;
+const SERIALIZED_ONE_RING_ID = '93de9042-cc62-4ade-8d8d-68fdbc84bfae';
+const SERIALIZED_ONE_RING_PULLED_KEY = 'mtg-pack-opener-serialized-one-ring-pulled';
+const SERIALIZED_ONE_RING_ODDS = {
+  collector: 1 / 3000000,
+};
 const PLAY_FOIL_ODDS = {
   [FOIL_TREATMENTS.RAINBOW]: 78,
   [FOIL_TREATMENTS.ETCHED]: 9,
@@ -26,6 +38,14 @@ const PREMIUM_COLLECTOR_FOIL_ODDS = {
   [FOIL_TREATMENTS.TEXTURED]: 11,
   [FOIL_TREATMENTS.NEON_INK]: 15,
 };
+const COLLECTOR_EXCLUSIVE_FOIL_ODDS = {
+  [FOIL_TREATMENTS.RAINBOW]: 35,
+  [FOIL_TREATMENTS.ETCHED]: 20,
+  [FOIL_TREATMENTS.GALAXY]: 15,
+  [FOIL_TREATMENTS.GILDED]: 12,
+  [FOIL_TREATMENTS.TEXTURED]: 8,
+  [FOIL_TREATMENTS.NEON_INK]: 10,
+};
 
 function shuffle(cards) {
   return [...cards].sort(() => Math.random() - 0.5);
@@ -33,6 +53,60 @@ function shuffle(cards) {
 
 function isLand(card) {
   return card.type_line?.toLowerCase().includes('land');
+}
+
+function isSerializedOneRing(card) {
+  return card?.id === SERIALIZED_ONE_RING_ID;
+}
+
+function ownsSerializedOneRing() {
+  return getCollection().some(isSerializedOneRing);
+}
+
+function wasSerializedOneRingPulled() {
+  try {
+    return localStorage.getItem(SERIALIZED_ONE_RING_PULLED_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+function markSerializedOneRingPulled() {
+  try {
+    localStorage.setItem(SERIALIZED_ONE_RING_PULLED_KEY, 'true');
+  } catch {
+    // The collection ownership check still prevents duplicate pulls when storage is unavailable.
+  }
+}
+
+function dedupeCards(cards) {
+  return [...cards.reduce((cardsById, card) => cardsById.set(card.id, card), new Map()).values()];
+}
+
+function filterCollectorExclusiveCards(cards) {
+  return cards.filter((card) => !card.isCollectorExclusive && !isManualCollectorExclusive(card));
+}
+
+function getCollectorNumberValue(card) {
+  const match = String(card?.collector_number || '').match(/\d+/);
+  return match ? Number.parseInt(match[0], 10) : 0;
+}
+
+function looksLikeCollectorExclusiveCandidate(card) {
+  const frameEffects = card.frame_effects || [];
+  const finishes = card.finishes || [];
+  const promoTypes = card.promo_types || [];
+  const hasSpecialFrame =
+    card.frame === 'showcase' ||
+    frameEffects.includes('showcase') ||
+    frameEffects.includes('extendedart') ||
+    card.border_color === 'borderless';
+  const hasSpecialFinish = finishes.includes('etched');
+  const hasBoosterFun = promoTypes.includes('boosterfun');
+  const isRareOrMythic = card.rarity === 'rare' || card.rarity === 'mythic';
+  const hasHighCollectorNumber = getCollectorNumberValue(card) > 300;
+
+  return hasSpecialFrame || hasSpecialFinish || hasBoosterFun || (isRareOrMythic && hasHighCollectorNumber);
 }
 
 function pickCards(pool, count, usedIds) {
@@ -184,6 +258,26 @@ function withFoilPackMeta(cards, slot, { boosterType = 'collector', isPremiumSlo
   );
 }
 
+function withCollectorExclusiveMeta(cards, slot = 'Collector Booster Exclusive') {
+  return cards.map((card) => {
+    const supportsNonFoil = card.finishes?.includes('nonfoil') || card.nonfoil;
+    const isFoil = !supportsNonFoil || Math.random() < 0.85;
+
+    return {
+      ...normalizePackCard(card, {
+        boosterType: 'collector',
+        foilTreatment: isFoil ? pickWeightedTreatment(COLLECTOR_EXCLUSIVE_FOIL_ODDS) : FOIL_TREATMENTS.NONE,
+        isFoil,
+        isPremiumSlot: true,
+        slot,
+      }),
+      isCollectorExclusive: true,
+      collectorExclusiveReason: card.collectorExclusiveReason || 'collector-booster-only-slot',
+      isSpecialSlot: true,
+    };
+  });
+}
+
 function chooseRarityPool(weightedPools) {
   const roll = Math.random();
   let runningWeight = 0;
@@ -199,7 +293,59 @@ function chooseRarityPool(weightedPools) {
   return weightedPools.find(({ pool }) => pool.length)?.pool || [];
 }
 
+function maybeAddSerializedOneRing(pack, specialCards, boosterType) {
+  const serializedOneRing = specialCards.find(isSerializedOneRing);
+  const pullChance = SERIALIZED_ONE_RING_ODDS[boosterType] || 0;
+
+  if (!serializedOneRing || ownsSerializedOneRing() || wasSerializedOneRingPulled() || Math.random() >= pullChance) {
+    return pack;
+  }
+
+  const specialPull = markOneOfOneRing(normalizePackCard(serializedOneRing, {
+    boosterType,
+    foilTreatment: FOIL_TREATMENTS.TEXTURED,
+    isFoil: true,
+    isPremiumSlot: true,
+    slot: 'Serialized Mythic',
+  }));
+  specialPull.isSpecialSlot = true;
+  const replacementIndex = Math.max(
+    pack.findLastIndex((card) => card.packSlot === 'Rare or Mythic' || card.packSlot === 'Foil Rare or Mythic'),
+    0,
+  );
+
+  markSerializedOneRingPulled();
+
+  return pack.map((card, index) => (index === replacementIndex ? specialPull : card));
+}
+
+function pickCollectorExclusiveCards(pool, count, usedIds) {
+  const rareMythicPool = pool.filter((card) => ['rare', 'mythic'].includes(card.rarity));
+  const preferredPool = rareMythicPool.length ? rareMythicPool : pool;
+
+  return pickSlot(preferredPool, pool, count, usedIds);
+}
+
+export async function getCollectorExclusivePool(setCode, normalCards = []) {
+  const [candidateCards, fallbackCards] = await Promise.all([
+    getCollectorExclusiveCandidates(setCode),
+    normalCards.length ? Promise.resolve(normalCards) : getCardsBySet(setCode),
+  ]);
+  const manualCards = fallbackCards
+    .filter(isManualCollectorExclusive)
+    .map((card) => markCollectorExclusive(card, 'manual-collector-exclusive'));
+  const inferredCards = fallbackCards
+    .filter(looksLikeCollectorExclusiveCandidate)
+    .map((card) => markCollectorExclusive(card, 'special-collector-variant'));
+
+  return dedupeCards([...candidateCards, ...manualCards, ...inferredCards]).filter((card) => card.isCollectorExclusive);
+}
+
 export function revealExcitementScore(card, boosterType = 'play') {
+  if (isOneOfOneRing(card)) {
+    return 999;
+  }
+
   const typeLine = card?.type_line?.toLowerCase() || '';
 
   if (typeLine.includes('token') || typeLine.includes('art series')) {
@@ -227,6 +373,8 @@ export function revealExcitementScore(card, boosterType = 'play') {
   };
 
   score += foilBonuses[card.foilTreatment] || 0;
+  score += card.isCollectorExclusive ? 4 : 0;
+  score += card.isSpecialSlot ? 2 : 0;
 
   return score;
 }
@@ -244,7 +392,11 @@ export function sortPackForReveal(cards, boosterType = 'play') {
 }
 
 export async function generatePlayBooster(setCode) {
-  const cards = await getCardsBySet(setCode);
+  const allCards = await getCardsBySet(setCode);
+  const collectorExclusiveIds = new Set((await getCollectorExclusivePool(setCode, allCards)).map((card) => card.id));
+  const cards = filterCollectorExclusiveCards(
+    allCards.filter((card) => !isSerializedOneRing(card) && !collectorExclusiveIds.has(card.id)),
+  );
 
   if (!cards.length) {
     throw new Error('No cards with usable images were found for this set.');
@@ -280,7 +432,10 @@ export async function generatePlayBooster(setCode) {
 }
 
 export async function generateCollectorBooster(setCode) {
-  const cards = await getCardsBySet(setCode);
+  const allCards = await getCardsBySet(setCode);
+  const specialCards = allCards.filter(isSerializedOneRing);
+  const collectorExclusivePool = await getCollectorExclusivePool(setCode, allCards);
+  const cards = filterCollectorExclusiveCards(allCards.filter((card) => !isSerializedOneRing(card)));
 
   if (!cards.length) {
     throw new Error('No cards with usable images were found for this set.');
@@ -313,6 +468,15 @@ export async function generateCollectorBooster(setCode) {
     { pool: mythics, weight: 0.3 },
   ]);
   const finalSlotPool = lands.length ? lands : cards;
+  const collectorExclusiveSlot = collectorExclusivePool.length
+    ? withCollectorExclusiveMeta(
+        pickCollectorExclusiveCards(collectorExclusivePool, 1, usedIds),
+        'Collector Booster Exclusive',
+      )
+    : withFoilPackMeta(pickSlot(specialFoilPool, fallbackPool, 1, usedIds), 'Collector Booster Exclusive', {
+        boosterType: 'collector',
+        isPremiumSlot: true,
+      });
 
   const pack = [
     ...withFoilPackMeta(pickSlot(commons, fallbackPool, 4, usedIds), 'Foil Common', { boosterType: 'collector' }),
@@ -320,7 +484,8 @@ export async function generateCollectorBooster(setCode) {
     ...withFoilPackMeta(pickSlot(rareMythicFoilPool, fallbackPool, 2, usedIds), 'Foil Rare or Mythic', {
       boosterType: 'collector',
     }),
-    ...withPackMeta(pickSlot(rareMythicNonFoilPool, fallbackPool, 2, usedIds), 'Rare or Mythic', {
+    ...collectorExclusiveSlot,
+    ...withPackMeta(pickSlot(rareMythicNonFoilPool, fallbackPool, 1, usedIds), 'Rare or Mythic', {
       boosterType: 'collector',
     }),
     ...withFoilPackMeta(pickSlot(foilWildcardPool, fallbackPool, 2, usedIds), 'Foil Wildcard', {
@@ -343,5 +508,5 @@ export async function generateCollectorBooster(setCode) {
     );
   }
 
-  return sortPackForReveal(pack.slice(0, PACK_SIZE), 'collector');
+  return sortPackForReveal(maybeAddSerializedOneRing(pack.slice(0, PACK_SIZE), specialCards, 'collector'), 'collector');
 }

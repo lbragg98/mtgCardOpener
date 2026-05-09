@@ -11,6 +11,7 @@ import {
   Typography,
 } from '@mui/material';
 import { formatPrice, getCardPriceLabel } from '../utils/cardPricing.js';
+import { isOneOfOneRing } from '../utils/collectorExclusiveCards.js';
 import { FOIL_LABELS, normalizeFoilTreatment } from '../utils/foilTypes.js';
 import CardImage from './CardImage.jsx';
 import InspectableFoilCard from './InspectableFoilCard.jsx';
@@ -24,6 +25,7 @@ export default function CardInspectionDialog({
   sourceContext,
 }) {
   const foilTreatment = card ? normalizeFoilTreatment(card) : null;
+  const isOneOfOne = isOneOfOneRing(card);
   const canRemoveFromBinder = sourceContext === 'binder' && Boolean(onRemoveFromBinder);
   const canRecycle = sourceContext === 'collection' && Boolean(onRecycle);
 
@@ -98,6 +100,10 @@ export default function CardInspectionDialog({
                   {card.isFoil && (
                     <Chip color="warning" label={FOIL_LABELS[foilTreatment]} variant="outlined" />
                   )}
+                  {card.isCollectorExclusive && (
+                    <Chip color="warning" label="Collector Booster Exclusive" variant="filled" />
+                  )}
+                  {isOneOfOne && <Chip color="warning" label="One of One" variant="outlined" />}
                 </Stack>
 
                 <Typography>
@@ -117,6 +123,12 @@ export default function CardInspectionDialog({
                 </Typography>
                 <Typography>
                   <strong>Foil treatment:</strong> {card.isFoil ? FOIL_LABELS[foilTreatment] : 'None'}
+                </Typography>
+                <Typography>
+                  <strong>Collector Booster Exclusive:</strong> {card.isCollectorExclusive ? 'Yes' : 'No'}
+                </Typography>
+                <Typography>
+                  <strong>One of One:</strong> {isOneOfOne ? 'Yes' : 'No'}
                 </Typography>
                 <Typography>
                   <strong>Estimated value:</strong> {getCardPriceLabel(card)}

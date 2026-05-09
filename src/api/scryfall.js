@@ -1,6 +1,10 @@
 import { FOIL_TREATMENTS } from '../utils/foilTypes.js';
+import { markCollectorExclusive } from '../utils/collectorExclusiveCards.js';
 
 const SCRYFALL_BASE_URL = 'https://api.scryfall.com';
+const SCRYFALL_REQUEST_INTERVAL_MS = 140;
+const getRequestCache = new Map();
+let scryfallRequestQueue = Promise.resolve();
 
 const NON_OPENABLE_SET_TYPES = new Set([
   'token',
@@ -29,16 +33,29 @@ function buildSearchUrl(query) {
 }
 
 async function fetchJson(url, options = {}) {
+  const method = options.method || 'GET';
+  const canUseCache = method === 'GET';
+
+  if (canUseCache && getRequestCache.has(url)) {
+    return getRequestCache.get(url);
+  }
+
   let response;
 
   try {
-    response = await fetch(url, {
-      ...options,
-      headers: {
-        Accept: 'application/json',
-        ...(options.headers || {}),
-      },
+    const queuedRequest = scryfallRequestQueue.then(async () => {
+      await wait(SCRYFALL_REQUEST_INTERVAL_MS);
+      return fetch(url, {
+        ...options,
+        headers: {
+          Accept: 'application/json',
+          ...(options.headers || {}),
+        },
+      });
     });
+
+    scryfallRequestQueue = queuedRequest.catch(() => {});
+    response = await queuedRequest;
   } catch {
     throw new ScryfallApiError('Unable to reach Scryfall. Check your network connection and try again.');
   }
@@ -59,6 +76,10 @@ async function fetchJson(url, options = {}) {
       code: payload?.code,
       status: response.status,
     });
+  }
+
+  if (canUseCache) {
+    getRequestCache.set(url, payload);
   }
 
   return payload;
@@ -88,6 +109,12 @@ async function fetchPaginatedCards(initialUrl, { allowEmpty = false } = {}) {
   return cards;
 }
 
+function wait(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
 function normalizeSet(set) {
   return {
     code: set.code,
@@ -112,13 +139,21 @@ function normalizeCard(card) {
     collector_number: card.collector_number,
     rarity: card.rarity,
     type_line: card.type_line,
+    frame: card.frame,
+    frame_effects: card.frame_effects || [],
+    border_color: card.border_color,
+    finishes: card.finishes || [],
+    promo_types: card.promo_types || [],
     mana_cost: card.mana_cost || card.card_faces?.[0]?.mana_cost || '',
     oracle_text: card.oracle_text || card.card_faces?.[0]?.oracle_text || '',
     colors: card.colors || card.card_faces?.[0]?.colors || [],
     color_identity: card.color_identity || [],
     image: imageUrl,
+    imageUrl,
     image_uris: card.image_uris || card.card_faces?.[0]?.image_uris || null,
     prices,
+    foil: Boolean(card.foil),
+    nonfoil: Boolean(card.nonfoil),
     usd: prices.usd || null,
     usd_foil: prices.usd_foil || null,
     usd_etched: prices.usd_etched || null,
@@ -157,6 +192,64 @@ export async function getSets() {
 export async function getCardsBySet(setCode) {
   const cards = await fetchPaginatedCards(buildSearchUrl(`set:${setCode.trim()}`));
   return normalizeCardsWithImages(cards);
+}
+
+function getCollectorNumberValue(card) {
+  const match = String(card?.collector_number || '').match(/\d+/);
+  return match ? Number.parseInt(match[0], 10) : 0;
+}
+
+function isCollectorStyleCandidate(card) {
+  const frameEffects = card.frame_effects || [];
+  const finishes = card.finishes || [];
+  const promoTypes = card.promo_types || [];
+  const hasSpecialFrame =
+    card.frame === 'showcase' ||
+    frameEffects.includes('showcase') ||
+    frameEffects.includes('extendedart') ||
+    card.border_color === 'borderless';
+  const hasSpecialFinish = finishes.includes('etched');
+  const hasBoosterFun = promoTypes.includes('boosterfun');
+  const isRareOrMythic = card.rarity === 'rare' || card.rarity === 'mythic';
+  const hasHighCollectorNumber = getCollectorNumberValue(card) > 300;
+
+  return hasSpecialFrame || hasSpecialFinish || hasBoosterFun || (isRareOrMythic && hasHighCollectorNumber);
+}
+
+async function fetchCollectorCandidateQuery(query) {
+  try {
+    return await fetchPaginatedCards(buildSearchUrl(query), { allowEmpty: true });
+  } catch {
+    return [];
+  }
+}
+
+export async function getCollectorExclusiveCandidates(setCode) {
+  const normalizedSetCode = setCode.trim().toLowerCase();
+  const queries = [
+    `set:${normalizedSetCode} (frame:showcase OR frame:borderless OR frame:extendedart)`,
+    `set:${normalizedSetCode} (is:foil OR is:etched)`,
+    `set:${normalizedSetCode} (rarity:rare OR rarity:mythic) (frame:showcase OR frame:borderless OR frame:extendedart)`,
+    `set:${normalizedSetCode} number:>300`,
+  ];
+  const candidatePages = [];
+  const candidatesById = new Map();
+
+  for (const query of queries) {
+    candidatePages.push(await fetchCollectorCandidateQuery(query));
+    await wait(140);
+  }
+
+  for (const card of candidatePages.flat()) {
+    if (getCardImage(card)) {
+      candidatesById.set(card.id, card);
+    }
+  }
+
+  return [...candidatesById.values()]
+    .map(normalizeCard)
+    .filter(isCollectorStyleCandidate)
+    .map((card) => markCollectorExclusive(card, 'special-collector-variant'));
 }
 
 export async function getCardById(cardId) {

@@ -49,6 +49,11 @@ function normalizeCollectionCard(card, openedAt) {
     tix: prices.tix ?? card.tix ?? null,
     isFoil,
     foilTreatment: normalizeFoilTreatment({ ...card, isFoil }),
+    isCollectorExclusive: Boolean(card.isCollectorExclusive),
+    collectorExclusiveReason: card.collectorExclusiveReason || null,
+    isSpecialSlot: Boolean(card.isSpecialSlot),
+    isOneOfOne: Boolean(card.isOneOfOne),
+    specialPullType: card.specialPullType || null,
     openedAt,
   };
 }
@@ -68,6 +73,11 @@ function normalizeStoredCollectionCard(card) {
     tix: prices.tix ?? card.tix ?? null,
     isFoil,
     foilTreatment: normalizeFoilTreatment({ ...card, isFoil }),
+    isCollectorExclusive: Boolean(card.isCollectorExclusive),
+    collectorExclusiveReason: card.collectorExclusiveReason || null,
+    isSpecialSlot: Boolean(card.isSpecialSlot),
+    isOneOfOne: Boolean(card.isOneOfOne),
+    specialPullType: card.specialPullType || null,
   };
 }
 

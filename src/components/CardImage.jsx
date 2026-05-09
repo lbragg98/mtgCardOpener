@@ -1,4 +1,5 @@
 import { Box, Chip } from '@mui/material';
+import { isOneOfOneRing } from '../utils/collectorExclusiveCards.js';
 import { FOIL_LABELS, FOIL_TREATMENTS, normalizeFoilTreatment } from '../utils/foilTypes.js';
 
 const FOIL_CLASS_BY_TREATMENT = {
@@ -65,11 +66,14 @@ export default function CardImage({
   const foilLabel = getFoilLabel(card);
   const foilIntensity = getFoilIntensity(card);
   const rarityClass = ['rare', 'mythic'].includes(card?.rarity) ? `foilRarity-${card.rarity}` : '';
+  const isOneOfOne = isOneOfOneRing(card);
 
   return (
     <Box
       className={[
         'cardImageWrapper',
+        isOneOfOne ? 'oneOfOneCardFrame' : '',
+        card?.isCollectorExclusive ? 'collectorExclusiveCard' : '',
         card?.isFoil ? 'foilCard' : '',
         card?.isFoil ? `foilVariant-${variant}` : '',
         card?.isFoil && interactiveFoil ? 'interactiveFoil' : '',
@@ -86,6 +90,15 @@ export default function CardImage({
       sx={{ ...foilStyle, ...sx }}
     >
       {card?.isFoil && <Box className="foilAura" />}
+      {card?.isCollectorExclusive && (
+        <Chip
+          className="collectorExclusiveLabel"
+          color="warning"
+          label={isOneOfOne ? '1 of 1' : 'Collector Booster Exclusive'}
+          size="small"
+          variant="filled"
+        />
+      )}
       <Box
         alt={card?.name || 'Magic card'}
         className="cardImage"

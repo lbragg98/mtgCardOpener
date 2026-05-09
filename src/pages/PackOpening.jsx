@@ -30,7 +30,10 @@ import FoilAmbientScene from "../components/FoilAmbientScene.jsx";
 import FoilImpactScene from "../components/FoilImpactScene.jsx";
 import InspectableFoilCard from "../components/InspectableFoilCard.jsx";
 import MobileFoilRevealCard from "../components/MobileFoilRevealCard.jsx";
+import OneOfOneRingReveal, { OneOfOneRingAtmosphere } from "../components/OneOfOneRingReveal.jsx";
 import SealedPack from "../components/SealedPack.jsx";
+import { getCardPriceLabel } from "../utils/cardPricing.js";
+import { isOneOfOneRing } from "../utils/collectorExclusiveCards.js";
 import {
   getPackShards,
   saveCardsToCollection,
@@ -355,6 +358,15 @@ function RevealCard({ card, cardNumber, exitX, onAdvance }) {
                 : { mt: 1, fontWeight: 900 }
             }
           />
+          {card.isCollectorExclusive && (
+            <Chip
+              color="warning"
+              label="Collector Booster Exclusive"
+              size="small"
+              sx={{ ml: 1, mt: 1, fontWeight: 900 }}
+              variant="outlined"
+            />
+          )}
         </Box>
       </>
     );
@@ -504,6 +516,15 @@ function RevealCard({ card, cardNumber, exitX, onAdvance }) {
             }
           />
         )}
+        {card.isCollectorExclusive && (
+          <Chip
+            color="warning"
+            label="Collector Booster Exclusive"
+            size="small"
+            sx={{ ml: card.isFoil ? 1 : 0, mt: 1, fontWeight: 900 }}
+            variant="outlined"
+          />
+        )}
         {isFoilReveal && canInspectFoil && (
           <Typography
             color="text.secondary"
@@ -526,6 +547,12 @@ function RevealCard({ card, cardNumber, exitX, onAdvance }) {
 }
 
 function SummaryGrid({ boosterLabel, pack, saveResult, setCode }) {
+  const collectorExclusiveHits = pack.filter((card) => card.isCollectorExclusive);
+  const oneOfOneRing = pack.find(isOneOfOneRing);
+  const bestCollectorExclusiveHit = collectorExclusiveHits
+    .filter((card) => card.rarity === "mythic" || card.isFoil)
+    .sort((a, b) => Number(b.isFoil) - Number(a.isFoil))[0] || collectorExclusiveHits[0];
+
   return (
     <Box
       sx={{ minHeight: "100vh", px: { xs: 2, md: 4 }, py: { xs: 3, md: 4 } }}
@@ -548,7 +575,7 @@ function SummaryGrid({ boosterLabel, pack, saveResult, setCode }) {
               display: "grid",
               gridTemplateColumns: {
                 xs: "1fr 1fr",
-                md: "repeat(5, minmax(0, 1fr))",
+                md: "repeat(6, minmax(0, 1fr))",
               },
               gap: 1.5,
               mb: 3,
@@ -560,6 +587,7 @@ function SummaryGrid({ boosterLabel, pack, saveResult, setCode }) {
               { label: "Duplicates", value: saveResult.duplicateCount },
               { label: "Shards earned", value: saveResult.shardsAwarded },
               { label: "Shard balance", value: saveResult.newShardBalance },
+              { label: "Collector exclusives", value: collectorExclusiveHits.length },
             ].map((stat) => (
               <Card
                 key={stat.label}
@@ -581,6 +609,18 @@ function SummaryGrid({ boosterLabel, pack, saveResult, setCode }) {
               </Card>
             ))}
           </Box>
+        )}
+
+        {collectorExclusiveHits.length > 0 && (
+          <Alert severity="success" sx={{ mb: 3 }} variant="outlined">
+            Collector-exclusive hit! {bestCollectorExclusiveHit?.name} joined your collection.
+          </Alert>
+        )}
+
+        {oneOfOneRing && (
+          <Alert severity="warning" sx={{ mb: 3 }} variant="filled">
+            Legendary One-of-One Pull: The One Ring. Estimated value: {getCardPriceLabel(oneOfOneRing)}.
+          </Alert>
         )}
 
         <Box
@@ -627,6 +667,15 @@ function SummaryGrid({ boosterLabel, pack, saveResult, setCode }) {
                     }
                   />
                 )}
+                {card.isCollectorExclusive && (
+                  <Chip
+                    color="warning"
+                    label={isOneOfOneRing(card) ? "1 of 1" : "Collector Booster Exclusive"}
+                    size="small"
+                    sx={{ mt: 0.75, maxWidth: "100%", fontWeight: 900 }}
+                    variant="outlined"
+                  />
+                )}
               </CardContent>
             </Card>
           ))}
@@ -666,6 +715,7 @@ function SummaryGrid({ boosterLabel, pack, saveResult, setCode }) {
 export default function PackOpening() {
   const { setCode } = useParams();
   const { state } = useLocation();
+  const isMobileReveal = useMediaQuery((theme) => theme.breakpoints.down("sm"));
   const normalizedSetCode = setCode?.trim().toLowerCase() || "";
   const boosterType = state?.boosterType === "collector" ? "collector" : "play";
   const boosterLabel =
@@ -681,6 +731,7 @@ export default function PackOpening() {
   const [savedMessage, setSavedMessage] = useState("");
   const [savedMessageSeverity, setSavedMessageSeverity] = useState("success");
   const [saveResult, setSaveResult] = useState(null);
+  const [completedOneOfOneRevealKey, setCompletedOneOfOneRevealKey] = useState("");
   const hasSavedRef = useRef(false);
   const isAnimatingRef = useRef(false);
 
@@ -698,6 +749,7 @@ export default function PackOpening() {
         setSavedMessage("");
         setSavedMessageSeverity("success");
         setSaveResult(null);
+        setCompletedOneOfOneRevealKey("");
         const generatedPack =
           boosterType === "collector"
             ? await generateCollectorBooster(normalizedSetCode)
@@ -974,6 +1026,9 @@ export default function PackOpening() {
     activeCard.id ||
     `${activeCard.name}-${currentIndex}`;
   const isFinalStretch = currentIndex >= revealedPack.length - 3;
+  const activeCardIsOneOfOneRing = isOneOfOneRing(activeCard);
+  const isOneOfOneAnimating =
+    activeCardIsOneOfOneRing && completedOneOfOneRevealKey !== activeCardKey;
 
   return (
     <Box
@@ -1005,20 +1060,64 @@ export default function PackOpening() {
         </Typography>
       </Box>
 
-      <Fade in timeout={260} key={`fade-${activeCardKey}-${currentIndex}`}>
-        <Box sx={{ position: "relative" }}>
-          <Zoom in timeout={260}>
-            <Box>
-              <RevealCard
-                card={activeCard}
-                cardNumber={currentIndex + 1}
-                exitX={exitX}
-                onAdvance={advanceCard}
-              />
-            </Box>
-          </Zoom>
-        </Box>
-      </Fade>
+      {isOneOfOneAnimating ? (
+        <OneOfOneRingReveal
+          active
+          card={activeCard}
+          isMobile={isMobileReveal}
+          onComplete={() => setCompletedOneOfOneRevealKey(activeCardKey)}
+        />
+      ) : activeCardIsOneOfOneRing ? (
+        <>
+          <OneOfOneRingAtmosphere active isMobile={isMobileReveal} settled />
+          <InspectableFoilCard
+            canInspect
+            card={activeCard}
+            className="reveal-special-pulse oneOfOneCardFrame"
+            onSwipeAway={advanceCard}
+            swipeAwayThreshold={120}
+            sx={{
+              position: "relative",
+              width: REVEAL_CARD_WIDTH,
+              maxWidth: 440,
+              boxShadow:
+                "0 0 82px rgba(244, 201, 93, 0.54), 0 0 150px rgba(255, 179, 36, 0.36), 0 32px 90px rgba(0, 0, 0, 0.68)",
+            }}
+            variant="reveal"
+          />
+          <Box
+            sx={{
+              position: "absolute",
+              bottom: { xs: 76, sm: 92, md: 78 },
+              left: 0,
+              right: 0,
+              textAlign: "center",
+              pointerEvents: "none",
+            }}
+          >
+            <Chip color="warning" label="1 of 1" size="small" sx={{ mr: 1, mt: 1, fontWeight: 900 }} />
+            <Chip color="warning" label="Collector Booster Exclusive" size="small" sx={{ mt: 1, fontWeight: 900 }} variant="outlined" />
+            <Typography color="text.secondary" sx={{ mt: 1, fontSize: 13, fontWeight: 800 }}>
+              Drag to inspect the ringlight
+            </Typography>
+          </Box>
+        </>
+      ) : (
+        <Fade in timeout={260} key={`fade-${activeCardKey}-${currentIndex}`}>
+          <Box sx={{ position: "relative" }}>
+            <Zoom in timeout={260}>
+              <Box>
+                <RevealCard
+                  card={activeCard}
+                  cardNumber={currentIndex + 1}
+                  exitX={exitX}
+                  onAdvance={advanceCard}
+                />
+              </Box>
+            </Zoom>
+          </Box>
+        </Fade>
+      )}
 
       {isFinalStretch && (
         <Typography

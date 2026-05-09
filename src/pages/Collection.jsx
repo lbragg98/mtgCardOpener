@@ -28,6 +28,7 @@ import CardInspectionDialog from '../components/CardInspectionDialog.jsx';
 import CardImage from '../components/CardImage.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 import { formatPrice, getCardPrice, getCardPriceLabel, getCollectionValue } from '../utils/cardPricing.js';
+import { isOneOfOneRing } from '../utils/collectorExclusiveCards.js';
 import { clearCollection, getCollection, getPackShards, recycleCard } from '../utils/collectionStorage.js';
 import { FOIL_LABELS, normalizeFoilTreatment } from '../utils/foilTypes.js';
 import { refreshCollectionPrices } from '../utils/priceRefresh.js';
@@ -450,6 +451,15 @@ export default function Collection() {
                     label={FOIL_LABELS[normalizeFoilTreatment(card)]}
                     size="small"
                     sx={{ mt: 0.75, maxWidth: '100%', fontWeight: 900 }}
+                  />
+                )}
+                {card.isCollectorExclusive && (
+                  <Chip
+                    color="warning"
+                    label={isOneOfOneRing(card) ? 'One of One' : 'Collector Booster Exclusive'}
+                    size="small"
+                    sx={{ mt: 0.75, maxWidth: '100%', fontWeight: 900 }}
+                    variant="outlined"
                   />
                 )}
                 <Button

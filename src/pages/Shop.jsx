@@ -22,10 +22,12 @@ import {
   Snackbar,
   Stack,
   Typography,
+  useMediaQuery,
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BinderCover from '../components/BinderCover.jsx';
+import OneOfOneRingReveal from '../components/OneOfOneRingReveal.jsx';
 import { BINDER_CATALOG } from '../utils/binderCatalog.js';
 import { getPackShards } from '../utils/collectionStorage.js';
 import { getOwnedBinders, isBinderOwned, purchaseBinder } from '../utils/binderStorage.js';
@@ -56,6 +58,7 @@ const TIER_COLORS = {
 
 export default function Shop() {
   const navigate = useNavigate();
+  const isMobile = useMediaQuery((theme) => theme.breakpoints.down('sm'));
   const [packShards, setPackShards] = useState(() => getPackShards());
   const [ownedBinders, setOwnedBinders] = useState(() => getOwnedBinders());
   const [binderToBuy, setBinderToBuy] = useState(null);
@@ -63,6 +66,7 @@ export default function Shop() {
   const [lastPurchasedBinderId, setLastPurchasedBinderId] = useState('');
   const [sortBy, setSortBy] = useState('capacity');
   const [snackbar, setSnackbar] = useState({ message: '', severity: 'success' });
+  const [isOneRingDemoOpen, setIsOneRingDemoOpen] = useState(false);
   const ownedCount = ownedBinders.length;
   const ownedProgress = (ownedCount / BINDER_CATALOG.length) * 100;
   const visibleBinders = BINDER_CATALOG.filter((binder) => {
@@ -110,7 +114,16 @@ export default function Shop() {
   }
 
   return (
-    <Box sx={{ maxWidth: '100%', overflowX: 'clip' }}>
+    <Box sx={{ position: 'relative', maxWidth: '100%', overflowX: 'clip' }}>
+      <Button
+        color="warning"
+        onClick={() => setIsOneRingDemoOpen(true)}
+        size="small"
+        sx={{ position: 'absolute', left: 0, top: -6, zIndex: 3, minWidth: 0, px: 1.25, fontWeight: 900 }}
+        variant="outlined"
+      >
+        1/1
+      </Button>
       <Card sx={{ mb: 3, overflow: 'hidden', borderColor: 'rgba(244, 201, 93, 0.24)' }}>
         <CardContent
           sx={{
@@ -314,6 +327,33 @@ export default function Shop() {
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      <Dialog fullScreen onClose={() => setIsOneRingDemoOpen(false)} open={isOneRingDemoOpen}>
+        <Box sx={{ position: 'relative', minHeight: '100dvh', overflow: 'hidden', bgcolor: '#000' }}>
+          <Button
+            color="warning"
+            onClick={() => setIsOneRingDemoOpen(false)}
+            sx={{ position: 'absolute', right: 16, top: 16, zIndex: 40, fontWeight: 900 }}
+            variant="outlined"
+          >
+            Close
+          </Button>
+          <OneOfOneRingReveal
+            key={isOneRingDemoOpen ? 'one-ring-demo-open' : 'one-ring-demo-closed'}
+            active={isOneRingDemoOpen}
+            card={{
+              collectorExclusiveReason: 'one-of-one',
+              collector_number: '001/001',
+              isCollectorExclusive: true,
+              isOneOfOne: true,
+              name: 'The One Ring',
+              rarity: 'mythic',
+              specialPullType: 'one-of-one-ring',
+            }}
+            isMobile={isMobile}
+          />
+        </Box>
+      </Dialog>
     </Box>
   );
 }
