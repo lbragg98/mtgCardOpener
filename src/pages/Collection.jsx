@@ -24,9 +24,11 @@ import {
 } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { getMyCards, recycleUserCard } from '../api/userCards.js';
 import CardInspectionDialog from '../components/CardInspectionDialog.jsx';
 import CardImage from '../components/CardImage.jsx';
 import PageHeader from '../components/PageHeader.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 import { formatPrice, getCardPrice, getCardPriceLabel, getCollectionValue } from '../utils/cardPricing.js';
 import { isOneOfOneRing } from '../utils/collectorExclusiveCards.js';
 import { clearCollection, getCollection, getPackShards, recycleCard } from '../utils/collectionStorage.js';
@@ -55,7 +57,10 @@ function sortOptions(values) {
 }
 
 export default function Collection() {
+  const { user } = useAuth();
   const [collection, setCollection] = useState([]);
+  const [isLoadingCollection, setIsLoadingCollection] = useState(true);
+  const [collectionError, setCollectionError] = useState('');
   const [search, setSearch] = useState('');
   const [rarityFilter, setRarityFilter] = useState(ALL_FILTER);
   const [setFilter, setSetFilter] = useState(ALL_FILTER);
@@ -68,14 +73,31 @@ export default function Collection() {
   const [recycleMessage, setRecycleMessage] = useState('');
   const [recycleSeverity, setRecycleSeverity] = useState('success');
 
+  async function loadCollection() {
+    try {
+      setIsLoadingCollection(true);
+      setCollectionError('');
+      setCollection(user ? await getMyCards() : getCollection());
+    } catch (error) {
+      setCollectionError(error.message || 'Unable to load your collection.');
+    } finally {
+      setIsLoadingCollection(false);
+    }
+  }
+
   useEffect(() => {
-    setCollection(getCollection());
-  }, []);
+    loadCollection();
+  }, [user]);
 
   useEffect(() => {
     function refreshLocalState() {
       setPackShards(getPackShards());
-      setCollection(getCollection());
+      if (user) {
+        loadCollection();
+      } else {
+        setCollection(getCollection());
+        setIsLoadingCollection(false);
+      }
     }
 
     window.addEventListener('packShardsUpdated', refreshLocalState);
@@ -87,7 +109,7 @@ export default function Collection() {
       window.removeEventListener('collectionUpdated', refreshLocalState);
       window.removeEventListener('storage', refreshLocalState);
     };
-  }, []);
+  }, [user]);
 
   const rarityOptions = useMemo(() => sortOptions(collection.map((card) => card.rarity)), [collection]);
   const setOptions = useMemo(() => sortOptions(collection.map((card) => card.set)), [collection]);
@@ -144,6 +166,10 @@ export default function Collection() {
   }, [collection, rarityFilter, search, setFilter, sortBy]);
 
   function handleClearCollection() {
+    if (user) {
+      return;
+    }
+
     if (window.confirm('Clear your entire collection from this browser?')) {
       clearCollection();
       setCollection([]);
@@ -164,7 +190,7 @@ export default function Collection() {
     }
   }
 
-  function handleRecycleCard() {
+  async function handleRecycleCard() {
     if (!cardToRecycle || isRecycling) {
       return;
     }
@@ -172,9 +198,14 @@ export default function Collection() {
     setIsRecycling(true);
 
     try {
-      const result = recycleCard(cardToRecycle.collectionId);
+      const result = user
+        ? await recycleUserCard(cardToRecycle.userCardId || cardToRecycle.collectionId)
+        : recycleCard(cardToRecycle.collectionId);
+      const updatedCollection = user
+        ? collection.filter((card) => card.collectionId !== (cardToRecycle.userCardId || cardToRecycle.collectionId))
+        : result.updatedCollection;
 
-      setCollection(result.updatedCollection);
+      setCollection(updatedCollection);
       setPackShards(result.newShardBalance);
       setSelectedCard((card) => (card?.collectionId === cardToRecycle.collectionId ? null : card));
       setCardToRecycle(null);
@@ -196,7 +227,7 @@ export default function Collection() {
     setIsRefreshingPrices(true);
 
     try {
-      const result = await refreshCollectionPrices(collection);
+      const result = await refreshCollectionPrices(collection, { persist: !user });
 
       setCollection(result.updatedCollection);
       setSelectedCard((card) =>
@@ -219,8 +250,16 @@ export default function Collection() {
   return (
     <Box>
       <PageHeader eyebrow="Collection" title="Your saved cards">
-        Cards are saved locally after a full pack reveal. Duplicate copies are tracked separately.
+        {user
+          ? 'Cards are saved to your Supabase cloud collection after a full pack reveal.'
+          : 'Cards are saved locally after a full pack reveal. Duplicate copies are tracked separately.'}
       </PageHeader>
+
+      {collectionError && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {collectionError}
+        </Alert>
+      )}
 
       <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2, mb: 3 }}>
         <Typography color="warning.main" fontWeight={900}>
@@ -246,6 +285,7 @@ export default function Collection() {
         >
           {isRefreshingPrices ? 'Refreshing...' : 'Refresh Prices'}
         </Button>
+        {!user && (
         <Button
           color="error"
           disabled={collection.length === 0 || isRefreshingPrices}
@@ -255,6 +295,7 @@ export default function Collection() {
         >
           Clear Collection
         </Button>
+        )}
       </Box>
 
       <Alert severity="info" sx={{ mb: 3 }} variant="outlined">
@@ -271,7 +312,7 @@ export default function Collection() {
       >
         {[
           { label: 'Total Estimated Value', value: formatPrice(totalCollectionValue), helper: 'Scryfall market data' },
-          { label: 'Total Cards', value: collection.length.toLocaleString(), helper: 'Saved locally' },
+          { label: 'Total Cards', value: collection.length.toLocaleString(), helper: user ? 'Saved in Supabase' : 'Saved locally' },
           { label: 'Unique Cards', value: uniqueCardCount.toLocaleString(), helper: 'By Scryfall card ID' },
           { label: 'Foil Value', value: formatPrice(foilCollectionValue), helper: 'Foil copies only' },
         ].map((stat) => (
@@ -369,7 +410,13 @@ export default function Collection() {
         </FormControl>
       </Box>
 
-      {collection.length === 0 && (
+      {isLoadingCollection && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          Loading your collection...
+        </Alert>
+      )}
+
+      {!isLoadingCollection && collection.length === 0 && (
         <Card sx={{ textAlign: 'center', py: { xs: 5, md: 7 }, px: 3 }}>
           <CardContent>
             <StyleIcon color="warning" sx={{ fontSize: 48, mb: 2 }} />
@@ -386,11 +433,11 @@ export default function Collection() {
         </Card>
       )}
 
-      {collection.length > 0 && filteredCollection.length === 0 && (
+      {!isLoadingCollection && collection.length > 0 && filteredCollection.length === 0 && (
         <Alert severity="info">No cards match those filters.</Alert>
       )}
 
-      {filteredCollection.length > 0 && (
+      {!isLoadingCollection && filteredCollection.length > 0 && (
         <Box
           sx={{
             display: 'grid',

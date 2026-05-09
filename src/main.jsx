@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { CssBaseline, ThemeProvider } from '@mui/material';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App.jsx';
+import { AuthProvider } from './context/AuthContext.jsx';
 import { mtgTheme } from './theme/mtgTheme.js';
 import './styles/global.css';
 
@@ -11,7 +12,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <ThemeProvider theme={mtgTheme}>
       <CssBaseline />
       <BrowserRouter>
-        <App />
+        <AuthProvider>
+          <App />
+        </AuthProvider>
       </BrowserRouter>
     </ThemeProvider>
   </React.StrictMode>,

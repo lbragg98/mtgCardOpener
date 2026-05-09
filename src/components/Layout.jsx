@@ -1,8 +1,11 @@
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import CollectionsBookmarkIcon from '@mui/icons-material/CollectionsBookmark';
+import GroupIcon from '@mui/icons-material/Group';
 import HomeIcon from '@mui/icons-material/Home';
 import Inventory2Icon from '@mui/icons-material/Inventory2';
+import LoginIcon from '@mui/icons-material/Login';
 import MenuIcon from '@mui/icons-material/Menu';
+import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import StyleIcon from '@mui/icons-material/Style';
 import {
@@ -23,7 +26,9 @@ import {
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext.jsx';
 import { getPackShards } from '../utils/collectionStorage.js';
+import LocalCollectionMigrationDialog from './LocalCollectionMigrationDialog.jsx';
 
 const navItems = [
   { label: 'Home', path: '/', icon: <HomeIcon /> },
@@ -31,10 +36,21 @@ const navItems = [
   { label: 'Collection', path: '/collection', icon: <CollectionsBookmarkIcon /> },
   { label: 'Shop', path: '/shop', icon: <StorefrontIcon /> },
   { label: 'Binders', path: '/binders', icon: <Inventory2Icon /> },
+  { label: 'Friends', path: '/friends', icon: <GroupIcon /> },
+  { label: 'Trades', path: '/trades', icon: <SwapHorizIcon /> },
+];
+
+const loggedOutNavItems = [
+  { label: 'Home', path: '/', icon: <HomeIcon /> },
+  { label: 'Open Packs', path: '/sets', icon: <AutoAwesomeIcon /> },
+  { label: 'Collection', path: '/collection', icon: <CollectionsBookmarkIcon /> },
+  { label: 'Login', path: '/login', icon: <LoginIcon /> },
+  { label: 'Sign Up', path: '/signup', icon: <StyleIcon /> },
 ];
 
 export default function Layout() {
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down('sm'));
+  const { profile, signOut, user } = useAuth();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [packShards, setPackShards] = useState(() => getPackShards());
   const { pathname } = useLocation();
@@ -54,7 +70,8 @@ export default function Layout() {
     };
   }, []);
 
-  const navLinks = navItems.map((item) => (
+  const visibleNavItems = user ? navItems : loggedOutNavItems;
+  const navLinks = visibleNavItems.map((item) => (
     <Button
       key={item.path}
       color="inherit"
@@ -70,6 +87,10 @@ export default function Layout() {
       {item.label}
     </Button>
   ));
+
+  async function handleSignOut() {
+    await signOut();
+  }
 
   return (
     <Box sx={{ minHeight: '100vh' }}>
@@ -93,10 +114,20 @@ export default function Layout() {
             MTG Pack Opener
           </Typography>
 
-          {!isMobile && (
+          {!isMobile && user && (
             <Chip
               color="warning"
               label={`${packShards.toLocaleString()} shards`}
+              size="small"
+              sx={{ fontWeight: 900 }}
+              variant="outlined"
+            />
+          )}
+
+          {!isMobile && user && (
+            <Chip
+              color="secondary"
+              label={profile?.display_name || profile?.username || 'Signed in'}
               size="small"
               sx={{ fontWeight: 900 }}
               variant="outlined"
@@ -113,7 +144,14 @@ export default function Layout() {
               <MenuIcon />
             </IconButton>
           ) : (
-            <Box sx={{ display: 'flex', gap: 1 }}>{navLinks}</Box>
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+              {navLinks}
+              {user && (
+                <Button color="inherit" onClick={handleSignOut} sx={{ color: 'text.secondary' }}>
+                  Sign Out
+                </Button>
+              )}
+            </Box>
           )}
         </Toolbar>
       </AppBar>
@@ -123,18 +161,36 @@ export default function Layout() {
       <Drawer anchor="right" open={isDrawerOpen} onClose={() => setIsDrawerOpen(false)}>
         <Box sx={{ width: 260, pt: 2 }} role="navigation" onClick={() => setIsDrawerOpen(false)}>
           <List>
+            {user && (
             <ListItemButton>
               <ListItemIcon sx={{ color: 'warning.main' }}>
                 <AutoAwesomeIcon />
               </ListItemIcon>
               <ListItemText primary={`${packShards.toLocaleString()} pack shards`} />
             </ListItemButton>
-            {navItems.map((item) => (
+            )}
+            {user && (
+              <ListItemButton>
+                <ListItemIcon sx={{ color: 'secondary.main' }}>
+                  <StyleIcon />
+                </ListItemIcon>
+                <ListItemText primary={profile?.display_name || profile?.username || 'Signed in'} />
+              </ListItemButton>
+            )}
+            {visibleNavItems.map((item) => (
               <ListItemButton key={item.path} component={NavLink} to={item.path}>
                 <ListItemIcon sx={{ color: 'primary.light' }}>{item.icon}</ListItemIcon>
                 <ListItemText primary={item.label} />
               </ListItemButton>
             ))}
+            {user && (
+              <ListItemButton onClick={handleSignOut}>
+                <ListItemIcon sx={{ color: 'primary.light' }}>
+                  <LoginIcon />
+                </ListItemIcon>
+                <ListItemText primary="Sign Out" />
+              </ListItemButton>
+            )}
           </List>
         </Box>
       </Drawer>
@@ -147,6 +203,8 @@ export default function Layout() {
       >
         <Outlet />
       </Container>
+
+      {!isPackReveal && <LocalCollectionMigrationDialog />}
     </Box>
   );
 }

@@ -32,7 +32,9 @@ import InspectableFoilCard from "../components/InspectableFoilCard.jsx";
 import MobileFoilRevealCard from "../components/MobileFoilRevealCard.jsx";
 import OneOfOneRingReveal, { OneOfOneRingAtmosphere } from "../components/OneOfOneRingReveal.jsx";
 import SealedPack from "../components/SealedPack.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
 import { getCardPriceLabel } from "../utils/cardPricing.js";
+import { saveOpenedCards } from "../api/userCards.js";
 import { isOneOfOneRing } from "../utils/collectorExclusiveCards.js";
 import {
   getPackShards,
@@ -715,6 +717,7 @@ function SummaryGrid({ boosterLabel, pack, saveResult, setCode }) {
 export default function PackOpening() {
   const { setCode } = useParams();
   const { state } = useLocation();
+  const { user } = useAuth();
   const isMobileReveal = useMediaQuery((theme) => theme.breakpoints.down("sm"));
   const normalizedSetCode = setCode?.trim().toLowerCase() || "";
   const boosterType = state?.boosterType === "collector" ? "collector" : "play";
@@ -866,31 +869,37 @@ export default function PackOpening() {
     ) {
       hasSavedRef.current = true;
 
-      try {
-        const saveResult = saveCardsToCollection(revealedPack);
-        setSaveResult(saveResult);
-        window.dispatchEvent(new Event("packShardsUpdated"));
+      async function saveRevealedPack() {
+        try {
+          const saveResult = user
+            ? await saveOpenedCards(revealedPack)
+            : saveCardsToCollection(revealedPack);
+          setSaveResult(saveResult);
+          window.dispatchEvent(new Event("packShardsUpdated"));
 
-        const messages = [
-          `${saveResult.savedCards.length} cards added to your collection.`,
-        ];
+          const messages = [
+            `${saveResult.savedCards.length} cards added to your collection.`,
+          ];
 
-        if (saveResult.shardsAwarded > 0) {
-          messages.push(
-            `${saveResult.duplicateCount} duplicates converted into ${saveResult.shardsAwarded} pack shards.`,
+          if (saveResult.shardsAwarded > 0) {
+            messages.push(
+              `${saveResult.duplicateCount} duplicates converted into ${saveResult.shardsAwarded} pack shards.`,
+            );
+          }
+
+          setSavedMessageSeverity("success");
+          setSavedMessage(`${messages.join(" ")} ${user ? "Saved to cloud collection." : "Saved locally."}`);
+        } catch {
+          setSavedMessageSeverity("error");
+          setSavedMessage(
+            "Pack summary is ready, but the collection could not be saved.",
           );
         }
-
-        setSavedMessageSeverity("success");
-        setSavedMessage(messages.join(" "));
-      } catch {
-        setSavedMessageSeverity("error");
-        setSavedMessage(
-          "Pack summary is ready, but the collection could not be saved.",
-        );
       }
+
+      saveRevealedPack();
     }
-  }, [revealedPack, phase]);
+  }, [revealedPack, phase, user]);
 
   if (isLoading) {
     return (

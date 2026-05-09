@@ -55,7 +55,7 @@ async function refreshBatch(cardIds) {
   }
 }
 
-export async function refreshCollectionPrices(collection) {
+export async function refreshCollectionPrices(collection, { persist = true } = {}) {
   const refreshableIds = [...new Set(collection.map((card) => card.id).filter(Boolean))];
   const refreshedById = new Map();
   const cardIdBatches = chunk(refreshableIds, BATCH_SIZE);
@@ -86,8 +86,10 @@ export async function refreshCollectionPrices(collection) {
     return mergePriceData(card, refreshedCard);
   });
 
-  localStorage.setItem(COLLECTION_KEY, JSON.stringify(updatedCollection));
-  window.dispatchEvent(new Event('collectionUpdated'));
+  if (persist) {
+    localStorage.setItem(COLLECTION_KEY, JSON.stringify(updatedCollection));
+    window.dispatchEvent(new Event('collectionUpdated'));
+  }
 
   return {
     updatedCollection,
