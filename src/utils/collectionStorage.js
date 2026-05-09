@@ -3,7 +3,7 @@ import { normalizeFoilTreatment } from "./foilTypes.js";
 const COLLECTION_KEY = "mtg-pack-opener-collection";
 const PACK_SHARDS_KEY = "mtg-pack-opener-pack-shards";
 const DUPLICATE_SHARD_REWARD = 100;
-const RECYCLE_SHARD_REWARD = 2500000;
+const RECYCLE_SHARD_REWARD = 25;
 
 function createCollectionId() {
   if (globalThis.crypto?.randomUUID) {
