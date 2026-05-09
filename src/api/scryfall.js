@@ -2,20 +2,15 @@ import { FOIL_TREATMENTS } from '../utils/foilTypes.js';
 
 const SCRYFALL_BASE_URL = 'https://api.scryfall.com';
 
-const EXCLUDED_SET_TYPES = new Set([
+const NON_OPENABLE_SET_TYPES = new Set([
   'token',
   'memorabilia',
   'promo',
-  'funny',
   'box',
-  'commander',
-  'duel_deck',
-  'planechase',
-  'archenemy',
+  'minigame',
   'treasure_chest',
+  'vanguard',
 ]);
-
-const INCLUDED_SET_TYPES = new Set(['expansion', 'core']);
 
 class ScryfallApiError extends Error {
   constructor(message, { code, status } = {}) {
@@ -154,7 +149,7 @@ export async function getSets() {
   const payload = await fetchJson(`${SCRYFALL_BASE_URL}/sets`);
 
   return (payload.data || [])
-    .filter((set) => INCLUDED_SET_TYPES.has(set.set_type) && !EXCLUDED_SET_TYPES.has(set.set_type))
+    .filter((set) => !NON_OPENABLE_SET_TYPES.has(set.set_type))
     .map(normalizeSet)
     .sort((a, b) => new Date(b.released_at) - new Date(a.released_at));
 }
