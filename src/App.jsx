@@ -1,6 +1,8 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import Layout from './components/Layout.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
+import SupabaseSetupError from './components/SupabaseSetupError.jsx';
+import { isSupabaseConfigured } from './lib/supabaseClient.js';
 import BinderDetail from './pages/BinderDetail.jsx';
 import Binders from './pages/Binders.jsx';
 import Collection from './pages/Collection.jsx';
@@ -17,6 +19,12 @@ import TradeNew from './pages/TradeNew.jsx';
 import Trades from './pages/Trades.jsx';
 
 export default function App() {
+  console.info('App mounted.');
+
+  if (!isSupabaseConfigured) {
+    return <SupabaseSetupError />;
+  }
+
   return (
     <Routes>
       <Route element={<Layout />}>

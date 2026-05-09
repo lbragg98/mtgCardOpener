@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { supabase } from '../lib/supabaseClient.js';
+import { isSupabaseConfigured, supabase, supabaseConfigError } from '../lib/supabaseClient.js';
 import { isValidUsername, normalizeUsername, usernameToAuthEmail } from '../utils/authUsername.js';
 
 const AuthContext = createContext(null);
@@ -29,6 +29,11 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   const refreshProfile = useCallback(async (userId = user?.id) => {
+    if (!isSupabaseConfigured) {
+      setProfile(null);
+      return null;
+    }
+
     if (!userId) {
       setProfile(null);
       return null;
@@ -45,6 +50,16 @@ export function AuthProvider({ children }) {
   }, [user?.id]);
 
   useEffect(() => {
+    console.info('AuthProvider mounted.');
+
+    if (!isSupabaseConfigured) {
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+      setLoading(false);
+      return undefined;
+    }
+
     let isMounted = true;
 
     async function loadSession() {
@@ -90,6 +105,10 @@ export function AuthProvider({ children }) {
   }, [refreshProfile]);
 
   async function signUpWithUsername(usernameInput, password, displayNameInput) {
+    if (!isSupabaseConfigured) {
+      throw new Error(supabaseConfigError);
+    }
+
     const username = normalizeUsername(usernameInput);
     const displayName = String(displayNameInput || '').trim();
 
@@ -160,6 +179,10 @@ export function AuthProvider({ children }) {
   }
 
   async function signInWithUsername(usernameInput, password) {
+    if (!isSupabaseConfigured) {
+      throw new Error(supabaseConfigError);
+    }
+
     const username = normalizeUsername(usernameInput);
 
     if (!isValidUsername(username)) {
@@ -183,6 +206,13 @@ export function AuthProvider({ children }) {
   }
 
   async function signOut() {
+    if (!isSupabaseConfigured) {
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+      return;
+    }
+
     const { error } = await supabase.auth.signOut();
 
     if (error) {
@@ -200,6 +230,8 @@ export function AuthProvider({ children }) {
       profile,
       session,
       loading,
+      isSupabaseConfigured,
+      supabaseConfigError,
       signUpWithUsername,
       signInWithUsername,
       signOut,
