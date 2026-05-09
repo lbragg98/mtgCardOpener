@@ -14,6 +14,12 @@ const SERIALIZED_ONE_RING_PULLED_KEY = 'mtg-pack-opener-serialized-one-ring-pull
 const SERIALIZED_ONE_RING_ODDS = {
   collector: 1 / 3000000,
 };
+const STANDALONE_VARIANT_SET_CODES = new Set([
+  // Final Fantasy: Through the Ages is a standalone masterpiece sheet.
+  // Every card looks like a collector-style variant, so treating those
+  // variants as collector-only would leave the set with no playable cards.
+  'fca',
+]);
 const PLAY_FOIL_ODDS = {
   [FOIL_TREATMENTS.RAINBOW]: 78,
   [FOIL_TREATMENTS.ETCHED]: 9,
@@ -85,6 +91,10 @@ function dedupeCards(cards) {
 
 function filterCollectorExclusiveCards(cards) {
   return cards.filter((card) => !card.isCollectorExclusive && !isManualCollectorExclusive(card));
+}
+
+function isStandaloneVariantSet(setCode) {
+  return STANDALONE_VARIANT_SET_CODES.has(String(setCode || '').trim().toLowerCase());
 }
 
 function getCollectorNumberValue(card) {
@@ -394,8 +404,13 @@ export function sortPackForReveal(cards, boosterType = 'play') {
 export async function generatePlayBooster(setCode) {
   const allCards = await getCardsBySet(setCode);
   const collectorExclusiveIds = new Set((await getCollectorExclusivePool(setCode, allCards)).map((card) => card.id));
+  const shouldExcludeCollectorCandidates = !isStandaloneVariantSet(setCode);
   const cards = filterCollectorExclusiveCards(
-    allCards.filter((card) => !isSerializedOneRing(card) && !collectorExclusiveIds.has(card.id)),
+    allCards.filter(
+      (card) =>
+        !isSerializedOneRing(card) &&
+        (!shouldExcludeCollectorCandidates || !collectorExclusiveIds.has(card.id)),
+    ),
   );
 
   if (!cards.length) {
