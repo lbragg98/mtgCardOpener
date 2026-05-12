@@ -8,6 +8,7 @@ import { createTrade } from '../api/trades.js';
 import { getMyCards, getUserCardsForUser } from '../api/userCards.js';
 import PageHeader from '../components/PageHeader.jsx';
 import TradeCardPicker, { TradeValueSummary } from '../components/TradeCardPicker.jsx';
+import TradeSkinSurface from '../components/TradeSkinSurface.jsx';
 
 export default function TradeNew() {
   const { friendId } = useParams();
@@ -74,7 +75,7 @@ export default function TradeNew() {
   }
 
   return (
-    <Box>
+    <TradeSkinSurface>
       <Button component={Link} startIcon={<ArrowBackIcon />} to="/friends" variant="outlined" sx={{ mb: 3 }}>
         Back to Friends
       </Button>
@@ -104,7 +105,7 @@ export default function TradeNew() {
             />
           </Box>
 
-          <Card sx={{ borderColor: 'rgba(244, 201, 93, 0.32)' }}>
+          <Card className="tradePreviewPanel" sx={{ borderColor: 'var(--trade-border)' }}>
             <CardContent sx={{ display: 'grid', gap: 2 }}>
               <Typography variant="h5">Trade Preview</Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
@@ -143,6 +144,6 @@ export default function TradeNew() {
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </Box>
+    </TradeSkinSurface>
   );
 }

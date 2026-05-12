@@ -6,6 +6,7 @@ import { isSupabaseConfigured } from './lib/supabaseClient.js';
 import BinderDetail from './pages/BinderDetail.jsx';
 import Binders from './pages/Binders.jsx';
 import Collection from './pages/Collection.jsx';
+import Duplicates from './pages/Duplicates.jsx';
 import Friends from './pages/Friends.jsx';
 import Home from './pages/Home.jsx';
 import Login from './pages/Login.jsx';
@@ -13,6 +14,7 @@ import PackOpening from './pages/PackOpening.jsx';
 import PackSelection from './pages/PackSelection.jsx';
 import SetSelection from './pages/SetSelection.jsx';
 import Shop from './pages/Shop.jsx';
+import Showcase from './pages/Showcase.jsx';
 import Signup from './pages/Signup.jsx';
 import TradeDetail from './pages/TradeDetail.jsx';
 import TradeNew from './pages/TradeNew.jsx';
@@ -35,10 +37,12 @@ export default function App() {
         <Route path="/packs/:setCode" element={<PackSelection />} />
         <Route path="/open/:setCode" element={<PackOpening />} />
         <Route path="/collection" element={<Collection />} />
+        <Route path="/duplicates" element={<Duplicates />} />
         <Route element={<ProtectedRoute />}>
           <Route path="/shop" element={<Shop />} />
           <Route path="/binders" element={<Binders />} />
           <Route path="/binders/:binderId" element={<BinderDetail />} />
+          <Route path="/showcase" element={<Showcase />} />
           <Route path="/friends" element={<Friends />} />
           <Route path="/trades" element={<Trades />} />
           <Route path="/trades/new/:friendId" element={<TradeNew />} />

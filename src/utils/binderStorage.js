@@ -156,6 +156,28 @@ export function removeCardFromBinder(binderId, collectionId) {
   return updatedBinder;
 }
 
+export function updateBinderCosmetics(binderId, cosmetics = {}) {
+  const ownedBinders = getOwnedBinders();
+  const binderIndex = ownedBinders.findIndex((binder) => binder.ownedBinderId === binderId || binder.binderId === binderId);
+
+  if (binderIndex === -1) {
+    throw new Error('Binder not found.');
+  }
+
+  const updatedBinder = {
+    ...ownedBinders[binderIndex],
+    equippedClaspId: cosmetics.equippedClaspId || '',
+    equippedPageStyleId: cosmetics.equippedPageStyleId || '',
+    equippedSlotFrameId: cosmetics.equippedSlotFrameId || '',
+    equippedAuraId: cosmetics.equippedAuraId || '',
+  };
+  const updatedBinders = ownedBinders.map((binder, index) => (index === binderIndex ? updatedBinder : binder));
+
+  saveOwnedBinders(updatedBinders);
+
+  return updatedBinder;
+}
+
 export function getBinderCards(binderId) {
   return getBinderById(binderId)?.cards || [];
 }

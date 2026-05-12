@@ -1,4 +1,4 @@
-import { Box, Chip } from '@mui/material';
+import { Box, Chip, Typography } from '@mui/material';
 import { isOneOfOneRing } from '../utils/collectorExclusiveCards.js';
 import { FOIL_LABELS, FOIL_TREATMENTS, normalizeFoilTreatment } from '../utils/foilTypes.js';
 
@@ -62,6 +62,7 @@ export default function CardImage({
   variant = 'grid',
 }) {
   const imageUrl = card?.imageUrl || card?.image;
+  const variantClass = `variant${variant.charAt(0).toUpperCase()}${variant.slice(1)}`;
   const foilClass = getFoilClass(card);
   const foilLabel = getFoilLabel(card);
   const foilIntensity = getFoilIntensity(card);
@@ -76,9 +77,10 @@ export default function CardImage({
         card?.isCollectorExclusive ? 'collectorExclusiveCard' : '',
         card?.isFoil ? 'foilCard' : '',
         card?.isFoil ? `foilVariant-${variant}` : '',
+        card?.isFoil ? variantClass : '',
         card?.isFoil && interactiveFoil ? 'interactiveFoil' : '',
         card?.isFoil ? `foilIntensity-${foilIntensity}` : '',
-        card?.isFoil && mobileFoilMode ? 'mobileFoilInspect' : '',
+        card?.isFoil && mobileFoilMode ? 'mobileFoilInspect mobileFoilMode' : '',
         rarityClass,
         foilClass,
         large ? 'cardImageLarge' : '',
@@ -99,13 +101,31 @@ export default function CardImage({
           variant="filled"
         />
       )}
-      <Box
-        alt={card?.name || 'Magic card'}
-        className="cardImage"
-        component="img"
-        draggable={false}
-        src={imageUrl}
-      />
+      {imageUrl ? (
+        <Box
+          alt={card?.name || 'Magic card'}
+          className="cardImage"
+          component="img"
+          draggable={false}
+          src={imageUrl}
+        />
+      ) : (
+        <Box
+          className="cardImage"
+          sx={{
+            alignItems: 'center',
+            bgcolor: '#080a12',
+            border: '1px solid rgba(244, 201, 93, 0.38)',
+            color: 'warning.main',
+            display: 'flex',
+            justifyContent: 'center',
+            p: 2,
+            textAlign: 'center',
+          }}
+        >
+          <Typography fontWeight={900}>{card?.name || 'The One Ring'}</Typography>
+        </Box>
+      )}
 
       {card?.isFoil && (
         <>

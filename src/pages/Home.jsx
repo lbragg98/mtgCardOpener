@@ -114,11 +114,11 @@ function HomeStatCard({ helper, icon, label, value, tone = 'primary' }) {
     <Card
       sx={{
         height: '100%',
-        borderColor: tone === 'warning' ? 'rgba(244, 201, 93, 0.24)' : 'rgba(76, 201, 240, 0.16)',
+        borderColor: 'var(--panel-border)',
         background:
           tone === 'warning'
-            ? 'linear-gradient(145deg, rgba(244, 201, 93, 0.12), rgba(21, 16, 31, 0.92))'
-            : 'linear-gradient(145deg, rgba(76, 201, 240, 0.09), rgba(12, 15, 31, 0.94))',
+            ? 'radial-gradient(circle at 18% 16%, color-mix(in srgb, var(--accent-color) 18%, transparent), transparent 18rem), var(--panel-bg)'
+            : 'radial-gradient(circle at 18% 16%, color-mix(in srgb, var(--secondary-accent) 14%, transparent), transparent 18rem), var(--panel-bg)',
       }}
     >
       <CardContent sx={{ display: 'flex', gap: 1.5, alignItems: 'center', p: 2 }}>
@@ -131,8 +131,8 @@ function HomeStatCard({ helper, icon, label, value, tone = 'primary' }) {
             placeItems: 'center',
             borderRadius: '50%',
             bgcolor: 'rgba(5, 7, 17, 0.58)',
-            color: tone === 'warning' ? 'warning.main' : 'primary.light',
-            boxShadow: tone === 'warning' ? '0 0 24px rgba(244, 201, 93, 0.16)' : '0 0 24px rgba(76, 201, 240, 0.12)',
+            color: tone === 'warning' ? 'var(--text-accent)' : 'var(--secondary-accent)',
+            boxShadow: '0 0 24px var(--primary-glow)',
           }}
         >
           {icon}
@@ -141,7 +141,7 @@ function HomeStatCard({ helper, icon, label, value, tone = 'primary' }) {
           <Typography color="text.secondary" sx={{ fontSize: 12, fontWeight: 800 }}>
             {label}
           </Typography>
-          <Typography color="warning.main" fontWeight={950} sx={{ fontSize: 26, lineHeight: 1.05 }}>
+          <Typography fontWeight={950} sx={{ color: 'var(--text-accent)', fontSize: 26, lineHeight: 1.05 }}>
             {value.toLocaleString()}
           </Typography>
           <Typography color="text.secondary" sx={{ fontSize: 12 }}>
@@ -163,12 +163,12 @@ function MiniVisual({ icon, tone = 'primary' }) {
         mb: 1.5,
         overflow: 'hidden',
         placeItems: 'center',
-        border: '1px solid rgba(248, 247, 255, 0.12)',
+        border: '1px solid var(--panel-border)',
         borderRadius: 2,
         background:
           tone === 'warning'
-            ? 'radial-gradient(circle at 50% 45%, rgba(244, 201, 93, 0.3), transparent 56%), linear-gradient(135deg, rgba(37, 25, 9, 0.86), rgba(10, 13, 28, 0.92))'
-            : 'radial-gradient(circle at 50% 45%, rgba(76, 201, 240, 0.2), transparent 56%), linear-gradient(135deg, rgba(18, 18, 46, 0.86), rgba(6, 9, 22, 0.94))',
+            ? 'radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--accent-color) 28%, transparent), transparent 56%), var(--panel-bg)'
+            : 'radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--secondary-accent) 24%, transparent), transparent 56%), var(--panel-bg)',
       }}
     >
       <Box
@@ -176,7 +176,7 @@ function MiniVisual({ icon, tone = 'primary' }) {
           position: 'absolute',
           inset: 0,
           background:
-            'radial-gradient(circle at 18% 28%, rgba(255, 255, 255, 0.24) 0 1px, transparent 2px), radial-gradient(circle at 74% 66%, rgba(244, 201, 93, 0.3) 0 1px, transparent 2px)',
+            'radial-gradient(circle at 18% 28%, rgba(255, 255, 255, 0.24) 0 1px, transparent 2px), radial-gradient(circle at 74% 66%, var(--particle-color) 0 1px, transparent 2px)',
           opacity: 0.42,
         }}
       />
@@ -188,8 +188,8 @@ function MiniVisual({ icon, tone = 'primary' }) {
           placeItems: 'center',
           borderRadius: '50%',
           bgcolor: 'rgba(5, 7, 17, 0.58)',
-          color: tone === 'warning' ? 'warning.main' : 'primary.light',
-          boxShadow: tone === 'warning' ? '0 0 34px rgba(244, 201, 93, 0.28)' : '0 0 34px rgba(76, 201, 240, 0.18)',
+          color: tone === 'warning' ? 'var(--text-accent)' : 'var(--secondary-accent)',
+          boxShadow: '0 0 34px var(--primary-glow)',
         }}
       >
         {icon}
@@ -214,8 +214,8 @@ function HomeActionCard({ actionLabel, ariaLabel, body, children, icon, onClick,
         borderRadius: { xs: 3, sm: 3.5 },
         transition: 'transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease',
         '&:hover, &:focus-visible': {
-          borderColor: tone === 'warning' ? 'rgba(244, 201, 93, 0.58)' : 'rgba(76, 201, 240, 0.38)',
-          boxShadow: tone === 'warning' ? '0 0 38px rgba(244, 201, 93, 0.18)' : '0 0 38px rgba(76, 201, 240, 0.12)',
+          borderColor: 'color-mix(in srgb, var(--accent-color) 58%, transparent)',
+          boxShadow: '0 0 38px var(--primary-glow)',
           outline: 'none',
           transform: 'translateY(-4px)',
         },
@@ -270,7 +270,7 @@ function RecommendedAction({ hasCollectorBooster, hasCollection, navigate }) {
   const buttonLabel = hasCollectorBooster ? 'Open Collector Booster' : hasCollection ? 'Open Packs' : 'Browse Sets';
 
   return (
-    <Card sx={{ mb: 4, borderColor: 'rgba(244, 201, 93, 0.26)' }}>
+    <Card sx={{ mb: 4, borderColor: 'var(--panel-border)' }}>
       <CardContent
         sx={{
           display: 'flex',
@@ -280,11 +280,11 @@ function RecommendedAction({ hasCollectorBooster, hasCollection, navigate }) {
           gap: 2,
           p: { xs: 2, sm: 3 },
           background:
-            'radial-gradient(circle at 12% 50%, rgba(244, 201, 93, 0.14), transparent 22rem), linear-gradient(90deg, rgba(18, 20, 38, 0.96), rgba(5, 7, 17, 0.92))',
+            'radial-gradient(circle at 12% 50%, color-mix(in srgb, var(--accent-color) 16%, transparent), transparent 22rem), var(--panel-bg)',
         }}
       >
         <Box sx={{ minWidth: 0 }}>
-          <Typography color="warning.main" fontWeight={950}>
+          <Typography fontWeight={950} sx={{ color: 'var(--text-accent)' }}>
             Recommended next action
           </Typography>
           <Typography color="text.secondary">{message}</Typography>
@@ -314,13 +314,13 @@ function HowItWorksStep({ icon, label, onClick, text }) {
         height: '100%',
         cursor: 'pointer',
         '&:hover, &:focus-visible': {
-          borderColor: 'rgba(76, 201, 240, 0.32)',
+          borderColor: 'color-mix(in srgb, var(--secondary-accent) 34%, transparent)',
           outline: 'none',
         },
       }}
     >
       <CardContent sx={{ display: 'grid', gap: 1, p: 1.75 }}>
-        <Box sx={{ color: 'warning.main' }}>{icon}</Box>
+        <Box sx={{ color: 'var(--text-accent)' }}>{icon}</Box>
         <Typography fontWeight={950}>{label}</Typography>
         <Typography color="text.secondary" sx={{ fontSize: 13 }}>
           {text}
@@ -398,7 +398,7 @@ export default function Home() {
           height: 520,
           zIndex: -1,
           background:
-            'radial-gradient(circle at 12% 20%, rgba(143, 124, 255, 0.16), transparent 24rem), radial-gradient(circle at 88% 16%, rgba(244, 201, 93, 0.12), transparent 22rem)',
+            'radial-gradient(circle at 12% 20%, var(--primary-glow), transparent 24rem), radial-gradient(circle at 88% 16%, color-mix(in srgb, var(--accent-color) 16%, transparent), transparent 22rem)',
           pointerEvents: 'none',
         },
       }}
@@ -484,10 +484,10 @@ export default function Home() {
                     gap: { xs: 1, sm: 1.25 },
                     p: { xs: 1.25, sm: 1.5 },
                     overflow: 'hidden',
-                    border: '1px solid rgba(244, 201, 93, 0.18)',
+                    border: '1px solid var(--panel-border)',
                     borderRadius: 2,
                     background:
-                      'linear-gradient(135deg, rgba(244, 201, 93, 0.12), rgba(143, 124, 255, 0.1), rgba(5, 7, 17, 0.52))',
+                      'linear-gradient(135deg, color-mix(in srgb, var(--accent-color) 13%, transparent), color-mix(in srgb, var(--secondary-accent) 10%, transparent), color-mix(in srgb, var(--app-bg) 52%, transparent))',
                   }}
                 >
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1, minWidth: 0 }}>

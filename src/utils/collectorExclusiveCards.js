@@ -19,6 +19,14 @@ function normalize(value) {
 }
 
 export function isOneOfOneRing(card) {
+  if (
+    card?.isOneOfOne === true ||
+    card?.collectorExclusiveReason === 'one-of-one' ||
+    card?.specialPullType === 'one-of-one-ring'
+  ) {
+    return true;
+  }
+
   if (card?.name !== 'The One Ring') {
     return false;
   }
@@ -26,11 +34,8 @@ export function isOneOfOneRing(card) {
   const collectorNumber = String(card.collector_number || '');
 
   return (
-    card.isOneOfOne === true ||
     collectorNumber === '001/001' ||
-    collectorNumber.includes('001') ||
-    card.collectorExclusiveReason === 'one-of-one' ||
-    card.specialPullType === 'one-of-one-ring'
+    collectorNumber.includes('001')
   );
 }
 

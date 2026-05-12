@@ -24,6 +24,7 @@ export default function InspectableFoilCard({
   className = '',
   onSwipeAway,
   swipeAwayThreshold = 120,
+  stableInspection = false,
   sx,
   variant = 'reveal',
 }) {
@@ -72,8 +73,8 @@ export default function InspectableFoilCard({
     const deadZone = 0.04;
     const adjustedX = Math.abs(dx) < deadZone ? 0 : dx;
     const adjustedY = Math.abs(dy) < deadZone ? 0 : dy;
-    const maxRotateY = isMobile ? 2.5 : 8;
-    const maxRotateX = isMobile ? 2 : 6;
+    const maxRotateY = stableInspection ? 6 : isMobile ? 2.5 : 8;
+    const maxRotateX = stableInspection ? 4 : isMobile ? 2 : 6;
     const targetRotateY = adjustedX * maxRotateY * 2;
     const targetRotateX = -adjustedY * maxRotateX * 2;
     const lightY = Math.max(0, clampedY * 0.75);
@@ -84,8 +85,8 @@ export default function InspectableFoilCard({
     const shadowBlur = 36 + brightness * 18;
     const shadowAlpha = 0.34 + brightness * 0.18;
 
-    rawRotateX.set(mobileShineOnly ? 0 : targetRotateX);
-    rawRotateY.set(mobileShineOnly ? 0 : targetRotateY);
+    rawRotateX.set(mobileShineOnly || (stableInspection && isMobile) ? 0 : targetRotateX);
+    rawRotateY.set(mobileShineOnly || (stableInspection && isMobile) ? 0 : targetRotateY);
     setFoilPosition({
       x: `${clampedX * 100}%`,
       y: `${lightY * 100}%`,
@@ -140,7 +141,7 @@ export default function InspectableFoilCard({
 
     if (canInspect) {
       isInspectingRef.current = true;
-      updateTilt(event.clientX, event.clientY, { mobileShineOnly: false });
+      updateTilt(event.clientX, event.clientY, { mobileShineOnly: stableInspection });
     }
   }
 
@@ -231,6 +232,7 @@ export default function InspectableFoilCard({
         }
       }}
       ref={cardRef}
+      className={stableInspection ? 'inspectionTiltWrapper' : ''}
       style={{
         x: swipeX,
         rotate: swipeRotate,
@@ -241,7 +243,8 @@ export default function InspectableFoilCard({
         cursor: canInspect ? 'grab' : 'default',
         perspective: '1000px',
         touchAction: 'none',
-        willChange: 'transform',
+        transformOrigin: 'center center',
+        willChange: stableInspection ? 'auto' : 'transform',
       }}
     >
       <Box

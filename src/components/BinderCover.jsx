@@ -64,6 +64,7 @@ export default function BinderCover({ animated = true, binder, compact = false, 
   const icon = ICON_BY_VISUAL[binder?.visualType] || <MenuBookIcon fontSize="large" />;
   const colors = binder?.colors || { primary: '#222', secondary: '#070913', accent: '#f4c95d' };
   const pattern = getThemePattern(binder?.visualType, colors);
+  const binderCosmetics = binder?.cosmetics || {};
 
   return (
     <Box
@@ -71,6 +72,8 @@ export default function BinderCover({ animated = true, binder, compact = false, 
         'binderCover',
         `binderCover-${resolvedSize}`,
         `binderCover-${binder?.rarity || 'common'}`,
+        binderCosmetics.claspId ? `binderClaspCosmetic-${binderCosmetics.claspId}` : '',
+        binderCosmetics.auraId ? `binderAuraCosmetic-${binderCosmetics.auraId}` : '',
         animated ? 'binderCover-animated' : '',
         owned ? 'binderCover-owned' : '',
       ]

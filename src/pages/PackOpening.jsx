@@ -26,13 +26,17 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import CardImage from "../components/CardImage.jsx";
+import EquippedRevealEffect from "../components/EquippedRevealEffect.jsx";
 import FoilAmbientScene from "../components/FoilAmbientScene.jsx";
 import FoilImpactScene from "../components/FoilImpactScene.jsx";
 import InspectableFoilCard from "../components/InspectableFoilCard.jsx";
 import MobileFoilRevealCard from "../components/MobileFoilRevealCard.jsx";
 import OneOfOneRingReveal, { OneOfOneRingAtmosphere } from "../components/OneOfOneRingReveal.jsx";
+import OpeningSceneBackground from "../components/OpeningSceneBackground.jsx";
 import SealedPack from "../components/SealedPack.jsx";
+import TearEffect from "../components/TearEffect.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
+import { useCosmetics } from "../context/CosmeticsContext.jsx";
 import { getCardPriceLabel } from "../utils/cardPricing.js";
 import { saveOpenedCards } from "../api/userCards.js";
 import { isOneOfOneRing } from "../utils/collectorExclusiveCards.js";
@@ -68,9 +72,12 @@ const PHASES = {
 function PackCuttingScreen({
   artwork,
   boosterLabel,
+  sceneId,
   setCode,
   setIconUrl,
   setName,
+  tearEffectId,
+  boosterType,
   onCutComplete,
 }) {
   const cutterControls = useAnimation();
@@ -112,16 +119,18 @@ function PackCuttingScreen({
         placeItems: "center",
         bgcolor: "#03050d",
         background:
-          "radial-gradient(circle at 50% 36%, rgba(76, 201, 240, 0.18), transparent 28rem), radial-gradient(circle at 50% 90%, rgba(244, 201, 93, 0.12), transparent 30rem), #03050d",
+          "radial-gradient(circle at 50% 36%, rgba(76, 201, 240, 0.1), transparent 28rem), #03050d",
         px: 2,
       }}
     >
+      <OpeningSceneBackground phase="cutPack" sceneId={sceneId} />
       <Box
         sx={{
           position: "absolute",
           top: { xs: 24, md: 34 },
           left: 0,
           right: 0,
+          zIndex: 1,
           textAlign: "center",
         }}
       >
@@ -139,6 +148,7 @@ function PackCuttingScreen({
           width: { xs: "76vw", sm: 320 },
           maxWidth: 340,
           height: { xs: 500, sm: 520 },
+          zIndex: 1,
         }}
       >
         <motion.div
@@ -190,6 +200,12 @@ function PackCuttingScreen({
             className="tearProgress"
           />
         </Box>
+        <TearEffect
+          boosterType={boosterType}
+          isTearing={isCut}
+          tearEffectId={tearEffectId}
+          tearProgress={isCut ? 1 : 0}
+        />
 
         {isCut && (
           <motion.div
@@ -243,7 +259,7 @@ function PackCuttingScreen({
   );
 }
 
-function RevealCard({ card, cardNumber, exitX, onAdvance }) {
+function RevealCard({ card, cardNumber, exitX, onAdvance, revealEffectId }) {
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-260, 260], [-13, 13]);
@@ -260,6 +276,11 @@ function RevealCard({ card, cardNumber, exitX, onAdvance }) {
   const foilRevealConfig = getFoilAnimationConfig(card);
   const foilRevealMotion = getFoilRevealMotion(card, isMobile);
   const isFoilReveal = Boolean(card.isFoil);
+  const shouldShowEquippedRevealEffect =
+    ["rare", "mythic"].includes(card.rarity) &&
+    !card.isFoil &&
+    !card.isCollectorExclusive &&
+    !isOneOfOneRing(card);
   const revealInitial = isFoilReveal
     ? foilRevealMotion.initial
     : { opacity: 0, y: 20, scale: 0.96 };
@@ -438,6 +459,13 @@ function RevealCard({ card, cardNumber, exitX, onAdvance }) {
               />
             </>
           )}
+          {shouldShowEquippedRevealEffect && (
+            <EquippedRevealEffect
+              active
+              card={card}
+              revealEffectId={revealEffectId}
+            />
+          )}
           {isFoilReveal ? (
             <InspectableFoilCard
               canInspect={canInspectFoil}
@@ -548,7 +576,7 @@ function RevealCard({ card, cardNumber, exitX, onAdvance }) {
   );
 }
 
-function SummaryGrid({ boosterLabel, pack, saveResult, setCode }) {
+function SummaryGrid({ boosterLabel, pack, saveResult, sceneId, setCode }) {
   const collectorExclusiveHits = pack.filter((card) => card.isCollectorExclusive);
   const oneOfOneRing = pack.find(isOneOfOneRing);
   const bestCollectorExclusiveHit = collectorExclusiveHits
@@ -557,9 +585,17 @@ function SummaryGrid({ boosterLabel, pack, saveResult, setCode }) {
 
   return (
     <Box
-      sx={{ minHeight: "100vh", px: { xs: 2, md: 4 }, py: { xs: 3, md: 4 } }}
+      sx={{
+        position: "relative",
+        minHeight: "100vh",
+        overflow: "hidden",
+        bgcolor: "#03050d",
+        px: { xs: 2, md: 4 },
+        py: { xs: 3, md: 4 },
+      }}
     >
-      <Box sx={{ mx: "auto", maxWidth: 920 }}>
+      <OpeningSceneBackground phase="summary" sceneId={sceneId} />
+      <Box sx={{ position: "relative", zIndex: 1, mx: "auto", maxWidth: 920 }}>
         <Typography color="warning.main" fontWeight={900} gutterBottom>
           {setCode.toUpperCase()} {boosterLabel} opened
         </Typography>
@@ -718,6 +754,7 @@ export default function PackOpening() {
   const { setCode } = useParams();
   const { state } = useLocation();
   const { user } = useAuth();
+  const { getEquippedItem } = useCosmetics();
   const isMobileReveal = useMediaQuery((theme) => theme.breakpoints.down("sm"));
   const normalizedSetCode = setCode?.trim().toLowerCase() || "";
   const boosterType = state?.boosterType === "collector" ? "collector" : "play";
@@ -737,6 +774,12 @@ export default function PackOpening() {
   const [completedOneOfOneRevealKey, setCompletedOneOfOneRevealKey] = useState("");
   const hasSavedRef = useRef(false);
   const isAnimatingRef = useRef(false);
+  const equippedOpeningScene = getEquippedItem("openingScene");
+  const openingSceneId = equippedOpeningScene?.id;
+  const equippedTearEffect = getEquippedItem("tearEffect");
+  const tearEffectId = equippedTearEffect?.id;
+  const equippedRevealEffect = getEquippedItem("revealEffect");
+  const revealEffectId = equippedRevealEffect?.id;
 
   useEffect(() => {
     let isMounted = true;
@@ -943,6 +986,7 @@ export default function PackOpening() {
           boosterLabel={boosterLabel}
           pack={revealedPack}
           saveResult={saveResult}
+          sceneId={openingSceneId}
           setCode={normalizedSetCode}
         />
         <Snackbar
@@ -982,9 +1026,12 @@ export default function PackOpening() {
           <PackCuttingScreen
             artwork={state?.packArtwork || fallbackArtwork}
             boosterLabel={boosterLabel}
+            boosterType={boosterType}
+            sceneId={openingSceneId}
             setCode={normalizedSetCode}
             setIconUrl={state?.setIconUrl}
             setName={packSetName}
+            tearEffectId={tearEffectId}
             onCutComplete={() => setPhase(PHASES.revealCards)}
           />
         </motion.div>
@@ -1053,12 +1100,14 @@ export default function PackOpening() {
         px: 2,
       }}
     >
+      <OpeningSceneBackground phase="revealCards" sceneId={openingSceneId} />
       <Box
         sx={{
           position: "absolute",
           top: { xs: 14, sm: 20, md: 28 },
           left: 0,
           right: 0,
+          zIndex: 2,
           textAlign: "center",
         }}
       >
@@ -1113,7 +1162,7 @@ export default function PackOpening() {
         </>
       ) : (
         <Fade in timeout={260} key={`fade-${activeCardKey}-${currentIndex}`}>
-          <Box sx={{ position: "relative" }}>
+          <Box sx={{ position: "relative", zIndex: 2 }}>
             <Zoom in timeout={260}>
               <Box>
                 <RevealCard
@@ -1121,6 +1170,7 @@ export default function PackOpening() {
                   cardNumber={currentIndex + 1}
                   exitX={exitX}
                   onAdvance={advanceCard}
+                  revealEffectId={revealEffectId}
                 />
               </Box>
             </Zoom>
@@ -1135,6 +1185,7 @@ export default function PackOpening() {
           sx={{
             position: "absolute",
             top: { xs: 42, sm: 52, md: 62 },
+            zIndex: 2,
             textAlign: "center",
           }}
         >
@@ -1146,7 +1197,7 @@ export default function PackOpening() {
         endIcon={<KeyboardArrowRightIcon />}
         onClick={advanceCard}
         variant="contained"
-        sx={{ position: "absolute", bottom: { xs: 16, sm: 24, md: 32 } }}
+        sx={{ position: "absolute", zIndex: 2, bottom: { xs: 16, sm: 24, md: 32 } }}
       >
         Next
       </Button>

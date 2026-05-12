@@ -4,6 +4,7 @@ import { CssBaseline, ThemeProvider } from '@mui/material';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
+import { CosmeticsProvider } from './context/CosmeticsContext.jsx';
 import { mtgTheme } from './theme/mtgTheme.js';
 import './styles/global.css';
 
@@ -15,7 +16,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <CssBaseline />
       <BrowserRouter>
         <AuthProvider>
-          <App />
+          <CosmeticsProvider>
+            <App />
+          </CosmeticsProvider>
         </AuthProvider>
       </BrowserRouter>
     </ThemeProvider>

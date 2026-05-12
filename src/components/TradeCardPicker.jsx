@@ -26,7 +26,18 @@ function sortedUnique(values) {
 export function TradeValueSummary({ cards, label }) {
   const total = cards.reduce((sum, card) => sum + getCardPrice(card), 0);
 
-  return <Chip color="warning" label={`${label}: ${formatPrice(total)}`} sx={{ fontWeight: 900 }} variant="outlined" />;
+  return (
+    <Chip
+      className="tradeValueChip"
+      label={`${label}: ${formatPrice(total)}`}
+      sx={{
+        borderColor: 'var(--trade-border, rgba(244, 201, 93, 0.42))',
+        color: 'var(--trade-accent, var(--text-accent))',
+        fontWeight: 900,
+      }}
+      variant="outlined"
+    />
+  );
 }
 
 export default function TradeCardPicker({ cards, emptyText, selectedIds, setSelectedIds, title }) {
@@ -64,7 +75,7 @@ export default function TradeCardPicker({ cards, emptyText, selectedIds, setSele
   }
 
   return (
-    <Card sx={{ height: '100%' }}>
+    <Card className="tradePickerPanel" sx={{ height: '100%' }}>
       <CardContent sx={{ display: 'grid', gap: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
           <Typography variant="h5">{title}</Typography>
@@ -146,8 +157,8 @@ export default function TradeCardPicker({ cards, emptyText, selectedIds, setSele
                   onClick={() => toggleCard(card.userCardId)}
                   sx={{
                     cursor: 'pointer',
-                    borderColor: checked ? 'rgba(244, 201, 93, 0.86)' : undefined,
-                    boxShadow: checked ? '0 0 28px rgba(244, 201, 93, 0.18)' : undefined,
+                    borderColor: checked ? 'var(--trade-accent)' : undefined,
+                    boxShadow: checked ? '0 0 28px var(--trade-glow)' : undefined,
                   }}
                 >
                   <Box sx={{ position: 'relative' }}>
@@ -159,7 +170,7 @@ export default function TradeCardPicker({ cards, emptyText, selectedIds, setSele
                     <Typography color="text.secondary" display="block" variant="caption">
                       {card.rarity} - {card.set?.toUpperCase()}
                     </Typography>
-                    <Typography color="warning.main" fontWeight={900} variant="caption">
+                    <Typography fontWeight={900} sx={{ color: 'var(--trade-accent, var(--text-accent))' }} variant="caption">
                       {getCardPriceLabel(card)}
                     </Typography>
                   </CardContent>

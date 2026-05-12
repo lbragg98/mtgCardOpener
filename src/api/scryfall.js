@@ -230,8 +230,12 @@ export async function getCollectorExclusiveCandidates(setCode) {
     `set:${normalizedSetCode} (frame:showcase OR frame:borderless OR frame:extendedart)`,
     `set:${normalizedSetCode} (is:foil OR is:etched)`,
     `set:${normalizedSetCode} (rarity:rare OR rarity:mythic) (frame:showcase OR frame:borderless OR frame:extendedart)`,
-    `set:${normalizedSetCode} number:>300`,
   ];
+
+  if (normalizedSetCode !== 'ltr') {
+    queries.push(`set:${normalizedSetCode} number:>300`);
+  }
+
   const candidatePages = [];
   const candidatesById = new Map();
 

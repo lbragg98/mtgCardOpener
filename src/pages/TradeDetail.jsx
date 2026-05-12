@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { acceptTrade, cancelTrade, declineTrade, getTradeById } from '../api/trades.js';
 import PageHeader from '../components/PageHeader.jsx';
+import TradeSkinSurface from '../components/TradeSkinSurface.jsx';
 import TradeSummaryCard from '../components/TradeSummaryCard.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 
@@ -43,7 +44,7 @@ export default function TradeDetail() {
   }
 
   return (
-    <Box>
+    <TradeSkinSurface>
       <Button component={Link} startIcon={<ArrowBackIcon />} to="/trades" variant="outlined" sx={{ mb: 3 }}>
         Back to Trades
       </Button>
@@ -94,6 +95,6 @@ export default function TradeDetail() {
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </Box>
+    </TradeSkinSurface>
   );
 }

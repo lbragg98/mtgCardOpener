@@ -1,9 +1,9 @@
 import { supabase } from '../lib/supabaseClient.js';
 import { addPackShards, getPackShards } from '../utils/collectionStorage.js';
 import { normalizeFoilTreatment } from '../utils/foilTypes.js';
+import { assertCanRecycleCard, getRecycleShardValue } from '../utils/recycleValue.js';
 
 const DUPLICATE_SHARD_REWARD = 100;
-const RECYCLE_SHARD_REWARD = 25;
 
 function isRealSaveableCard(card) {
   const typeLine = card?.type_line?.toLowerCase() || '';
@@ -176,16 +176,12 @@ export async function deleteUserCard(userCardId) {
 }
 
 export async function recycleUserCard(userCardId) {
-  const recycledCard = await getCardByUserCardId(userCardId);
-
-  await deleteUserCard(userCardId);
-
-  const newShardBalance = addPackShards(RECYCLE_SHARD_REWARD);
+  const result = await recycleUserCards([userCardId]);
 
   return {
-    recycledCard,
-    shardsAwarded: RECYCLE_SHARD_REWARD,
-    newShardBalance,
+    recycledCard: result.recycledCards[0],
+    shardsAwarded: result.shardsAwarded,
+    newShardBalance: result.newShardBalance,
   };
 }
 
@@ -207,4 +203,56 @@ export async function getCardByUserCardId(userCardId) {
   }
 
   return normalizeUserCardRow(data);
+}
+
+export async function recycleUserCards(userCardIds) {
+  const userId = await getCurrentUserId();
+  const uniqueUserCardIds = [...new Set(userCardIds)].filter(Boolean);
+
+  if (!uniqueUserCardIds.length) {
+    throw new Error('No cards were selected to recycle.');
+  }
+
+  const { data, error } = await supabase
+    .from('user_cards')
+    .select('*')
+    .eq('user_id', userId)
+    .in('id', uniqueUserCardIds);
+
+  if (error) {
+    throw new Error(error.message || 'Unable to load selected cards.');
+  }
+
+  const recycledCards = (data || []).map(normalizeUserCardRow);
+
+  if (recycledCards.length !== uniqueUserCardIds.length) {
+    throw new Error('One or more selected cards could not be found.');
+  }
+
+  recycledCards.forEach(assertCanRecycleCard);
+
+  const shardsAwarded = recycledCards.reduce(
+    (total, card) => total + getRecycleShardValue(card),
+    0,
+  );
+  const { error: deleteError } = await supabase
+    .from('user_cards')
+    .delete()
+    .eq('user_id', userId)
+    .in('id', uniqueUserCardIds);
+
+  if (deleteError) {
+    throw new Error(deleteError.message || 'Unable to recycle selected cards.');
+  }
+
+  const newShardBalance = addPackShards(shardsAwarded);
+  window.dispatchEvent(new Event('packShardsUpdated'));
+  window.dispatchEvent(new Event('collectionUpdated'));
+
+  return {
+    recycledCards,
+    recycledCount: recycledCards.length,
+    shardsAwarded,
+    newShardBalance,
+  };
 }

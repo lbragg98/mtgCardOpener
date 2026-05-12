@@ -4,19 +4,55 @@ import CollectionsBookmarkIcon from '@mui/icons-material/CollectionsBookmark';
 import DeleteIcon from '@mui/icons-material/Delete';
 import KeyboardArrowLeftIcon from '@mui/icons-material/KeyboardArrowLeft';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
-import { Alert, Box, Button, Card, CardContent, Chip, Grid, IconButton, Snackbar, Stack, Typography, useMediaQuery } from '@mui/material';
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Grid,
+  IconButton,
+  MenuItem,
+  Snackbar,
+  Stack,
+  TextField,
+  Typography,
+  useMediaQuery,
+} from '@mui/material';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import {
+  addCardsToBinder as addCloudCardsToBinder,
+  getBinderCards as getCloudBinderCards,
+  getOwnedBinderById as getCloudOwnedBinderById,
+  removeCardFromBinder as removeCloudCardFromBinder,
+  updateBinderCosmetics as updateCloudBinderCosmetics,
+} from '../api/binders.js';
+import { getMyCards } from '../api/userCards.js';
 import AddCardsToBinderDialog from '../components/AddCardsToBinderDialog.jsx';
 import BinderCover from '../components/BinderCover.jsx';
 import BinderOpenAnimation from '../components/BinderOpenAnimation.jsx';
 import CardImage from '../components/CardImage.jsx';
 import CardInspectionDialog from '../components/CardInspectionDialog.jsx';
+import CardSleeve from '../components/CardSleeve.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
+import { useCosmetics } from '../context/CosmeticsContext.jsx';
 import { getCollection } from '../utils/collectionStorage.js';
 import { getCatalogBinderById } from '../utils/binderCatalog.js';
-import { addCardsToBinder, getBinderById, removeCardFromBinder } from '../utils/binderStorage.js';
+import {
+  addCardsToBinder as addLocalCardsToBinder,
+  getBinderById,
+  removeCardFromBinder as removeLocalCardFromBinder,
+  updateBinderCosmetics as updateLocalBinderCosmetics,
+} from '../utils/binderStorage.js';
 import { formatPrice, getCardPrice } from '../utils/cardPricing.js';
+import { SHOP_CATEGORIES } from '../utils/shopCatalog.js';
 
 function getBinderPageLayout(capacity) {
   if (capacity <= 2) return { columns: 2, slotsPerPage: 2 };
@@ -28,14 +64,26 @@ function getBinderPageLayout(capacity) {
   return { columns: 4, slotsPerPage: 16 };
 }
 
+const BINDER_COSMETIC_SLOTS = [
+  { key: 'equippedClaspId', label: 'Clasp', slot: 'binderClasp' },
+  { key: 'equippedPageStyleId', label: 'Page Background', slot: 'binderPageStyle' },
+  { key: 'equippedSlotFrameId', label: 'Slot Frame', slot: 'binderSlotFrame' },
+  { key: 'equippedAuraId', label: 'Binder Aura', slot: 'binderAura' },
+];
+
 export default function BinderDetail() {
   const navigate = useNavigate();
   const { binderId } = useParams();
+  const { user } = useAuth();
+  const { getEquippedItem, ownedItems } = useCosmetics();
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down('sm'));
-  const [ownedBinder, setOwnedBinder] = useState(() => getBinderById(binderId));
-  const [collection, setCollection] = useState(() => getCollection());
+  const [ownedBinder, setOwnedBinder] = useState(null);
+  const [collection, setCollection] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [hasOpened, setHasOpened] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isCustomizeOpen, setIsCustomizeOpen] = useState(false);
+  const [customizingCosmetics, setCustomizingCosmetics] = useState(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [pageDirection, setPageDirection] = useState(1);
   const [selectedCard, setSelectedCard] = useState(null);
@@ -47,7 +95,9 @@ export default function BinderDetail() {
   const binder = ownedBinder ? getCatalogBinderById(ownedBinder.binderId) : null;
   const pageLayout = getBinderPageLayout(binder?.capacity || 2);
   const binderCards = ownedBinder
-    ? ownedBinder.cards.map((collectionId) => collectionById.get(collectionId)).filter(Boolean)
+    ? user
+      ? ownedBinder.binderCards || []
+      : ownedBinder.cards.map((collectionId) => collectionById.get(collectionId)).filter(Boolean)
     : [];
   const binderValue = useMemo(
     () => binderCards.reduce((total, card) => total + getCardPrice(card), 0),
@@ -65,32 +115,121 @@ export default function BinderDetail() {
     pagesPerView === 1 || visiblePageIndexes.length === 1
       ? `Page ${currentPage + 1} / ${totalPages}`
       : `Pages ${currentPage + 1}-${visiblePageIndexes[visiblePageIndexes.length - 1] + 1} / ${totalPages}`;
+  const equippedSleeve = getEquippedItem('cardSleeve');
+  const sleeveId = equippedSleeve?.id;
+  const binderCosmetics = {
+    claspId: ownedBinder?.equippedClaspId || '',
+    pageStyleId: ownedBinder?.equippedPageStyleId || '',
+    slotFrameId: ownedBinder?.equippedSlotFrameId || '',
+    auraId: ownedBinder?.equippedAuraId || '',
+  };
+  const displayBinder = binder ? { ...binder, cosmetics: binderCosmetics } : null;
+  const ownedBinderCosmetics = useMemo(
+    () => ownedItems.filter((item) => item.category === SHOP_CATEGORIES.BINDER_COSMETICS),
+    [ownedItems],
+  );
 
   useEffect(() => {
     setCurrentPage((page) => Math.min(page, maxPageStart));
   }, [maxPageStart]);
 
   useEffect(() => {
+    let isMounted = true;
+
+    async function loadBinderState() {
+      try {
+        setIsLoading(true);
+
+        if (user) {
+          const [cloudBinder, cloudCollection, cloudBinderCards] = await Promise.all([
+            getCloudOwnedBinderById(binderId),
+            getMyCards(),
+            getCloudBinderCards(binderId),
+          ]);
+
+          if (isMounted) {
+            setOwnedBinder(
+              cloudBinder
+                ? {
+                    ...cloudBinder,
+                    cards: cloudBinderCards.map((card) => card.userCardId || card.collectionId),
+                    binderCards: cloudBinderCards,
+                  }
+                : null,
+            );
+            setCollection(cloudCollection);
+          }
+
+          return;
+        }
+
+        if (isMounted) {
+          setOwnedBinder(getBinderById(binderId));
+          setCollection(getCollection());
+        }
+      } catch (error) {
+        if (isMounted) {
+          setSnackbar({ message: error.message || 'Unable to load binder.', severity: 'error' });
+          setOwnedBinder(null);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadBinderState();
+
     window.addEventListener('bindersUpdated', refreshBinderState);
     window.addEventListener('collectionUpdated', refreshBinderState);
     window.addEventListener('storage', refreshBinderState);
 
     return () => {
+      isMounted = false;
       window.removeEventListener('bindersUpdated', refreshBinderState);
       window.removeEventListener('collectionUpdated', refreshBinderState);
       window.removeEventListener('storage', refreshBinderState);
     };
-  }, [binderId]);
+  }, [binderId, user]);
 
-  function refreshBinderState() {
+  async function refreshBinderState() {
+    if (user) {
+      const [cloudBinder, cloudCollection, cloudBinderCards] = await Promise.all([
+        getCloudOwnedBinderById(binderId),
+        getMyCards(),
+        getCloudBinderCards(binderId),
+      ]);
+
+      setOwnedBinder(
+        cloudBinder
+          ? {
+              ...cloudBinder,
+              cards: cloudBinderCards.map((card) => card.userCardId || card.collectionId),
+              binderCards: cloudBinderCards,
+            }
+          : null,
+      );
+      setCollection(cloudCollection);
+      return;
+    }
+
     setOwnedBinder(getBinderById(binderId));
     setCollection(getCollection());
   }
 
-  function handleAddCards(collectionIds) {
+  async function handleAddCards(collectionIds) {
     try {
-      const updatedBinder = addCardsToBinder(ownedBinder.ownedBinderId, collectionIds);
-      setOwnedBinder(updatedBinder);
+      const updatedBinder = user
+        ? await addCloudCardsToBinder(ownedBinder.ownedBinderId, collectionIds)
+        : addLocalCardsToBinder(ownedBinder.ownedBinderId, collectionIds);
+
+      if (user) {
+        await refreshBinderState();
+      } else {
+        setOwnedBinder(updatedBinder);
+      }
+
       setIsAddDialogOpen(false);
       setSnackbar({
         message: `Added ${collectionIds.length} card${collectionIds.length === 1 ? '' : 's'} to ${binder.name}.`,
@@ -101,14 +240,61 @@ export default function BinderDetail() {
     }
   }
 
-  function handleRemoveCard(collectionId) {
+  async function handleRemoveCard(collectionId) {
     try {
-      const updatedBinder = removeCardFromBinder(ownedBinder.ownedBinderId, collectionId);
-      setOwnedBinder(updatedBinder);
+      const updatedBinder = user
+        ? await removeCloudCardFromBinder(ownedBinder.ownedBinderId, collectionId)
+        : removeLocalCardFromBinder(ownedBinder.ownedBinderId, collectionId);
+
+      if (user) {
+        await refreshBinderState();
+      } else {
+        setOwnedBinder(updatedBinder);
+      }
+
       setSnackbar({ message: `Removed card from ${binder.name}.`, severity: 'success' });
     } catch (error) {
       setSnackbar({ message: error.message, severity: 'error' });
     }
+  }
+
+  function openCustomizeBinder() {
+    setCustomizingCosmetics({
+      equippedClaspId: ownedBinder?.equippedClaspId || '',
+      equippedPageStyleId: ownedBinder?.equippedPageStyleId || '',
+      equippedSlotFrameId: ownedBinder?.equippedSlotFrameId || '',
+      equippedAuraId: ownedBinder?.equippedAuraId || '',
+    });
+    setIsCustomizeOpen(true);
+  }
+
+  async function handleSaveBinderCosmetics() {
+    try {
+      const updatedBinder = user
+        ? await updateCloudBinderCosmetics(ownedBinder.ownedBinderId, customizingCosmetics)
+        : updateLocalBinderCosmetics(ownedBinder.ownedBinderId, customizingCosmetics);
+
+      if (user) {
+        await refreshBinderState();
+      } else {
+        setOwnedBinder(updatedBinder);
+      }
+
+      setIsCustomizeOpen(false);
+      setSnackbar({ message: 'Binder cosmetics updated.', severity: 'success' });
+    } catch (error) {
+      setSnackbar({ message: error.message || 'Unable to update binder cosmetics.', severity: 'error' });
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent sx={{ py: 7, textAlign: 'center' }}>
+          <Typography color="text.secondary">Loading binder...</Typography>
+        </CardContent>
+      </Card>
+    );
   }
 
   if (!ownedBinder || !binder) {
@@ -159,9 +345,11 @@ export default function BinderDetail() {
             className="binderSlotRemove"
             onClick={(event) => {
               event.stopPropagation();
-              handleRemoveCard(card.collectionId);
+              handleRemoveCard(card.userCardId || card.collectionId);
               setSelectedCard((currentCard) =>
-                currentCard?.collectionId === card.collectionId ? null : currentCard,
+                (currentCard?.userCardId || currentCard?.collectionId) === (card.userCardId || card.collectionId)
+                  ? null
+                  : currentCard,
               );
             }}
             size="small"
@@ -187,6 +375,7 @@ export default function BinderDetail() {
         sx={{ '--binder-accent': binder.colors.accent, cursor: 'pointer' }}
       >
         <Box className="binderSleevePocket">
+          <CardSleeve sleeveId={sleeveId} size="small" />
           <Typography sx={{ fontSize: 12, fontWeight: 900 }}>Slot {slotIndex + 1}</Typography>
         </Box>
       </Box>
@@ -194,14 +383,14 @@ export default function BinderDetail() {
   }
 
   if (!hasOpened) {
-    return <BinderOpenAnimation binder={binder} onComplete={() => setHasOpened(true)} />;
+    return <BinderOpenAnimation binder={displayBinder} onComplete={() => setHasOpened(true)} />;
   }
 
   return (
     <Box>
       <Grid container spacing={3} alignItems="stretch" sx={{ mb: 4 }}>
         <Grid size={{ xs: 12, md: 4 }}>
-          <BinderCover animated={false} binder={binder} owned size="large" />
+          <BinderCover animated={false} binder={displayBinder} owned size="large" />
         </Grid>
         <Grid size={{ xs: 12, md: 8 }}>
           <Card sx={{ height: '100%' }}>
@@ -215,7 +404,7 @@ export default function BinderDetail() {
               <Typography variant="h2" sx={{ fontSize: { xs: 34, md: 52 } }}>
                 {binder.name}
               </Typography>
-              <Typography color="warning.main" fontWeight={950} sx={{ fontSize: { xs: 24, md: 30 } }}>
+              <Typography fontWeight={950} sx={{ color: 'var(--text-accent)', fontSize: { xs: 24, md: 30 } }}>
                 {formatPrice(binderValue)}
               </Typography>
               <Typography color="text.secondary" sx={{ fontSize: 12, fontWeight: 800 }}>
@@ -225,6 +414,9 @@ export default function BinderDetail() {
               <Stack direction={{ xs: 'column', sm: 'row' }} gap={1.5}>
                 <Button disabled={emptySlots <= 0} onClick={() => setIsAddDialogOpen(true)} startIcon={<AddIcon />} variant="contained">
                   Add Cards
+                </Button>
+                <Button onClick={openCustomizeBinder} variant="contained">
+                  Customize Binder
                 </Button>
                 <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/binders')} variant="outlined">
                   Back to Binders
@@ -274,7 +466,17 @@ export default function BinderDetail() {
             </Stack>
           </Stack>
 
-          <Box className="binderSpread" sx={{ '--binder-accent': binder.colors.accent }}>
+          <Box
+            className={[
+              'binderSpread',
+              binderCosmetics.pageStyleId ? `binderPageStyle-${binderCosmetics.pageStyleId}` : '',
+              binderCosmetics.slotFrameId ? `binderSlotFrame-${binderCosmetics.slotFrameId}` : '',
+              binderCosmetics.auraId ? `binderAuraCosmetic-${binderCosmetics.auraId}` : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+            sx={{ '--binder-accent': binder.colors.accent }}
+          >
             <AnimatePresence custom={pageDirection} mode="wait">
               <Box
                 className="binderSpreadMotion"
@@ -298,7 +500,7 @@ export default function BinderDetail() {
                       sx={{ '--binder-accent': binder.colors.accent }}
                     >
                       <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.25 }}>
-                        <Typography color="warning.main" sx={{ fontSize: 13, fontWeight: 900 }}>
+                        <Typography sx={{ color: 'var(--text-accent)', fontSize: 13, fontWeight: 900 }}>
                           Page {pageIndex + 1}
                         </Typography>
                         <Typography color="text.secondary" sx={{ fontSize: 12, fontWeight: 800 }}>
@@ -333,7 +535,7 @@ export default function BinderDetail() {
                   width: pageIndex >= currentPage && pageIndex < currentPage + pagesPerView ? 22 : 8,
                   height: 8,
                   borderRadius: 99,
-                  bgcolor: pageIndex >= currentPage && pageIndex < currentPage + pagesPerView ? 'warning.main' : 'rgba(248, 247, 255, 0.22)',
+                  bgcolor: pageIndex >= currentPage && pageIndex < currentPage + pagesPerView ? 'var(--text-accent)' : 'rgba(248, 247, 255, 0.22)',
                   cursor: 'pointer',
                   transition: 'width 160ms ease, background-color 160ms ease',
                 }}
@@ -355,11 +557,57 @@ export default function BinderDetail() {
         ownedBinder={ownedBinder}
       />
 
+      <Dialog maxWidth="sm" fullWidth onClose={() => setIsCustomizeOpen(false)} open={isCustomizeOpen}>
+        <DialogTitle>Customize Binder</DialogTitle>
+        <DialogContent sx={{ display: 'grid', gap: 2, pt: 1 }}>
+          {ownedBinderCosmetics.length === 0 && (
+            <Alert severity="info" variant="outlined">
+              Buy binder cosmetics from the Shop to customize this binder.
+            </Alert>
+          )}
+          {BINDER_COSMETIC_SLOTS.map((slot) => {
+            const options = ownedBinderCosmetics.filter((item) => item.equipSlot === slot.slot);
+
+            return (
+              <TextField
+                key={slot.key}
+                disabled={!options.length}
+                fullWidth
+                label={slot.label}
+                onChange={(event) =>
+                  setCustomizingCosmetics((current) => ({
+                    ...(current || {}),
+                    [slot.key]: event.target.value,
+                  }))
+                }
+                select
+                value={customizingCosmetics?.[slot.key] || ''}
+              >
+                <MenuItem value="">None</MenuItem>
+                {options.map((item) => (
+                  <MenuItem key={item.id} value={item.id}>
+                    {item.name}
+                  </MenuItem>
+                ))}
+              </TextField>
+            );
+          })}
+        </DialogContent>
+        <DialogActions sx={{ p: 3, pt: 1 }}>
+          <Button onClick={() => setIsCustomizeOpen(false)} variant="outlined">
+            Cancel
+          </Button>
+          <Button disabled={!customizingCosmetics} onClick={handleSaveBinderCosmetics} variant="contained">
+            Save Cosmetics
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       <CardInspectionDialog
         card={selectedCard}
         onClose={() => setSelectedCard(null)}
         onRemoveFromBinder={(cardToRemove) => {
-          handleRemoveCard(cardToRemove.collectionId);
+          handleRemoveCard(cardToRemove.userCardId || cardToRemove.collectionId);
           setSelectedCard(null);
         }}
         open={Boolean(selectedCard)}

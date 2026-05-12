@@ -9,10 +9,12 @@ import {
   DialogTitle,
   Stack,
   Typography,
+  useMediaQuery,
 } from '@mui/material';
 import { formatPrice, getCardPriceLabel } from '../utils/cardPricing.js';
 import { isOneOfOneRing } from '../utils/collectorExclusiveCards.js';
 import { FOIL_LABELS, normalizeFoilTreatment } from '../utils/foilTypes.js';
+import { getRecycleShardValue } from '../utils/recycleValue.js';
 import CardImage from './CardImage.jsx';
 import InspectableFoilCard from './InspectableFoilCard.jsx';
 
@@ -24,10 +26,11 @@ export default function CardInspectionDialog({
   open,
   sourceContext,
 }) {
+  const isMobile = useMediaQuery((theme) => theme.breakpoints.down('sm'));
   const foilTreatment = card ? normalizeFoilTreatment(card) : null;
   const isOneOfOne = isOneOfOneRing(card);
   const canRemoveFromBinder = sourceContext === 'binder' && Boolean(onRemoveFromBinder);
-  const canRecycle = sourceContext === 'collection' && Boolean(onRecycle);
+  const canRecycle = sourceContext === 'collection' && Boolean(onRecycle) && !isOneOfOne;
 
   function handleRemoveFromBinder() {
     if (card && onRemoveFromBinder) {
@@ -46,36 +49,44 @@ export default function CardInspectionDialog({
   }
 
   return (
-    <Dialog fullWidth maxWidth="md" onClose={onClose} open={open}>
+    <Dialog
+      className="cardInspectionDialog"
+      fullScreen={isMobile}
+      fullWidth
+      maxWidth="lg"
+      onClose={onClose}
+      open={open}
+    >
       {card && (
         <>
           <DialogTitle>{card.name}</DialogTitle>
-          <DialogContent>
+          <DialogContent className="cardInspectionDialogContent">
             <Box
               sx={{
                 display: 'grid',
-                gridTemplateColumns: { xs: '1fr', md: 'minmax(260px, 380px) minmax(0, 1fr)' },
-                gap: { xs: 2.5, md: 3 },
-                alignItems: 'start',
+                gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1.08fr) minmax(320px, 0.92fr)' },
+                gap: { xs: 2.5, md: 4 },
+                alignItems: { xs: 'start', md: 'center' },
+                minHeight: { xs: 'auto', md: '70vh' },
+                overflow: 'visible',
               }}
             >
               <Box
+                className="cardInspectionStage"
                 sx={{
-                  display: 'grid',
-                  justifyItems: 'center',
-                  mx: 'auto',
-                  width: '100%',
-                  maxWidth: { xs: 340, sm: 380 },
+                  minHeight: { xs: '58vh', md: '70vh' },
                 }}
               >
                 {card.isFoil ? (
                   <InspectableFoilCard
                     canInspect={card.isFoil}
                     card={card}
+                    stableInspection
                     sx={{
-                      position: 'relative',
-                      width: '100%',
+                      maxHeight: { xs: '58vh', md: '70vh' },
+                      maxWidth: '100%',
                       boxShadow: '0 24px 70px rgba(0, 0, 0, 0.52)',
+                      width: { xs: 'min(100%, calc(58vh * 488 / 680))', md: 'min(100%, calc(70vh * 488 / 680))' },
                     }}
                     variant="detail"
                   />
@@ -84,16 +95,26 @@ export default function CardInspectionDialog({
                     card={card}
                     large
                     sx={{
-                      position: 'relative',
-                      width: '100%',
+                      maxHeight: { xs: '58vh', md: '70vh' },
+                      maxWidth: '100%',
                       boxShadow: '0 22px 62px rgba(0, 0, 0, 0.48)',
+                      width: { xs: 'min(100%, calc(58vh * 488 / 680))', md: 'min(100%, calc(70vh * 488 / 680))' },
                     }}
                     variant="detail"
                   />
                 )}
               </Box>
 
-              <Stack spacing={1.5}>
+              <Stack
+                spacing={1.5}
+                sx={{
+                  alignSelf: { xs: 'stretch', md: 'center' },
+                  maxHeight: { xs: 'none', md: '70vh' },
+                  minWidth: 0,
+                  overflowY: { xs: 'visible', md: 'auto' },
+                  pr: { md: 1 },
+                }}
+              >
                 <Stack direction="row" flexWrap="wrap" gap={1}>
                   <Chip label={card.rarity || 'Unknown rarity'} sx={{ textTransform: 'capitalize', fontWeight: 900 }} />
                   <Chip label={card.isFoil ? 'Foil' : 'Non-foil'} color={card.isFoil ? 'warning' : 'default'} />
@@ -148,7 +169,7 @@ export default function CardInspectionDialog({
           <DialogActions sx={{ px: 3, pb: 3, pt: 1 }}>
             {canRecycle && (
               <Button color="warning" onClick={handleRecycle} variant="outlined">
-                Recycle for 25 Pack Shards
+                Recycle for {getRecycleShardValue(card).toLocaleString()} Pack Shards
               </Button>
             )}
             {canRemoveFromBinder && (

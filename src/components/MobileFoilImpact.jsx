@@ -10,7 +10,7 @@ export default function MobileFoilImpact({ active, card }) {
 
   return (
     <Box
-      className={`mobileFoilImpact mobileFoilImpact-${config.treatment} ${config.impactClass}`}
+      className={`mobileFoilImpact mobileFoilImpact-${config.treatment}`}
       sx={{
         '--impact-primary': config.colors.primary,
         '--impact-secondary': config.colors.secondary,

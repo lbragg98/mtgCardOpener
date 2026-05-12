@@ -5,6 +5,7 @@ import HomeIcon from '@mui/icons-material/Home';
 import Inventory2Icon from '@mui/icons-material/Inventory2';
 import LoginIcon from '@mui/icons-material/Login';
 import MenuIcon from '@mui/icons-material/Menu';
+import ViewCarouselIcon from '@mui/icons-material/ViewCarousel';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import StyleIcon from '@mui/icons-material/Style';
@@ -27,6 +28,8 @@ import {
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useCosmetics } from '../context/CosmeticsContext.jsx';
+import { getThemeVariables } from '../theme/cosmeticThemes.js';
 import { getPackShards } from '../utils/collectionStorage.js';
 import LocalCollectionMigrationDialog from './LocalCollectionMigrationDialog.jsx';
 
@@ -36,6 +39,7 @@ const navItems = [
   { label: 'Collection', path: '/collection', icon: <CollectionsBookmarkIcon /> },
   { label: 'Shop', path: '/shop', icon: <StorefrontIcon /> },
   { label: 'Binders', path: '/binders', icon: <Inventory2Icon /> },
+  { label: 'Showcase', path: '/showcase', icon: <ViewCarouselIcon /> },
   { label: 'Friends', path: '/friends', icon: <GroupIcon /> },
   { label: 'Trades', path: '/trades', icon: <SwapHorizIcon /> },
 ];
@@ -51,10 +55,14 @@ const loggedOutNavItems = [
 export default function Layout() {
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down('sm'));
   const { profile, signOut, user } = useAuth();
+  const { getEquippedItem } = useCosmetics();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [packShards, setPackShards] = useState(() => getPackShards());
   const { pathname } = useLocation();
   const isPackReveal = pathname.startsWith('/open/');
+  const equippedTheme = getEquippedItem('appTheme');
+  const equippedTitleBadge = getEquippedItem('titleBadge');
+  const themeVariables = getThemeVariables(equippedTheme?.id);
 
   useEffect(() => {
     function refreshPackShards() {
@@ -80,8 +88,11 @@ export default function Layout() {
       to={item.path}
       sx={{
         color: 'text.secondary',
-        '&.active': { color: 'warning.main' },
-        '&:hover': { color: 'primary.light', boxShadow: '0 0 16px rgba(143, 124, 255, 0.16)' },
+        '&.active': { color: 'var(--text-accent)' },
+        '&:hover': {
+          color: 'var(--secondary-accent)',
+          boxShadow: '0 0 16px var(--primary-glow)',
+        },
       }}
     >
       {item.label}
@@ -93,11 +104,29 @@ export default function Layout() {
   }
 
   return (
-    <Box sx={{ minHeight: '100vh' }}>
+    <Box
+      className={equippedTheme?.cssClass || ''}
+      sx={{
+        ...themeVariables,
+        minHeight: '100vh',
+        bgcolor: 'var(--app-bg)',
+        background:
+          'radial-gradient(circle at 12% 0%, var(--primary-glow), transparent 28rem), radial-gradient(circle at 88% 18%, color-mix(in srgb, var(--particle-color) 58%, transparent), transparent 24rem), var(--app-bg)',
+        transition: 'background-color 180ms ease, background 180ms ease',
+      }}
+    >
       {!isPackReveal && (
-      <AppBar position="sticky">
+      <AppBar
+        position="sticky"
+        sx={{
+          backgroundImage:
+            'linear-gradient(90deg, color-mix(in srgb, var(--app-bg) 94%, transparent), color-mix(in srgb, var(--secondary-accent) 18%, var(--app-bg)))',
+          borderBottom: '1px solid var(--panel-border)',
+          boxShadow: '0 0 24px var(--primary-glow)',
+        }}
+      >
         <Toolbar sx={{ gap: { xs: 1, sm: 2 }, minWidth: 0, px: { xs: 1.5, sm: 3 } }}>
-          <StyleIcon color="warning" />
+          <StyleIcon sx={{ color: 'var(--text-accent)' }} />
           <Typography
             variant="h6"
             component="div"
@@ -127,7 +156,11 @@ export default function Layout() {
           {!isMobile && user && (
             <Chip
               color="secondary"
-              label={profile?.display_name || profile?.username || 'Signed in'}
+              label={
+                equippedTitleBadge
+                  ? `${profile?.display_name || profile?.username || 'Signed in'} · ${equippedTitleBadge.name}`
+                  : profile?.display_name || profile?.username || 'Signed in'
+              }
               size="small"
               sx={{ fontWeight: 900 }}
               variant="outlined"
@@ -159,11 +192,11 @@ export default function Layout() {
 
       {!isPackReveal && (
       <Drawer anchor="right" open={isDrawerOpen} onClose={() => setIsDrawerOpen(false)}>
-        <Box sx={{ width: 260, pt: 2 }} role="navigation" onClick={() => setIsDrawerOpen(false)}>
+        <Box sx={{ width: 260, pt: 2, bgcolor: 'var(--app-bg)', minHeight: '100%' }} role="navigation" onClick={() => setIsDrawerOpen(false)}>
           <List>
             {user && (
             <ListItemButton>
-              <ListItemIcon sx={{ color: 'warning.main' }}>
+                <ListItemIcon sx={{ color: 'var(--text-accent)' }}>
                 <AutoAwesomeIcon />
               </ListItemIcon>
               <ListItemText primary={`${packShards.toLocaleString()} pack shards`} />
@@ -171,21 +204,24 @@ export default function Layout() {
             )}
             {user && (
               <ListItemButton>
-                <ListItemIcon sx={{ color: 'secondary.main' }}>
+                <ListItemIcon sx={{ color: 'var(--secondary-accent)' }}>
                   <StyleIcon />
                 </ListItemIcon>
-                <ListItemText primary={profile?.display_name || profile?.username || 'Signed in'} />
+                <ListItemText
+                  primary={profile?.display_name || profile?.username || 'Signed in'}
+                  secondary={equippedTitleBadge?.name}
+                />
               </ListItemButton>
             )}
             {visibleNavItems.map((item) => (
               <ListItemButton key={item.path} component={NavLink} to={item.path}>
-                <ListItemIcon sx={{ color: 'primary.light' }}>{item.icon}</ListItemIcon>
+                <ListItemIcon sx={{ color: 'var(--secondary-accent)' }}>{item.icon}</ListItemIcon>
                 <ListItemText primary={item.label} />
               </ListItemButton>
             ))}
             {user && (
               <ListItemButton onClick={handleSignOut}>
-                <ListItemIcon sx={{ color: 'primary.light' }}>
+                <ListItemIcon sx={{ color: 'var(--secondary-accent)' }}>
                   <LoginIcon />
                 </ListItemIcon>
                 <ListItemText primary="Sign Out" />

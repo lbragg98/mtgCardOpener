@@ -3,7 +3,6 @@ import { animate, motion, useMotionValue } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
 import { normalizeFoilTreatment } from '../utils/foilTypes.js';
 import CardImage from './CardImage.jsx';
-import FoilAmbientScene from './FoilAmbientScene.jsx';
 import MobileFoilImpact from './MobileFoilImpact.jsx';
 
 const MOBILE_SWIPE_START_THRESHOLD = 24;
@@ -148,7 +147,7 @@ export default function MobileFoilRevealCard({ card, cardKey, className = '', on
   }
 
   return (
-    <Box className={`mobileFoilReveal mobileFoilReveal-${treatment} revealCardOuter`}>
+    <Box className={`mobileFoilReveal mobileFoilReveal-${treatment}`}>
       <Box
         className="mobileFoilSwipeWrapper"
         component={motion.div}
@@ -158,26 +157,25 @@ export default function MobileFoilRevealCard({ card, cardKey, className = '', on
         onPointerUp={handlePointerUp}
         style={{ x: swipeX }}
       >
-        <FoilAmbientScene active={canInspect} card={card} isMobile />
         <MobileFoilImpact active={impactActive} card={card} />
         <Box
           className="mobileFoilRevealWrapper"
           component={motion.div}
           initial={{
             opacity: 0,
-            y: 70,
-            scale: 0.84,
+            y: 72,
+            scale: 0.86,
             rotateZ: -2,
           }}
           animate={{
             opacity: 1,
-            y: [70, -8, 4, 0],
-            scale: [0.84, 1.07, 0.98, 1],
+            y: [72, -10, 4, 0],
+            scale: [0.86, 1.08, 0.98, 1],
             rotateZ: [-2, 1, 0],
           }}
           transition={{
-            duration: 0.65,
-            times: [0, 0.5, 0.78, 1],
+            duration: 0.62,
+            times: [0, 0.48, 0.78, 1],
             ease: 'easeOut',
           }}
         >

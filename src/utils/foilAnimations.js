@@ -106,19 +106,19 @@ export function getFoilRevealMotion(card, isMobile = false) {
     return {
       initial: {
         opacity: 0,
-        y: 70,
-        scale: 0.84,
-        rotateZ: treatment === FOIL_TREATMENTS.NEON_INK ? 0 : -2,
+        y: 72,
+        scale: 0.86,
+        rotateZ: -2,
       },
       animate: {
         opacity: 1,
-        y: [70, -8, 4, 0],
-        scale: [0.84, 1.07, 0.98, 1],
-        rotateZ: treatment === FOIL_TREATMENTS.NEON_INK ? [0, -1, 1, 0] : [-2, 1, 0],
+        y: [72, -10, 4, 0],
+        scale: [0.86, 1.08, 0.98, 1],
+        rotateZ: [-2, 1, 0],
       },
       transition: {
-        duration: 0.65,
-        times: [0, 0.5, 0.78, 1],
+        duration: 0.62,
+        times: [0, 0.48, 0.78, 1],
         ease: 'easeOut',
       },
     };

@@ -33,20 +33,8 @@ import {
   sendFriendRequest,
 } from '../api/friends.js';
 import PageHeader from '../components/PageHeader.jsx';
+import UserProfileCard from '../components/UserProfileCard.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
-
-function ProfileLine({ profile }) {
-  return (
-    <Box sx={{ minWidth: 0 }}>
-      <Typography fontWeight={950} noWrap>
-        {profile?.display_name || 'Unknown collector'}
-      </Typography>
-      <Typography color="text.secondary" sx={{ fontSize: 13 }} noWrap>
-        @{profile?.username || 'unknown'}
-      </Typography>
-    </Box>
-  );
-}
 
 function EmptyState({ children }) {
   return (
@@ -198,21 +186,27 @@ export default function Friends() {
 
               return (
                 <Card key={profile.id}>
-                  <CardContent sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
-                    <ProfileLine profile={profile} />
-                    {resultState === 'friends' && <Chip color="success" label="Friends" />}
-                    {resultState === 'pending' && <Chip color="warning" label="Pending" variant="outlined" />}
-                    {resultState === 'available' && (
-                      <Button
-                        onClick={() =>
-                          runAction(() => sendFriendRequest(profile.id), `Friend request sent to @${profile.username}.`)
-                        }
-                        startIcon={<PersonAddIcon />}
-                        variant="contained"
-                      >
-                        Add Friend
-                      </Button>
-                    )}
+                  <CardContent>
+                    <UserProfileCard
+                      profile={profile}
+                      actions={(
+                        <>
+                          {resultState === 'friends' && <Chip color="success" label="Friends" />}
+                          {resultState === 'pending' && <Chip color="warning" label="Pending" variant="outlined" />}
+                          {resultState === 'available' && (
+                            <Button
+                              onClick={() =>
+                                runAction(() => sendFriendRequest(profile.id), `Friend request sent to @${profile.username}.`)
+                              }
+                              startIcon={<PersonAddIcon />}
+                              variant="contained"
+                            >
+                              Add Friend
+                            </Button>
+                          )}
+                        </>
+                      )}
+                    />
                   </CardContent>
                 </Card>
               );
@@ -228,16 +222,20 @@ export default function Friends() {
           ) : (
             incomingRequests.map((request) => (
               <Card key={request.id}>
-                <CardContent sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
-                  <ProfileLine profile={request.sender} />
-                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                    <Button onClick={() => runAction(() => acceptFriendRequest(request.id), 'Friend request accepted.')} variant="contained">
-                      Accept
-                    </Button>
-                    <Button onClick={() => runAction(() => declineFriendRequest(request.id), 'Friend request declined.')} variant="outlined">
-                      Decline
-                    </Button>
-                  </Box>
+                <CardContent>
+                  <UserProfileCard
+                    profile={request.sender}
+                    actions={(
+                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                        <Button onClick={() => runAction(() => acceptFriendRequest(request.id), 'Friend request accepted.')} variant="contained">
+                          Accept
+                        </Button>
+                        <Button onClick={() => runAction(() => declineFriendRequest(request.id), 'Friend request declined.')} variant="outlined">
+                          Decline
+                        </Button>
+                      </Box>
+                    )}
+                  />
                 </CardContent>
               </Card>
             ))
@@ -252,11 +250,15 @@ export default function Friends() {
           ) : (
             outgoingRequests.map((request) => (
               <Card key={request.id}>
-                <CardContent sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
-                  <ProfileLine profile={request.receiver} />
-                  <Button onClick={() => runAction(() => cancelFriendRequest(request.id), 'Friend request cancelled.')} variant="outlined">
-                    Cancel
-                  </Button>
+                <CardContent>
+                  <UserProfileCard
+                    profile={request.receiver}
+                    actions={(
+                      <Button onClick={() => runAction(() => cancelFriendRequest(request.id), 'Friend request cancelled.')} variant="outlined">
+                        Cancel
+                      </Button>
+                    )}
+                  />
                 </CardContent>
               </Card>
             ))
@@ -271,20 +273,24 @@ export default function Friends() {
           ) : (
             friends.map((friendship) => (
               <Card key={friendship.id}>
-                <CardContent sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
-                  <ProfileLine profile={friendship.friend} />
-                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                    <Button
-                      onClick={() => navigate(`/trades/new/${friendship.friend_id}`)}
-                      startIcon={<SwapHorizIcon />}
-                      variant="contained"
-                    >
-                      Trade
-                    </Button>
-                    <Button color="error" onClick={() => setFriendToRemove(friendship.friend)} variant="outlined">
-                      Remove Friend
-                    </Button>
-                  </Box>
+                <CardContent>
+                  <UserProfileCard
+                    profile={friendship.friend}
+                    actions={(
+                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                        <Button
+                          onClick={() => navigate(`/trades/new/${friendship.friend_id}`)}
+                          startIcon={<SwapHorizIcon />}
+                          variant="contained"
+                        >
+                          Trade
+                        </Button>
+                        <Button color="error" onClick={() => setFriendToRemove(friendship.friend)} variant="outlined">
+                          Remove Friend
+                        </Button>
+                      </Box>
+                    )}
+                  />
                 </CardContent>
               </Card>
             ))

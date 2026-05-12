@@ -45,6 +45,54 @@ create table if not exists public.user_cards (
   created_at timestamptz default now()
 );
 
+-- Stores purchased binders for authenticated users.
+create table if not exists public.owned_binders (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete cascade not null,
+  binder_id text not null,
+  equipped_clasp_id text null,
+  equipped_page_style_id text null,
+  equipped_slot_frame_id text null,
+  equipped_aura_id text null,
+  purchased_at timestamptz default now(),
+  created_at timestamptz default now(),
+  unique(user_id, binder_id)
+);
+
+alter table public.owned_binders
+  add column if not exists equipped_clasp_id text null,
+  add column if not exists equipped_page_style_id text null,
+  add column if not exists equipped_slot_frame_id text null,
+  add column if not exists equipped_aura_id text null;
+
+-- Stores cards placed into owned binders.
+create table if not exists public.binder_cards (
+  id uuid primary key default gen_random_uuid(),
+  owned_binder_id uuid references public.owned_binders(id) on delete cascade not null,
+  user_card_id uuid references public.user_cards(id) on delete cascade not null,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  slot_index integer null,
+  created_at timestamptz default now(),
+  unique(owned_binder_id, user_card_id)
+);
+
+create table if not exists public.display_cases (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete cascade not null,
+  display_case_id text not null,
+  created_at timestamptz default now()
+);
+
+create table if not exists public.display_case_cards (
+  id uuid primary key default gen_random_uuid(),
+  display_case_instance_id uuid references public.display_cases(id) on delete cascade not null,
+  user_card_id uuid references public.user_cards(id) on delete cascade not null,
+  slot_index integer null,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  created_at timestamptz default now(),
+  unique(display_case_instance_id, user_card_id)
+);
+
 -- Stores accepted friendship relationships between users.
 create table if not exists public.friendships (
   id uuid primary key default gen_random_uuid(),
@@ -106,6 +154,14 @@ for each row execute function public.set_updated_at();
 create index if not exists profiles_username_idx on public.profiles(username);
 create index if not exists user_cards_user_id_idx on public.user_cards(user_id);
 create index if not exists user_cards_scryfall_id_idx on public.user_cards(scryfall_id);
+create index if not exists owned_binders_user_id_idx on public.owned_binders(user_id);
+create index if not exists binder_cards_owned_binder_id_idx on public.binder_cards(owned_binder_id);
+create index if not exists binder_cards_user_id_idx on public.binder_cards(user_id);
+create index if not exists binder_cards_user_card_id_idx on public.binder_cards(user_card_id);
+create index if not exists display_cases_user_id_idx on public.display_cases(user_id);
+create index if not exists display_case_cards_instance_id_idx on public.display_case_cards(display_case_instance_id);
+create index if not exists display_case_cards_user_id_idx on public.display_case_cards(user_id);
+create index if not exists display_case_cards_user_card_id_idx on public.display_case_cards(user_card_id);
 create index if not exists friend_requests_sender_receiver_status_idx
   on public.friend_requests(sender_id, receiver_id, status);
 create index if not exists friendships_user_friend_idx on public.friendships(user_id, friend_id);
@@ -114,6 +170,10 @@ create index if not exists trade_items_trade_id_idx on public.trade_items(trade_
 
 alter table public.profiles enable row level security;
 alter table public.user_cards enable row level security;
+alter table public.owned_binders enable row level security;
+alter table public.binder_cards enable row level security;
+alter table public.display_cases enable row level security;
+alter table public.display_case_cards enable row level security;
 alter table public.friendships enable row level security;
 alter table public.friend_requests enable row level security;
 alter table public.trades enable row level security;
@@ -170,6 +230,127 @@ with check (user_id = auth.uid());
 drop policy if exists "Users can delete their own cards" on public.user_cards;
 create policy "Users can delete their own cards"
 on public.user_cards for delete
+to authenticated
+using (user_id = auth.uid());
+
+drop policy if exists "Users can select their own binders" on public.owned_binders;
+create policy "Users can select their own binders"
+on public.owned_binders for select
+to authenticated
+using (user_id = auth.uid());
+
+drop policy if exists "Users can insert their own binders" on public.owned_binders;
+create policy "Users can insert their own binders"
+on public.owned_binders for insert
+to authenticated
+with check (user_id = auth.uid());
+
+drop policy if exists "Users can update their own binders" on public.owned_binders;
+create policy "Users can update their own binders"
+on public.owned_binders for update
+to authenticated
+using (user_id = auth.uid())
+with check (user_id = auth.uid());
+
+drop policy if exists "Users can delete their own binders" on public.owned_binders;
+create policy "Users can delete their own binders"
+on public.owned_binders for delete
+to authenticated
+using (user_id = auth.uid());
+
+drop policy if exists "Users can select their own binder cards" on public.binder_cards;
+create policy "Users can select their own binder cards"
+on public.binder_cards for select
+to authenticated
+using (user_id = auth.uid());
+
+drop policy if exists "Users can insert their own binder cards" on public.binder_cards;
+create policy "Users can insert their own binder cards"
+on public.binder_cards for insert
+to authenticated
+with check (
+  user_id = auth.uid()
+  and exists (
+    select 1
+    from public.owned_binders
+    where owned_binders.id = binder_cards.owned_binder_id
+      and owned_binders.user_id = auth.uid()
+  )
+  and exists (
+    select 1
+    from public.user_cards
+    where user_cards.id = binder_cards.user_card_id
+      and user_cards.user_id = auth.uid()
+  )
+);
+
+drop policy if exists "Users can delete their own binder cards" on public.binder_cards;
+create policy "Users can delete their own binder cards"
+on public.binder_cards for delete
+to authenticated
+using (user_id = auth.uid());
+
+drop policy if exists "Users can select their own display cases" on public.display_cases;
+create policy "Users can select their own display cases"
+on public.display_cases for select
+to authenticated
+using (user_id = auth.uid());
+
+drop policy if exists "Users can insert their own display cases" on public.display_cases;
+create policy "Users can insert their own display cases"
+on public.display_cases for insert
+to authenticated
+with check (user_id = auth.uid());
+
+drop policy if exists "Users can update their own display cases" on public.display_cases;
+create policy "Users can update their own display cases"
+on public.display_cases for update
+to authenticated
+using (user_id = auth.uid())
+with check (user_id = auth.uid());
+
+drop policy if exists "Users can delete their own display cases" on public.display_cases;
+create policy "Users can delete their own display cases"
+on public.display_cases for delete
+to authenticated
+using (user_id = auth.uid());
+
+drop policy if exists "Users can select their own display case cards" on public.display_case_cards;
+create policy "Users can select their own display case cards"
+on public.display_case_cards for select
+to authenticated
+using (user_id = auth.uid());
+
+drop policy if exists "Users can insert their own display case cards" on public.display_case_cards;
+create policy "Users can insert their own display case cards"
+on public.display_case_cards for insert
+to authenticated
+with check (
+  user_id = auth.uid()
+  and exists (
+    select 1
+    from public.display_cases
+    where display_cases.id = display_case_cards.display_case_instance_id
+      and display_cases.user_id = auth.uid()
+  )
+  and exists (
+    select 1
+    from public.user_cards
+    where user_cards.id = display_case_cards.user_card_id
+      and user_cards.user_id = auth.uid()
+  )
+);
+
+drop policy if exists "Users can update their own display case cards" on public.display_case_cards;
+create policy "Users can update their own display case cards"
+on public.display_case_cards for update
+to authenticated
+using (user_id = auth.uid())
+with check (user_id = auth.uid());
+
+drop policy if exists "Users can delete their own display case cards" on public.display_case_cards;
+create policy "Users can delete their own display case cards"
+on public.display_case_cards for delete
 to authenticated
 using (user_id = auth.uid());
 

@@ -1,9 +1,9 @@
 import { normalizeFoilTreatment } from "./foilTypes.js";
+import { assertCanRecycleCard, getRecycleShardValue } from "./recycleValue.js";
 
 const COLLECTION_KEY = "mtg-pack-opener-collection";
 const PACK_SHARDS_KEY = "mtg-pack-opener-pack-shards";
 const DUPLICATE_SHARD_REWARD = 100;
-const RECYCLE_SHARD_REWARD = 25;
 
 function createCollectionId() {
   if (globalThis.crypto?.randomUUID) {
@@ -222,7 +222,12 @@ export function recycleCards(collectionIds) {
   const updatedCollection = currentCollection.filter(
     (card) => !idsToRecycle.has(card.collectionId),
   );
-  const shardsAwarded = recycledCards.length * RECYCLE_SHARD_REWARD;
+  recycledCards.forEach(assertCanRecycleCard);
+
+  const shardsAwarded = recycledCards.reduce(
+    (total, card) => total + getRecycleShardValue(card),
+    0,
+  );
 
   localStorage.setItem(COLLECTION_KEY, JSON.stringify(updatedCollection));
   notifyCollectionUpdated();

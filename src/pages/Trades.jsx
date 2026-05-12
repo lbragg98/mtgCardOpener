@@ -16,6 +16,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { acceptTrade, cancelTrade, declineTrade, getMyTrades } from '../api/trades.js';
 import PageHeader from '../components/PageHeader.jsx';
+import TradeSkinSurface from '../components/TradeSkinSurface.jsx';
 import TradeSummaryCard from '../components/TradeSummaryCard.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 
@@ -73,7 +74,7 @@ export default function Trades() {
   }
 
   return (
-    <Box>
+    <TradeSkinSurface>
       <PageHeader eyebrow="Trading" title="Trades">
         Review incoming offers, manage outgoing trades, and keep a record of completed or cancelled deals.
       </PageHeader>
@@ -149,6 +150,6 @@ export default function Trades() {
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </Box>
+    </TradeSkinSurface>
   );
 }

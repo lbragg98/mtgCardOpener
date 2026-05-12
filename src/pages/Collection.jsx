@@ -34,6 +34,7 @@ import { isOneOfOneRing } from '../utils/collectorExclusiveCards.js';
 import { clearCollection, getCollection, getPackShards, recycleCard } from '../utils/collectionStorage.js';
 import { FOIL_LABELS, normalizeFoilTreatment } from '../utils/foilTypes.js';
 import { refreshCollectionPrices } from '../utils/priceRefresh.js';
+import { getRecycleBreakdown, getRecycleShardValue } from '../utils/recycleValue.js';
 
 const ALL_FILTER = 'all';
 const SORT_OPTIONS = {
@@ -181,6 +182,12 @@ export default function Collection() {
   }
 
   function requestRecycle(card) {
+    if (isOneOfOneRing(card)) {
+      setRecycleSeverity('warning');
+      setRecycleMessage('One-of-One cards are protected and cannot be recycled by default.');
+      return;
+    }
+
     setCardToRecycle(card);
   }
 
@@ -210,7 +217,7 @@ export default function Collection() {
       setSelectedCard((card) => (card?.collectionId === cardToRecycle.collectionId ? null : card));
       setCardToRecycle(null);
       setRecycleSeverity('success');
-      setRecycleMessage('Card recycled for 25 Pack Shards.');
+      setRecycleMessage(`Card recycled for ${result.shardsAwarded.toLocaleString()} Pack Shards.`);
     } catch (error) {
       setRecycleSeverity('error');
       setRecycleMessage(error.message || 'Unable to recycle that card.');
@@ -262,7 +269,7 @@ export default function Collection() {
       )}
 
       <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2, mb: 3 }}>
-        <Typography color="warning.main" fontWeight={900}>
+        <Typography fontWeight={900} sx={{ color: 'var(--text-accent)' }}>
           Total cards: {collection.length}
         </Typography>
         <Chip
@@ -285,6 +292,14 @@ export default function Collection() {
         >
           {isRefreshingPrices ? 'Refreshing...' : 'Refresh Prices'}
         </Button>
+        <Button
+          component={Link}
+          disabled={collection.length === 0}
+          to="/duplicates"
+          variant="contained"
+        >
+          Manage Duplicates
+        </Button>
         {!user && (
         <Button
           color="error"
@@ -299,7 +314,7 @@ export default function Collection() {
       </Box>
 
       <Alert severity="info" sx={{ mb: 3 }} variant="outlined">
-        Duplicate cards reward 100 Pack Shards when they are opened. Foil and non-foil copies count separately.
+        Recycle rewards now scale by rarity, foil treatment, and collector-exclusive status.
       </Alert>
 
       <Box
@@ -316,12 +331,12 @@ export default function Collection() {
           { label: 'Unique Cards', value: uniqueCardCount.toLocaleString(), helper: 'By Scryfall card ID' },
           { label: 'Foil Value', value: formatPrice(foilCollectionValue), helper: 'Foil copies only' },
         ].map((stat) => (
-          <Card key={stat.label} sx={{ borderColor: 'rgba(244, 201, 93, 0.24)' }}>
+          <Card key={stat.label} sx={{ borderColor: 'var(--panel-border)' }}>
             <CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
               <Typography color="text.secondary" sx={{ fontSize: 12, fontWeight: 800 }}>
                 {stat.label}
               </Typography>
-              <Typography color="warning.main" fontWeight={950} sx={{ fontSize: { xs: 20, sm: 24 } }}>
+              <Typography fontWeight={950} sx={{ color: 'var(--text-accent)', fontSize: { xs: 20, sm: 24 } }}>
                 {stat.value}
               </Typography>
               <Typography color="text.secondary" sx={{ fontSize: 11 }}>
@@ -511,6 +526,7 @@ export default function Collection() {
                 )}
                 <Button
                   color="error"
+                  disabled={isOneOfOneRing(card)}
                   onClick={(event) => {
                     event.stopPropagation();
                     requestRecycle(card);
@@ -519,7 +535,7 @@ export default function Collection() {
                   sx={{ mt: 1 }}
                   variant="outlined"
                 >
-                  Recycle
+                  {isOneOfOneRing(card) ? 'Protected' : `Recycle for ${getRecycleShardValue(card).toLocaleString()}`}
                 </Button>
               </CardContent>
             </Card>
@@ -539,15 +555,27 @@ export default function Collection() {
         <DialogTitle>Recycle card?</DialogTitle>
         <DialogContent>
           <Typography color="text.secondary">
-            This will remove {cardToRecycle?.name || 'this card'} from your collection and grant 25 Pack Shards.
+            This will remove {cardToRecycle?.name || 'this card'} from your collection.
           </Typography>
+          <Box sx={{ display: 'grid', gap: 0.75, mt: 2 }}>
+            {getRecycleBreakdown(cardToRecycle).map((item) => (
+              <Typography key={item.label} sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>
+                <span>{item.label}</span>
+                <strong>{item.amount.toLocaleString()}</strong>
+              </Typography>
+            ))}
+            <Typography color="warning.main" fontWeight={950} sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, pt: 1 }}>
+              <span>Total</span>
+              <span>{getRecycleShardValue(cardToRecycle).toLocaleString()} Pack Shards</span>
+            </Typography>
+          </Box>
         </DialogContent>
         <DialogActions sx={{ p: 3, pt: 1 }}>
           <Button disabled={isRecycling} onClick={closeRecycleDialog} variant="outlined">
             Cancel
           </Button>
           <Button color="warning" disabled={isRecycling} onClick={handleRecycleCard} variant="contained">
-            Recycle for 25 Shards
+            Recycle for {getRecycleShardValue(cardToRecycle).toLocaleString()} Shards
           </Button>
         </DialogActions>
       </Dialog>
