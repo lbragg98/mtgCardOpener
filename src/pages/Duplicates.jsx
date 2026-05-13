@@ -143,13 +143,13 @@ export default function Duplicates() {
 
       <Card sx={{ mb: 3 }}>
         <CardContent sx={{ display: 'grid', gap: 2 }}>
-          <Stack direction="row" flexWrap="wrap" gap={1}>
+          <Stack direction="row" gap={1} sx={{ flexWrap: 'wrap' }}>
             <Chip color="warning" label={`${duplicateGroups.length} duplicate groups`} variant="outlined" />
             <Chip color="secondary" label={`${extraCount} extra cards`} variant="outlined" />
             <Chip label={`${totalPossibleShards.toLocaleString()} possible shards`} variant="outlined" />
             <Chip label={`${getPackShards().toLocaleString()} current shards`} variant="outlined" />
           </Stack>
-          <Stack direction="row" flexWrap="wrap" gap={1}>
+          <Stack direction="row" gap={1} sx={{ flexWrap: 'wrap' }}>
             <Button disabled={!extraCount} onClick={() => setSelectedExtras(selectableExtras)} variant="contained">
               Select All Extras
             </Button>
@@ -169,7 +169,7 @@ export default function Duplicates() {
               Back to Collection
             </Button>
           </Stack>
-          <Stack direction="row" flexWrap="wrap" gap={1}>
+          <Stack direction="row" gap={1} sx={{ flexWrap: 'wrap' }}>
             {FILTER_ACTIONS.map(([filter, label]) => (
               <Button
                 disabled={!extraCount}
@@ -205,17 +205,17 @@ export default function Duplicates() {
         return (
           <Accordion key={group.key} sx={{ mb: 1.5 }}>
             <AccordionSummary>
-              <Stack direction="row" alignItems="center" gap={1.5} sx={{ minWidth: 0, width: '100%' }}>
+              <Stack direction="row" gap={1.5} sx={{ alignItems: 'center', minWidth: 0, width: '100%' }}>
                 <Box sx={{ width: 58, flexShrink: 0 }}>
                   <CardImage card={sampleCard} variant="grid" />
                 </Box>
                 <Box sx={{ minWidth: 0, flexGrow: 1 }}>
                   <Typography fontWeight={950} noWrap>{sampleCard.name}</Typography>
                   <Typography color="text.secondary" sx={{ fontSize: 13 }}>
-                    {sampleCard.rarity} · {FOIL_LABELS[normalizeFoilTreatment(sampleCard)] || 'Non-foil'} · {group.cards.length} owned
+                    {sampleCard.rarity} - {FOIL_LABELS[normalizeFoilTreatment(sampleCard)] || 'Non-foil'} - {group.cards.length} owned
                   </Typography>
                   <Typography color="warning.main" sx={{ fontSize: 13, fontWeight: 900 }}>
-                    {group.extras.length} extras · {group.totalRecycleValue.toLocaleString()} shards
+                    {group.extras.length} extras - {group.totalRecycleValue.toLocaleString()} shards
                   </Typography>
                 </Box>
                 <Checkbox
@@ -241,11 +241,10 @@ export default function Duplicates() {
 
                   return (
                     <Stack
-                      alignItems="center"
                       direction="row"
                       gap={1.5}
                       key={id}
-                      sx={{ border: '1px solid rgba(248, 247, 255, 0.12)', borderRadius: 1, p: 1 }}
+                      sx={{ alignItems: 'center', border: '1px solid rgba(248, 247, 255, 0.12)', borderRadius: 1, p: 1 }}
                     >
                       <Checkbox
                         checked={selected}

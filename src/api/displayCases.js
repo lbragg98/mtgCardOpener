@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabaseClient.js';
-import { getPackShards, spendPackShards } from '../utils/collectionStorage.js';
+import { addPackShards, getPackShards, spendPackShards } from '../utils/collectionStorage.js';
 import { getShopItemById, SHOP_CATEGORIES } from '../utils/shopCatalog.js';
 import { normalizeUserCardRow } from './userCards.js';
 
@@ -134,6 +134,7 @@ export async function purchaseDisplayCase(displayCaseId) {
     .single();
 
   if (error) {
+    addPackShards(catalogItem.price);
     throw new Error(error.message || 'Unable to purchase display case.');
   }
 

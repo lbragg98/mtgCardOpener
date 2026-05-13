@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabaseClient.js';
 import { BINDER_CATALOG, getCatalogBinderById } from '../utils/binderCatalog.js';
 import { getCardPrice } from '../utils/cardPricing.js';
-import { getPackShards, spendPackShards } from '../utils/collectionStorage.js';
+import { addPackShards, getPackShards, spendPackShards } from '../utils/collectionStorage.js';
 import { normalizeUserCardRow } from './userCards.js';
 
 async function getCurrentUserId() {
@@ -173,6 +173,7 @@ export async function purchaseBinder(binderId) {
     .single();
 
   if (error) {
+    addPackShards(catalogBinder.price);
     throw new Error(error.message || 'Unable to purchase binder.');
   }
 

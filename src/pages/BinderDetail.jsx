@@ -388,14 +388,14 @@ export default function BinderDetail() {
 
   return (
     <Box>
-      <Grid container spacing={3} alignItems="stretch" sx={{ mb: 4 }}>
+      <Grid container spacing={3} sx={{ alignItems: 'stretch', mb: 4 }}>
         <Grid size={{ xs: 12, md: 4 }}>
           <BinderCover animated={false} binder={displayBinder} owned size="large" />
         </Grid>
         <Grid size={{ xs: 12, md: 8 }}>
           <Card sx={{ height: '100%' }}>
             <CardContent sx={{ display: 'grid', alignContent: 'center', gap: 1.5, height: '100%' }}>
-              <Stack direction="row" flexWrap="wrap" gap={1}>
+              <Stack direction="row" gap={1} sx={{ flexWrap: 'wrap' }}>
                 <Chip label={binder.rarity} sx={{ textTransform: 'capitalize', fontWeight: 900 }} />
                 <Chip label={`${binderCards.length} / ${binder.capacity} cards`} color="warning" variant="outlined" />
                 <Chip label={`${formatPrice(binderValue)} estimated value`} color="secondary" variant="outlined" />
@@ -436,14 +436,14 @@ export default function BinderDetail() {
         }}
       >
         <CardContent sx={{ p: { xs: 2, md: 3 } }}>
-          <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} flexWrap="wrap" gap={1.5} sx={{ mb: 2.5 }}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" gap={1.5} sx={{ alignItems: { xs: 'stretch', sm: 'center' }, flexWrap: 'wrap', mb: 2.5 }}>
             <Box>
               <Typography variant="h4">Binder Pages</Typography>
               <Typography color="text.secondary" fontWeight={800}>
                 {binderCards.length} / {binder.capacity} slots filled
               </Typography>
             </Box>
-            <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ xs: 'stretch', sm: 'center' }} justifyContent={{ xs: 'space-between', sm: 'flex-end' }} gap={1}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent={{ xs: 'space-between', sm: 'flex-end' }} gap={1} sx={{ alignItems: { xs: 'stretch', sm: 'center' } }}>
               <Button
                 disabled={currentPage === 0}
                 onClick={() => goToPage(currentPage - pagesPerView)}
@@ -499,7 +499,7 @@ export default function BinderDetail() {
                       key={pageIndex}
                       sx={{ '--binder-accent': binder.colors.accent }}
                     >
-                      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.25 }}>
+                      <Stack direction="row" justifyContent="space-between" sx={{ alignItems: 'center', mb: 1.25 }}>
                         <Typography sx={{ color: 'var(--text-accent)', fontSize: 13, fontWeight: 900 }}>
                           Page {pageIndex + 1}
                         </Typography>
@@ -526,7 +526,7 @@ export default function BinderDetail() {
               </Box>
             </AnimatePresence>
           </Box>
-          <Stack direction="row" alignItems="center" justifyContent="center" gap={1} sx={{ mt: 2 }}>
+          <Stack direction="row" justifyContent="center" gap={1} sx={{ alignItems: 'center', mt: 2 }}>
             {Array.from({ length: totalPages }).map((_, pageIndex) => (
               <Box
                 key={pageIndex}

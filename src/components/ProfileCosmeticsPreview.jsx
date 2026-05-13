@@ -37,7 +37,8 @@ export default function ProfileCosmeticsPreview({ item }) {
       sx={{
         position: 'relative',
         display: 'grid',
-        minHeight: 142,
+        width: '100%',
+        minHeight: { xs: 118, sm: 142 },
         overflow: 'hidden',
         placeItems: 'center',
         border: '1px solid rgba(248, 247, 255, 0.12)',
@@ -50,9 +51,9 @@ export default function ProfileCosmeticsPreview({ item }) {
       <Box
         sx={{
           position: 'absolute',
-          top: 18,
-          width: '72%',
-          height: isBanner ? 44 : 34,
+          top: { xs: 14, sm: 18 },
+          width: { xs: '80%', sm: '72%' },
+          height: { xs: isBanner ? 36 : 28, sm: isBanner ? 44 : 34 },
           borderRadius: 1.5,
           border: `1px solid ${accent}88`,
           background: `linear-gradient(115deg, ${primary}, ${secondary})`,
@@ -63,8 +64,8 @@ export default function ProfileCosmeticsPreview({ item }) {
         sx={{
           position: 'relative',
           display: 'grid',
-          width: 54,
-          height: 54,
+          width: { xs: 46, sm: 54 },
+          height: { xs: 46, sm: 54 },
           placeItems: 'center',
           border: `3px solid ${isTitle ? secondary : accent}`,
           borderRadius: '50%',
@@ -81,11 +82,16 @@ export default function ProfileCosmeticsPreview({ item }) {
         size="small"
         sx={{
           position: 'absolute',
-          bottom: 14,
+          bottom: { xs: 10, sm: 14 },
+          maxWidth: '84%',
           borderColor: `${accent}88`,
           bgcolor: 'rgba(5,7,17,0.72)',
           color: '#fff',
           fontWeight: 900,
+          '& .MuiChip-label': {
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          },
         }}
         variant="outlined"
       />
@@ -93,10 +99,10 @@ export default function ProfileCosmeticsPreview({ item }) {
         aria-hidden="true"
         sx={{
           position: 'absolute',
-          right: 10,
-          top: 8,
+          right: { xs: 8, sm: 10 },
+          top: { xs: 6, sm: 8 },
           color: `${accent}99`,
-          fontSize: 12,
+          fontSize: { xs: 10, sm: 12 },
           fontWeight: 950,
         }}
       >

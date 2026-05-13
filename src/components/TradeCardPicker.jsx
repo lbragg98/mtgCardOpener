@@ -88,12 +88,14 @@ export default function TradeCardPicker({ cards, emptyText, selectedIds, setSele
             onChange={(event) => setSearch(event.target.value)}
             size="small"
             value={search}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon color="secondary" />
-                </InputAdornment>
-              ),
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon color="secondary" />
+                  </InputAdornment>
+                ),
+              },
             }}
           />
           <FormControl size="small">

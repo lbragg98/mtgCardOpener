@@ -100,12 +100,14 @@ export default function AddCardsToBinderDialog({
             label="Search collection"
             onChange={(event) => setSearch(event.target.value)}
             value={search}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon />
-                </InputAdornment>
-              ),
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              },
             }}
           />
           <FormControl sx={{ minWidth: { xs: '100%', md: 170 } }}>
@@ -130,7 +132,7 @@ export default function AddCardsToBinderDialog({
           </FormControl>
         </Stack>
 
-        <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mb: 2 }}>
+        <Stack direction="row" gap={1} sx={{ flexWrap: 'wrap', mb: 2 }}>
           <Chip color="warning" label={`${availableSlots} available slot${availableSlots === 1 ? '' : 's'}`} variant="outlined" />
           <Chip label={`${selectedIds.length} selected`} />
           <Chip label={`${filteredCards.length} matching cards`} variant="outlined" />

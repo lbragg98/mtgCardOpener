@@ -28,7 +28,7 @@ export default function DisplayCase({ displayCase, onAddCards, onInspectCard, on
       }}
     >
       <CardContent sx={{ display: 'grid', gap: 2, p: { xs: 2, md: 2.5 } }}>
-        <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} gap={1.5}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" gap={1.5} sx={{ alignItems: { xs: 'stretch', sm: 'center' } }}>
           <Box>
             <Typography variant="h4" sx={{ fontSize: { xs: 24, md: 30 } }}>
               {displayCase.name}
@@ -37,7 +37,7 @@ export default function DisplayCase({ displayCase, onAddCards, onInspectCard, on
               {cards.length} / {displayCase.capacity} cards displayed
             </Typography>
           </Box>
-          <Stack direction="row" flexWrap="wrap" gap={1}>
+          <Stack direction="row" gap={1} sx={{ flexWrap: 'wrap' }}>
             <Chip label={displayCase.rarity} sx={{ textTransform: 'capitalize', fontWeight: 900 }} />
             <Button disabled={cards.length >= displayCase.capacity} onClick={() => onAddCards(displayCase)} startIcon={<AddIcon />} variant="contained">
               Add Cards

@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabaseClient.js';
-import { getPackShards, spendPackShards } from '../utils/collectionStorage.js';
+import { addPackShards, getPackShards, spendPackShards } from '../utils/collectionStorage.js';
 import { getShopItemById } from '../utils/shopCatalog.js';
 
 async function getCurrentUserId() {
@@ -116,6 +116,7 @@ export async function purchaseShopItem(itemId) {
   });
 
   if (error) {
+    addPackShards(item.price);
     throw new Error(error.message || 'Unable to purchase cosmetic.');
   }
 

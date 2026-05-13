@@ -158,7 +158,7 @@ export default function Layout() {
               color="secondary"
               label={
                 equippedTitleBadge
-                  ? `${profile?.display_name || profile?.username || 'Signed in'} · ${equippedTitleBadge.name}`
+                  ? `${profile?.display_name || profile?.username || 'Signed in'} - ${equippedTitleBadge.name}`
                   : profile?.display_name || profile?.username || 'Signed in'
               }
               size="small"

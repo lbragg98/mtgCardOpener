@@ -86,7 +86,7 @@ export default function Binders() {
 
   return (
     <Box>
-      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} gap={2} sx={{ mb: 4 }}>
+      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" gap={2} sx={{ alignItems: { xs: 'flex-start', sm: 'center' }, mb: 4 }}>
         <Box>
           <Chip color="warning" icon={<Inventory2Icon />} label={`${ownedBinders.length} owned`} sx={{ mb: 2, fontWeight: 900 }} variant="outlined" />
           <Typography variant="h2" sx={{ fontSize: { xs: 36, md: 52 }, lineHeight: 1 }}>
@@ -151,7 +151,7 @@ export default function Binders() {
                 >
                   <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, height: '100%' }}>
                     <BinderCover animated binder={displayBinder} owned size="small" />
-                    <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1}>
+                  <Stack direction="row" justifyContent="space-between" gap={1} sx={{ alignItems: 'center' }}>
                       <Typography variant="h5">{binder.name}</Typography>
                       <Chip label={binder.rarity} size="small" sx={{ textTransform: 'capitalize' }} />
                     </Stack>

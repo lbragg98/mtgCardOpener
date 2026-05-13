@@ -4,6 +4,7 @@ import { normalizeFoilTreatment } from '../utils/foilTypes.js';
 import { assertCanRecycleCard, getRecycleShardValue } from '../utils/recycleValue.js';
 
 const DUPLICATE_SHARD_REWARD = 100;
+const USER_CARDS_PAGE_SIZE = 1000;
 
 function isRealSaveableCard(card) {
   const typeLine = card?.type_line?.toLowerCase() || '';
@@ -93,31 +94,37 @@ function cardToUserCardRow(card, userId, sourcePackId) {
 
 export async function getMyCards() {
   const userId = await getCurrentUserId();
-  const { data, error } = await supabase
-    .from('user_cards')
-    .select('*')
-    .eq('user_id', userId)
-    .order('opened_at', { ascending: false });
 
-  if (error) {
-    throw new Error(error.message || 'Unable to load your cloud collection.');
-  }
-
-  return (data || []).map(normalizeUserCardRow);
+  return getUserCardsForUser(userId);
 }
 
 export async function getUserCardsForUser(userId) {
-  const { data, error } = await supabase
-    .from('user_cards')
-    .select('*')
-    .eq('user_id', userId)
-    .order('opened_at', { ascending: false });
+  const rows = [];
+  let from = 0;
 
-  if (error) {
-    throw new Error(error.message || 'Unable to load that collection.');
+  while (true) {
+    const to = from + USER_CARDS_PAGE_SIZE - 1;
+    const { data, error } = await supabase
+      .from('user_cards')
+      .select('*')
+      .eq('user_id', userId)
+      .order('opened_at', { ascending: false })
+      .range(from, to);
+
+    if (error) {
+      throw new Error(error.message || 'Unable to load that collection.');
+    }
+
+    rows.push(...(data || []));
+
+    if (!data || data.length < USER_CARDS_PAGE_SIZE) {
+      break;
+    }
+
+    from += USER_CARDS_PAGE_SIZE;
   }
 
-  return (data || []).map(normalizeUserCardRow);
+  return rows.map(normalizeUserCardRow);
 }
 
 export async function saveOpenedCards(cards, sourcePackId, options = {}) {

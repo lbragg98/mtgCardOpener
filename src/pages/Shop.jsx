@@ -84,6 +84,8 @@ const COSMETIC_TABS = [
   { label: 'Binder Cosmetics', value: SHOP_CATEGORIES.BINDER_COSMETICS },
   { label: 'Display Cases', value: SHOP_CATEGORIES.DISPLAY_CASES },
   { label: 'Trade Skins', value: SHOP_CATEGORIES.TRADE_SKINS },
+  { label: 'History Frames', value: SHOP_CATEGORIES.HISTORY_FRAMES },
+  { label: 'Home Widgets', value: SHOP_CATEGORIES.HOME_WIDGETS },
 ];
 
 const COSMETIC_FILTERS = ['All', 'Affordable', 'Owned', 'Equipped', 'Locked', 'Common', 'Rare', 'Mythic', 'Legendary'];
@@ -264,7 +266,7 @@ export default function Shop() {
               'radial-gradient(circle at 12% 18%, color-mix(in srgb, var(--accent-color) 16%, transparent), transparent 28rem), radial-gradient(circle at 86% 28%, var(--primary-glow), transparent 24rem), var(--panel-bg)',
           }}
         >
-          <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', md: 'center' }} gap={3}>
+          <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" gap={3} sx={{ alignItems: { xs: 'flex-start', md: 'center' } }}>
             <Box>
               <Chip color="warning" icon={<LocalAtmIcon />} label={`${packShards.toLocaleString()} Pack Shards`} sx={{ mb: 2, fontWeight: 900 }} variant="outlined" />
               <Typography variant="h2" sx={{ fontSize: { xs: 40, md: 58 }, lineHeight: 0.98 }}>
@@ -306,7 +308,7 @@ export default function Shop() {
         <Grid size={{ xs: 12, md: 7 }}>
           <Card sx={{ height: '100%' }}>
             <CardContent sx={{ display: 'grid', gap: 1.5 }}>
-              <Stack direction="row" justifyContent="space-between" alignItems="center" gap={2}>
+              <Stack direction="row" justifyContent="space-between" gap={2} sx={{ alignItems: 'center' }}>
                 <Typography fontWeight={950} sx={{ color: 'var(--text-accent)' }}>
                   Owned Progress
                 </Typography>
@@ -315,7 +317,7 @@ export default function Shop() {
                 </Typography>
               </Stack>
               <LinearProgress color="warning" value={ownedProgress} variant="determinate" sx={{ height: 12, borderRadius: 99, bgcolor: 'rgba(248, 247, 255, 0.08)' }} />
-              <Stack direction="row" flexWrap="wrap" gap={1}>
+              <Stack direction="row" gap={1} sx={{ flexWrap: 'wrap' }}>
                 {['common', 'uncommon', 'rare', 'mythic', 'legendary'].map((tier) => (
                   <Chip
                     key={tier}
@@ -336,9 +338,9 @@ export default function Shop() {
         </Grid>
       </Grid>
 
-      <Card sx={{ mb: 3, overflow: 'hidden' }}>
-        <CardContent sx={{ display: 'grid', gap: 2.5, p: { xs: 2, md: 2.5 } }}>
-          <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', md: 'center' }} gap={2}>
+      <Card sx={{ mb: 3, maxWidth: '100%', overflow: 'hidden' }}>
+        <CardContent sx={{ display: 'grid', gap: { xs: 1.75, sm: 2.5 }, minWidth: 0, p: { xs: 1.25, sm: 2, md: 2.5 } }}>
+          <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" gap={2} sx={{ alignItems: { xs: 'stretch', md: 'center' } }}>
             <Box>
               <Typography fontWeight={950} sx={{ color: 'var(--text-accent)' }}>
                 Cosmetic Shop
@@ -367,53 +369,100 @@ export default function Shop() {
             scrollButtons="auto"
             value={cosmeticTab}
             variant="scrollable"
-            sx={{ maxWidth: '100%' }}
+            sx={{
+              maxWidth: '100%',
+              mx: { xs: -1, sm: 0 },
+              px: { xs: 1, sm: 0 },
+              borderBottom: '1px solid var(--panel-border)',
+              '& .MuiTabs-scroller': { overflowX: 'auto !important' },
+              '& .MuiTab-root': {
+                minHeight: 44,
+                px: { xs: 1.35, sm: 2 },
+                fontSize: { xs: 12, sm: 13 },
+                fontWeight: 950,
+                whiteSpace: 'nowrap',
+              },
+            }}
           >
             {COSMETIC_TABS.map((tab) => (
               <Tab key={tab.value} label={tab.label} value={tab.value} />
             ))}
           </Tabs>
 
-          <TextField
-            fullWidth
-            label="Search cosmetics"
-            onChange={(event) => setCosmeticSearch(event.target.value)}
-            value={cosmeticSearch}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon />
-                </InputAdornment>
-              ),
+          <Box
+            sx={{
+              display: 'grid',
+              gap: 1.5,
+              p: { xs: 1.25, sm: 1.5 },
+              border: '1px solid var(--panel-border)',
+              borderRadius: 2,
+              background:
+                'linear-gradient(135deg, color-mix(in srgb, var(--secondary-accent) 8%, transparent), color-mix(in srgb, var(--app-bg) 44%, transparent))',
             }}
-          />
+          >
+            <TextField
+              fullWidth
+              label="Search cosmetics"
+              onChange={(event) => setCosmeticSearch(event.target.value)}
+              value={cosmeticSearch}
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon />
+                    </InputAdornment>
+                  ),
+                },
+              }}
+            />
 
-          <Stack direction="row" flexWrap="wrap" gap={1}>
-            {COSMETIC_FILTERS.map((filterOption) => (
-              <Chip
-                clickable
-                color={cosmeticFilter === filterOption ? 'warning' : 'default'}
-                key={filterOption}
-                label={filterOption}
-                onClick={() => setCosmeticFilter(filterOption)}
-                variant={cosmeticFilter === filterOption ? 'filled' : 'outlined'}
-              />
-            ))}
-          </Stack>
+            <Stack direction="row" gap={1} sx={{ flexWrap: 'wrap' }}>
+              {COSMETIC_FILTERS.map((filterOption) => (
+                <Chip
+                  clickable
+                  color={cosmeticFilter === filterOption ? 'warning' : 'default'}
+                  key={filterOption}
+                  label={filterOption}
+                  onClick={() => setCosmeticFilter(filterOption)}
+                  sx={{ fontWeight: 900 }}
+                  variant={cosmeticFilter === filterOption ? 'filled' : 'outlined'}
+                />
+              ))}
+            </Stack>
+            <Typography color="text.secondary" sx={{ fontSize: 12, fontWeight: 800 }}>
+              Showing {visibleCosmetics.length.toLocaleString()} item{visibleCosmetics.length === 1 ? '' : 's'}
+            </Typography>
+          </Box>
 
           {!visibleCosmetics.length ? (
-            <Alert severity="info" variant="outlined">
-              No cosmetics match those filters.
-            </Alert>
+            <Card sx={{ borderStyle: 'dashed', textAlign: 'center' }}>
+              <CardContent sx={{ display: 'grid', gap: 1.5, justifyItems: 'center', py: 5 }}>
+                <AutoAwesomeIcon color="warning" sx={{ fontSize: 42 }} />
+                <Typography variant="h5">No cosmetics match</Typography>
+                <Typography color="text.secondary" sx={{ maxWidth: 420 }}>
+                  Try a different category, rarity, or search term.
+                </Typography>
+                <Button
+                  onClick={() => {
+                    setCosmeticFilter('All');
+                    setCosmeticSearch('');
+                    setCosmeticTab('featured');
+                  }}
+                  variant="outlined"
+                >
+                  Reset Filters
+                </Button>
+              </CardContent>
+            </Card>
           ) : (
-            <Grid container spacing={2}>
+            <Grid container spacing={{ xs: 1.5, md: 2 }} sx={{ maxWidth: '100%', minWidth: 0, overflow: 'hidden' }}>
               {visibleCosmetics.map((item) => {
                 const owned = isOwned(item.id);
                 const equipped = isEquipped(item.id);
                 const canAfford = packShards >= item.price;
 
                 return (
-                  <Grid key={item.id} size={{ xs: 12, sm: 6, md: 4 }}>
+                  <Grid key={item.id} size={{ xs: 12, sm: 12, md: 6, lg: 4 }} sx={{ minWidth: 0 }}>
                     <ShopItemCard
                       canAfford={canAfford}
                       equipped={equipped}
@@ -432,7 +481,7 @@ export default function Shop() {
         </CardContent>
       </Card>
 
-      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} gap={2} sx={{ mb: 2 }}>
+      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" gap={2} sx={{ alignItems: { xs: 'flex-start', sm: 'center' }, mb: 2 }}>
         <Box>
           <Typography fontWeight={950} sx={{ color: 'var(--text-accent)' }}>
             Binder Shop
@@ -446,7 +495,7 @@ export default function Shop() {
 
       <Card sx={{ mb: 3 }}>
         <CardContent sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 2, p: { xs: 2, md: 2.5 } }}>
-          <Stack direction="row" flexWrap="wrap" gap={1}>
+          <Stack direction="row" gap={1} sx={{ flexWrap: 'wrap' }}>
             {BINDER_FILTER_OPTIONS.map((option) => (
               <Chip
                 clickable
@@ -499,11 +548,11 @@ export default function Shop() {
               >
                 <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, height: '100%', p: { xs: 2, md: 2.5 } }}>
                   <BinderCover animated binder={binder} owned={owned} size="medium" />
-                  <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1}>
+                  <Stack direction="row" justifyContent="space-between" gap={1} sx={{ alignItems: 'center' }}>
                     <Typography variant="h5">{binder.name}</Typography>
                     {owned && <CheckCircleIcon color="success" />}
                   </Stack>
-                  <Stack direction="row" flexWrap="wrap" gap={1}>
+                  <Stack direction="row" gap={1} sx={{ flexWrap: 'wrap' }}>
                     <Chip
                       label={binder.rarity}
                       size="small"
@@ -547,14 +596,18 @@ export default function Shop() {
         })}
       </Grid>
 
-      <Dialog open={Boolean(itemToBuy)} onClose={() => setItemToBuy(null)}>
+      <Dialog fullWidth maxWidth="xs" open={Boolean(itemToBuy)} onClose={() => setItemToBuy(null)}>
         <DialogTitle>Buy {itemToBuy?.name}?</DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ display: 'grid', gap: 1.5 }}>
           <Typography color="text.secondary">
-            Buy this cosmetic for {itemToBuy?.price.toLocaleString()} Pack Shards?
+            Add this cosmetic to your account for {itemToBuy?.price.toLocaleString()} Pack Shards.
           </Typography>
+          <Stack direction="row" gap={1} sx={{ flexWrap: 'wrap' }}>
+            <Chip label={itemToBuy?.rarity || ''} size="small" sx={{ fontWeight: 900, textTransform: 'capitalize' }} variant="outlined" />
+            <Chip color="warning" icon={<LocalAtmIcon />} label={`${itemToBuy?.price?.toLocaleString() || 0} Pack Shards`} size="small" sx={{ fontWeight: 900 }} variant="outlined" />
+          </Stack>
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ p: 3, pt: 1 }}>
           <Button onClick={() => setItemToBuy(null)}>Cancel</Button>
           <Button onClick={handleConfirmCosmeticPurchase} variant="contained">
             Buy Cosmetic
@@ -577,8 +630,13 @@ export default function Shop() {
         </DialogActions>
       </Dialog>
 
-      <Snackbar autoHideDuration={3200} onClose={() => setSnackbar({ message: '', severity: 'success' })} open={Boolean(snackbar.message)}>
-        <Alert severity={snackbar.severity} variant="filled">
+      <Snackbar
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        autoHideDuration={3200}
+        onClose={() => setSnackbar({ message: '', severity: 'success' })}
+        open={Boolean(snackbar.message)}
+      >
+        <Alert severity={snackbar.severity} variant="filled" sx={{ width: '100%' }}>
           {snackbar.message}
         </Alert>
       </Snackbar>

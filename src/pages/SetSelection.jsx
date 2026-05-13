@@ -347,12 +347,14 @@ export default function SetSelection() {
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search by set name or code"
             value={search}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon color="secondary" />
-                </InputAdornment>
-              ),
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon color="secondary" />
+                  </InputAdornment>
+                ),
+              },
             }}
             sx={{ '& .MuiOutlinedInput-root': { bgcolor: 'rgba(5, 7, 17, 0.54)' } }}
           />

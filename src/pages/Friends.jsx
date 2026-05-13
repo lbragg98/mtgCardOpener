@@ -162,12 +162,14 @@ export default function Friends() {
                   label="Search by username"
                   onChange={(event) => setQuery(event.target.value)}
                   value={query}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon color="secondary" />
-                      </InputAdornment>
-                    ),
+                  slotProps={{
+                    input: {
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchIcon color="secondary" />
+                        </InputAdornment>
+                      ),
+                    },
                   }}
                   sx={{ flex: '1 1 260px' }}
                 />

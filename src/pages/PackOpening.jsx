@@ -277,6 +277,7 @@ function RevealCard({ card, cardNumber, exitX, onAdvance, revealEffectId }) {
   const foilRevealMotion = getFoilRevealMotion(card, isMobile);
   const isFoilReveal = Boolean(card.isFoil);
   const shouldShowEquippedRevealEffect =
+    Boolean(revealEffectId) &&
     ["rare", "mythic"].includes(card.rarity) &&
     !card.isFoil &&
     !card.isCollectorExclusive &&

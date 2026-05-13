@@ -18,8 +18,16 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { getMyOwnedBinders } from '../api/binders.js';
+import { getMyCards } from '../api/userCards.js';
 import SealedPack from '../components/SealedPack.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
+import { useCosmetics } from '../context/CosmeticsContext.jsx';
+import { BINDER_CATALOG } from '../utils/binderCatalog.js';
+import { getOwnedBinders } from '../utils/binderStorage.js';
+import { formatPrice, getCardPrice, getCollectionValue } from '../utils/cardPricing.js';
 import { getCollection, getPackShards } from '../utils/collectionStorage.js';
 
 const COLLECTOR_BOOSTER_COST = 1000;
@@ -148,6 +156,154 @@ function HomeStatCard({ helper, icon, label, value, tone = 'primary' }) {
             {helper}
           </Typography>
         </Box>
+      </CardContent>
+    </Card>
+  );
+}
+
+function getRecentPulls(collection) {
+  return [...collection]
+    .sort((a, b) => new Date(b.openedAt || b.createdAt || 0) - new Date(a.openedAt || a.createdAt || 0))
+    .slice(0, 3);
+}
+
+function getBestPull(collection) {
+  return collection.reduce((best, card) => (getCardPrice(card) > getCardPrice(best) ? card : best), null);
+}
+
+function HomeWidgetPanel({ collection, ownedBinders, packShards, stats, widgetId }) {
+  const recentPulls = useMemo(() => getRecentPulls(collection), [collection]);
+  const bestPull = useMemo(() => getBestPull(collection), [collection]);
+  const collectionValue = useMemo(() => getCollectionValue(collection), [collection]);
+  const collectorProgress = Math.min(packShards / COLLECTOR_BOOSTER_COST, 1);
+  const binderProgress = BINDER_CATALOG.length ? Math.min(ownedBinders.length / BINDER_CATALOG.length, 1) : 0;
+
+  const widgetConfig = {
+    'home-widget-recent-pulls': {
+      icon: <AutoAwesomeIcon />,
+      label: 'Recent Pulls',
+      title: recentPulls.length ? recentPulls.map((card) => card.name).join(', ') : 'No pulls saved yet',
+      helper: recentPulls.length ? 'Newest saved cards' : 'Open a pack to fill this widget.',
+      body: recentPulls.length ? recentPulls.map((card) => `${card.set?.toUpperCase() || 'SET'} #${card.collector_number || '?'}`).join(' | ') : 'Recent pulls will appear here.',
+    },
+    'home-widget-collection-value': {
+      icon: <CollectionsBookmarkIcon />,
+      label: 'Collection Value',
+      title: formatPrice(collectionValue),
+      helper: `${stats.totalCards.toLocaleString()} saved cards`,
+      body: collection.length ? 'Estimated from available Scryfall price data.' : 'Save cards to begin tracking value.',
+    },
+    'home-widget-favorite-card': {
+      icon: <StyleIcon />,
+      label: 'Favorite Card',
+      title: 'Favorite card pinning coming soon',
+      helper: bestPull ? `For now: ${bestPull.name}` : 'No card available yet',
+      body: bestPull ? `Using your best available pull as a placeholder: ${formatPrice(getCardPrice(bestPull))}.` : 'Once favorites exist, your pinned card will live here.',
+    },
+    'home-widget-binder-progress': {
+      icon: <ViewCarouselIcon />,
+      label: 'Binder Progress',
+      title: `${ownedBinders.length.toLocaleString()} / ${BINDER_CATALOG.length.toLocaleString()} binders`,
+      helper: `${Math.round(binderProgress * 100)}% collected`,
+      body: ownedBinders.length ? 'Open Binders to customize and fill your pages.' : 'Buy a binder in the Shop to start organizing cards.',
+      progress: binderProgress,
+    },
+    'home-widget-shard-balance': {
+      icon: <LocalAtmIcon />,
+      label: 'Shard Balance',
+      title: `${packShards.toLocaleString()} Pack Shards`,
+      helper: `${Math.round(collectorProgress * 100)}% to Collector Booster`,
+      body: packShards >= COLLECTOR_BOOSTER_COST ? 'Collector Booster ready.' : `${(COLLECTOR_BOOSTER_COST - packShards).toLocaleString()} more shards needed.`,
+      progress: collectorProgress,
+      tone: 'warning',
+    },
+    'home-widget-daily-reward': {
+      icon: <WhatshotIcon />,
+      label: 'Daily Reward',
+      title: 'Daily rewards coming soon',
+      helper: 'Widget slot reserved',
+      body: 'When daily rewards are available, this widget will show streaks and claim status.',
+    },
+    'home-widget-best-pull': {
+      icon: <AutoAwesomeIcon />,
+      label: 'Best Pull',
+      title: bestPull?.name || 'No best pull yet',
+      helper: bestPull ? formatPrice(getCardPrice(bestPull)) : 'Open packs to track highlights',
+      body: bestPull ? `${bestPull.rarity || 'card'} - ${bestPull.set?.toUpperCase() || 'SET'} #${bestPull.collector_number || '?'}` : 'Your highest-value saved card will appear here.',
+      tone: 'warning',
+    },
+  };
+  const widget = widgetConfig[widgetId];
+
+  if (!widget) {
+    return null;
+  }
+
+  return (
+    <Card
+      sx={{
+        mb: 4,
+        overflow: 'hidden',
+        borderColor: 'color-mix(in srgb, var(--accent-color) 38%, var(--panel-border))',
+        background:
+          widget.tone === 'warning'
+            ? 'radial-gradient(circle at 16% 24%, color-mix(in srgb, var(--accent-color) 22%, transparent), transparent 22rem), var(--panel-bg)'
+            : 'radial-gradient(circle at 16% 24%, color-mix(in srgb, var(--secondary-accent) 18%, transparent), transparent 22rem), var(--panel-bg)',
+      }}
+    >
+      <CardContent sx={{ display: 'grid', gap: 2, p: { xs: 2, sm: 3 } }}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" gap={2} sx={{ alignItems: { xs: 'flex-start', sm: 'center' } }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
+            <Box
+              sx={{
+                display: 'grid',
+                flex: '0 0 auto',
+                width: 48,
+                height: 48,
+                placeItems: 'center',
+                borderRadius: '50%',
+                bgcolor: 'rgba(5, 7, 17, 0.58)',
+                color: widget.tone === 'warning' ? 'var(--text-accent)' : 'var(--secondary-accent)',
+                boxShadow: '0 0 28px var(--primary-glow)',
+              }}
+            >
+              {widget.icon}
+            </Box>
+            <Box sx={{ minWidth: 0 }}>
+              <Typography color="text.secondary" sx={{ fontSize: 12, fontWeight: 900 }}>
+                {widget.label}
+              </Typography>
+              <Typography fontWeight={950} sx={{ color: 'var(--text-accent)', fontSize: { xs: 24, sm: 32 }, lineHeight: 1.05 }}>
+                {widget.title}
+              </Typography>
+            </Box>
+          </Box>
+          <Chip label="Equipped Home Widget" sx={{ fontWeight: 900 }} variant="outlined" />
+        </Stack>
+        <Typography color="text.secondary">{widget.body}</Typography>
+        {typeof widget.progress === 'number' && (
+          <Box sx={{ display: 'grid', gap: 0.75 }}>
+            <Stack direction="row" justifyContent="space-between" gap={1}>
+              <Typography color="text.secondary" sx={{ fontSize: 13, fontWeight: 800 }}>
+                {widget.helper}
+              </Typography>
+              <Typography sx={{ color: 'var(--text-accent)', fontSize: 13, fontWeight: 900 }}>
+                {Math.round(widget.progress * 100)}%
+              </Typography>
+            </Stack>
+            <LinearProgress
+              color={widget.tone === 'warning' ? 'warning' : 'secondary'}
+              value={widget.progress * 100}
+              variant="determinate"
+              sx={{ height: 11, borderRadius: 999, bgcolor: 'rgba(248, 247, 255, 0.08)' }}
+            />
+          </Box>
+        )}
+        {typeof widget.progress !== 'number' && (
+          <Typography sx={{ color: 'var(--text-accent)', fontSize: 13, fontWeight: 900 }}>
+            {widget.helper}
+          </Typography>
+        )}
       </CardContent>
     </Card>
   );
@@ -332,11 +488,63 @@ function HowItWorksStep({ icon, label, onClick, text }) {
 
 export default function Home() {
   const navigate = useNavigate();
-  const collection = getCollection();
-  const packShards = getPackShards();
+  const { user } = useAuth();
+  const { getEquippedItem } = useCosmetics();
+  const equippedHomeWidget = getEquippedItem('homeWidget');
+  const [collection, setCollection] = useState(() => getCollection());
+  const [ownedBinders, setOwnedBinders] = useState(() => getOwnedBinders());
+  const [packShards, setPackShards] = useState(() => getPackShards());
   const stats = getCollectionStats(collection);
   const collectorProgress = Math.min(packShards / COLLECTOR_BOOSTER_COST, 1);
   const hasCollectorBooster = packShards >= COLLECTOR_BOOSTER_COST;
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadHomeData() {
+      try {
+        const nextPackShards = getPackShards();
+
+        if (user) {
+          const [cloudCollection, cloudBinders] = await Promise.all([getMyCards(), getMyOwnedBinders()]);
+
+          if (isMounted) {
+            setCollection(cloudCollection);
+            setOwnedBinders(cloudBinders);
+            setPackShards(nextPackShards);
+          }
+
+          return;
+        }
+
+        if (isMounted) {
+          setCollection(getCollection());
+          setOwnedBinders(getOwnedBinders());
+          setPackShards(nextPackShards);
+        }
+      } catch {
+        if (isMounted) {
+          setCollection(user ? [] : getCollection());
+          setOwnedBinders(user ? [] : getOwnedBinders());
+          setPackShards(getPackShards());
+        }
+      }
+    }
+
+    loadHomeData();
+    window.addEventListener('collectionUpdated', loadHomeData);
+    window.addEventListener('bindersUpdated', loadHomeData);
+    window.addEventListener('packShardsUpdated', loadHomeData);
+    window.addEventListener('storage', loadHomeData);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener('collectionUpdated', loadHomeData);
+      window.removeEventListener('bindersUpdated', loadHomeData);
+      window.removeEventListener('packShardsUpdated', loadHomeData);
+      window.removeEventListener('storage', loadHomeData);
+    };
+  }, [user]);
 
   const cards = [
     {
@@ -403,7 +611,7 @@ export default function Home() {
         },
       }}
     >
-      <Grid container spacing={{ xs: 3, md: 5 }} alignItems="center" sx={{ mb: { xs: 4, md: 5 }, width: '100%' }}>
+      <Grid container spacing={{ xs: 3, md: 5 }} sx={{ alignItems: 'center', mb: { xs: 4, md: 5 }, width: '100%' }}>
         <Grid size={{ xs: 12, md: 7 }}>
           <Chip color="warning" label="MTG Pack Opener" sx={{ mb: 2, fontWeight: 900 }} variant="outlined" />
           <Typography variant="h1" sx={{ maxWidth: 740, fontSize: { xs: 42, md: 64 }, lineHeight: 0.96, mb: 2 }}>
@@ -412,7 +620,7 @@ export default function Home() {
           <Typography color="text.secondary" sx={{ maxWidth: 680, fontSize: { xs: 17, md: 20 }, mb: 3 }}>
             Choose real MTG sets, spin through sealed boosters, tear packs open, reveal foils, and save your pulls locally.
           </Typography>
-          <Stack direction={{ xs: 'column', sm: 'row' }} flexWrap="wrap" gap={2} sx={{ width: { xs: '100%', sm: 'auto' } }}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} gap={2} sx={{ flexWrap: 'wrap', width: { xs: '100%', sm: 'auto' } }}>
             <Button component={Link} to="/sets" size="large" variant="contained" startIcon={<AutoAwesomeIcon />} sx={{ width: { xs: '100%', sm: 'auto' } }}>
               Open Packs
             </Button>
@@ -432,20 +640,30 @@ export default function Home() {
         navigate={navigate}
       />
 
-      <Grid container spacing={1.5} sx={{ mb: 4, width: '100%' }}>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <HomeStatCard icon={<CollectionsBookmarkIcon />} label="Cards Saved" value={stats.totalCards} helper="Local collection" />
+      {equippedHomeWidget ? (
+        <HomeWidgetPanel
+          collection={collection}
+          ownedBinders={ownedBinders}
+          packShards={packShards}
+          stats={stats}
+          widgetId={equippedHomeWidget.id}
+        />
+      ) : (
+        <Grid container spacing={1.5} sx={{ mb: 4, width: '100%' }}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <HomeStatCard icon={<CollectionsBookmarkIcon />} label="Cards Saved" value={stats.totalCards} helper={user ? 'Cloud collection' : 'Local collection'} />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <HomeStatCard icon={<AutoAwesomeIcon />} label="Foils Pulled" value={stats.foilCards} helper="Special pulls" tone="warning" />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <HomeStatCard icon={<StyleIcon />} label="Unique Cards" value={stats.uniqueCards} helper={stats.duplicateCards ? `${stats.duplicateCards} duplicates` : 'No duplicates'} />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <HomeStatCard icon={<LocalAtmIcon />} label="Pack Shards" value={packShards} helper="Currency balance" tone="warning" />
+          </Grid>
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <HomeStatCard icon={<AutoAwesomeIcon />} label="Foils Pulled" value={stats.foilCards} helper="Special pulls" tone="warning" />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <HomeStatCard icon={<StyleIcon />} label="Unique Cards" value={stats.uniqueCards} helper={stats.duplicateCards ? `${stats.duplicateCards} duplicates` : 'No duplicates'} />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <HomeStatCard icon={<LocalAtmIcon />} label="Pack Shards" value={packShards} helper="Currency balance" tone="warning" />
-        </Grid>
-      </Grid>
+      )}
 
       <Grid container spacing={3} sx={{ mb: 4, width: '100%' }}>
         {cards.map((card) => (

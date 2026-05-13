@@ -71,6 +71,7 @@ export default function Collection() {
   const [cardToRecycle, setCardToRecycle] = useState(null);
   const [isRecycling, setIsRecycling] = useState(false);
   const [isRefreshingPrices, setIsRefreshingPrices] = useState(false);
+  const [isSyncingCollection, setIsSyncingCollection] = useState(false);
   const [recycleMessage, setRecycleMessage] = useState('');
   const [recycleSeverity, setRecycleSeverity] = useState('success');
 
@@ -254,6 +255,32 @@ export default function Collection() {
     }
   }
 
+  async function handleSyncCollection() {
+    if (!user || isSyncingCollection) {
+      return;
+    }
+
+    setIsSyncingCollection(true);
+
+    try {
+      const syncedCollection = await getMyCards();
+
+      setCollection(syncedCollection);
+      setPackShards(getPackShards());
+      setSelectedCard((card) =>
+        card ? syncedCollection.find((syncedCard) => syncedCard.collectionId === card.collectionId) || null : null,
+      );
+      setCollectionError('');
+      setRecycleSeverity('success');
+      setRecycleMessage(`Synced ${syncedCollection.length.toLocaleString()} cards from Supabase.`);
+    } catch (error) {
+      setRecycleSeverity('error');
+      setRecycleMessage(error.message || 'Unable to sync your Supabase collection.');
+    } finally {
+      setIsSyncingCollection(false);
+    }
+  }
+
   return (
     <Box>
       <PageHeader eyebrow="Collection" title="Your saved cards">
@@ -292,6 +319,16 @@ export default function Collection() {
         >
           {isRefreshingPrices ? 'Refreshing...' : 'Refresh Prices'}
         </Button>
+        {user && (
+          <Button
+            disabled={isSyncingCollection || isRefreshingPrices || isLoadingCollection}
+            onClick={handleSyncCollection}
+            startIcon={<RefreshIcon />}
+            variant="contained"
+          >
+            {isSyncingCollection ? 'Syncing...' : 'Sync Supabase'}
+          </Button>
+        )}
         <Button
           component={Link}
           disabled={collection.length === 0}
@@ -364,12 +401,14 @@ export default function Collection() {
           label="Search cards"
           onChange={(event) => setSearch(event.target.value)}
           value={search}
-          InputProps={{
+          slotProps={{
+            input: {
             startAdornment: (
               <InputAdornment position="start">
                 <SearchIcon color="secondary" />
               </InputAdornment>
             ),
+            },
           }}
         />
 

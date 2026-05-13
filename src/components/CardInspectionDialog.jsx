@@ -115,7 +115,7 @@ export default function CardInspectionDialog({
                   pr: { md: 1 },
                 }}
               >
-                <Stack direction="row" flexWrap="wrap" gap={1}>
+                <Stack direction="row" gap={1} sx={{ flexWrap: 'wrap' }}>
                   <Chip label={card.rarity || 'Unknown rarity'} sx={{ textTransform: 'capitalize', fontWeight: 900 }} />
                   <Chip label={card.isFoil ? 'Foil' : 'Non-foil'} color={card.isFoil ? 'warning' : 'default'} />
                   {card.isFoil && (
