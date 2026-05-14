@@ -1,3 +1,4 @@
+// Rule-based Binder Battle AI: chooses legal actions, then applies them through the battle engine.
 import {
   attackWithCreature,
   endTurn,
@@ -155,12 +156,6 @@ function getCardId(card) {
   return card?.instanceId || card?.battleId || card?.userCardId || card?.id || card?.scryfallId;
 }
 
-function warnInvalidAIAction(action, reason) {
-  if (import.meta.env.DEV) {
-    console.warn('AI attempted invalid action', { action, reason });
-  }
-}
-
 function getEffectTypes(card) {
   return (card.effects || []).map((effect) => effect.type);
 }
@@ -287,6 +282,7 @@ export function evaluateBoardState(state, aiPlayerKey) {
 }
 
 export function chooseBestPlayableCard(state, aiPlayerKey = 'enemy', difficulty = 'normal') {
+  // Difficulty changes strategy quality, but every choice still comes from legal playable cards.
   const normalizedDifficulty = normalizeDifficulty(difficulty);
   const aiState = state?.[aiPlayerKey];
   const opponentKey = getOpponentKey(aiPlayerKey);
@@ -317,6 +313,7 @@ export function chooseBestPlayableCard(state, aiPlayerKey = 'enemy', difficulty 
 }
 
 export function chooseBestTargetForSpell(state, aiPlayerKey = 'enemy', card, difficulty = 'normal') {
+  // Targets come from the validator so AI cannot point spells at missing or enemy-owned zones illegally.
   if (!state?.[aiPlayerKey] || !card) return undefined;
 
   const normalizedDifficulty = normalizeDifficulty(difficulty);
@@ -429,7 +426,6 @@ export function executeAIAction(state, action) {
   const validation = validateBattleAction(state, playerKey, action);
 
   if (!validation.valid) {
-    warnInvalidAIAction(action, validation.reason);
     return state;
   }
 
@@ -449,6 +445,7 @@ export function executeAIAction(state, action) {
 }
 
 export function planAITurn(state, aiPlayerKey = 'enemy', difficulty = 'normal') {
+  // Plan and execute in small legal steps so PvP AI mode can animate each action later.
   const normalizedDifficulty = normalizeDifficulty(difficulty);
   const actions = [];
   let finalState = state;
@@ -477,7 +474,6 @@ export function planAITurn(state, aiPlayerKey = 'enemy', difficulty = 'normal') 
     };
     const validation = validateBattleAction(finalState, aiPlayerKey, action);
     if (!validation.valid) {
-      warnInvalidAIAction(action, validation.reason);
       break;
     }
 
@@ -503,7 +499,6 @@ export function planAITurn(state, aiPlayerKey = 'enemy', difficulty = 'normal') 
     };
     const validation = validateBattleAction(finalState, aiPlayerKey, action);
     if (!validation.valid) {
-      warnInvalidAIAction(action, validation.reason);
       return;
     }
 
@@ -524,8 +519,6 @@ export function planAITurn(state, aiPlayerKey = 'enemy', difficulty = 'normal') 
     if (validation.valid) {
       finalState = executeAIAction(finalState, action);
       actions.push(action);
-    } else {
-      warnInvalidAIAction(action, validation.reason);
     }
   }
 

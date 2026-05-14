@@ -1,3 +1,4 @@
+// Foil animation presets keep visual treatments consistent across reveal and inspection surfaces.
 import { FOIL_LABELS, FOIL_TREATMENTS, normalizeFoilTreatment } from './foilTypes.js';
 
 const FOIL_ANIMATION_CONFIGS = {
@@ -100,6 +101,7 @@ export function getFoilAnimationConfig(card) {
 }
 
 export function getFoilRevealMotion(card, isMobile = false) {
+  // Mobile uses a lighter reveal path because heavy 3D motion and blur can stutter on phones.
   const { treatment } = getFoilAnimationConfig(card);
 
   if (isMobile) {

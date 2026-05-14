@@ -1,3 +1,4 @@
+// Supabase collection API: logged-in users store one row per owned physical card copy.
 import { supabase } from '../lib/supabaseClient.js';
 import { normalizeFoilTreatment } from '../utils/foilTypes.js';
 import { assertCanRecycleCard, getRecycleShardValue } from '../utils/recycleValue.js';
@@ -45,6 +46,7 @@ async function getCurrentUserId() {
 }
 
 export function normalizeUserCardRow(row) {
+  // Rows are expanded back into the same shape pack opening, collection, and battle expect.
   const prices = row.prices || {};
   const isFoil = Boolean(row.is_foil);
   const fullScryfallData = objectValue(row.full_scryfall_data);
@@ -97,6 +99,7 @@ export function normalizeUserCardRow(row) {
 }
 
 function cardToUserCardRow(card, userId, sourcePackId) {
+  // Saving keeps battle-relevant Scryfall fields so old cards do not collapse into generic data later.
   const openedAt = card.openedAt || new Date().toISOString();
   const prices = card.prices || {};
   const fullScryfallData = getFullScryfallData(card);
@@ -145,6 +148,7 @@ export async function getMyCards() {
 }
 
 export async function getUserCardsForUser(userId) {
+  // Supabase range queries avoid the default 1,000-row ceiling for large collections.
   const rows = [];
   let from = 0;
 
@@ -174,6 +178,7 @@ export async function getUserCardsForUser(userId) {
 }
 
 export async function saveOpenedCards(cards, sourcePackId, options = {}) {
+  // Duplicate rewards are calculated before insert so every opened copy is still saved.
   const userId = await getCurrentUserId();
   const existingCards = options.skipDuplicateRewards ? [] : await getMyCards();
   const openedAt = new Date().toISOString();
@@ -259,6 +264,7 @@ export async function getCardByUserCardId(userCardId) {
 }
 
 export async function recycleUserCards(userCardIds) {
+  // Recycling deletes only the selected collection copies, then awards dynamic Pack Shards.
   const userId = await getCurrentUserId();
   const uniqueUserCardIds = [...new Set(userCardIds)].filter(Boolean);
 

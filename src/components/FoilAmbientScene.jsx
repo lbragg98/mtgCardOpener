@@ -1,3 +1,4 @@
+// Ambient foil glow sits behind inspected/revealed cards without changing card data.
 import { Box } from '@mui/material';
 import { FOIL_TREATMENTS } from '../utils/foilTypes.js';
 import { getFoilAnimationConfig } from '../utils/foilAnimations.js';

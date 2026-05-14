@@ -1,3 +1,4 @@
+// Trade detail shows one offer and lets the receiver accept, decline, or sender cancel.
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Snackbar, Typography } from '@mui/material';
 import { useEffect, useState } from 'react';

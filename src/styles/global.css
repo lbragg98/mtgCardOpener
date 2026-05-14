@@ -5814,6 +5814,102 @@ a {
   transform-origin: bottom center;
 }
 
+.mobileBattleBottomDock {
+  display: none;
+}
+
+.mobileBattleActionBar {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 0.85rem calc(0.65rem + env(safe-area-inset-bottom));
+  border-top: 1px solid rgba(120, 200, 255, 0.18);
+  background: rgba(10, 10, 18, 0.92);
+  backdrop-filter: blur(10px);
+}
+
+.mobileBattleActionBar .MuiButton-root,
+.mobileBattleActionBar .MuiIconButton-root {
+  min-height: 44px;
+}
+
+.mobileBattleActionBar .MuiButton-root {
+  min-width: 108px;
+}
+
+.mobileBattleHandTray {
+  padding: 0.55rem 0 0.45rem;
+  border-top: 1px solid rgba(120, 200, 255, 0.14);
+  background: rgba(5, 8, 16, 0.9);
+}
+
+.mobileBattleHandHeader {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 0.85rem 0.35rem;
+}
+
+.mobileBattleHandScroller {
+  display: flex;
+  gap: 0.65rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding: 0 0.85rem 0.35rem;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mobileBattleHandCard {
+  flex: 0 0 104px;
+  min-height: 144px;
+  scroll-snap-align: center;
+}
+
+.mobileBattleHandEmpty {
+  display: grid;
+  min-width: 100%;
+  min-height: 4rem;
+  place-items: center;
+  color: rgba(255,255,255,0.52);
+  border: 1px dashed rgba(160, 220, 255, 0.12);
+  border-radius: 8px;
+}
+
+.mobileTurnBanner {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.mobileDeckBuilderActionBar {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  margin: 1.5rem -0.75rem -1rem;
+  padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--panel-border);
+  background: color-mix(in srgb, var(--app-bg) 92%, black);
+  backdrop-filter: blur(10px);
+}
+
+.mobileDeckFilterScroller {
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mobileDeckFilterScroller .MuiChip-root {
+  min-height: 40px;
+  scroll-snap-align: start;
+}
+
 .battleCenterLane {
   position: relative;
   overflow: hidden;
@@ -5925,9 +6021,20 @@ a {
 }
 
 @media (max-width: 760px) {
+  html,
+  body,
+  #root {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
   .battleArenaShell {
-    min-height: auto;
-    border-radius: 8px;
+    min-height: 100dvh;
+    margin-inline: -0.75rem;
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+    overflow-x: hidden;
   }
 
   .battlefieldImageLayer {
@@ -5950,7 +6057,12 @@ a {
   }
 
   .battleArenaContent {
-    padding: 0.75rem;
+    padding: 0.6rem;
+  }
+
+  .battleMobileContent {
+    gap: 0.65rem;
+    padding-bottom: 244px;
   }
 
   .battleBottomGrid {
@@ -5967,14 +6079,84 @@ a {
     gap: 0.55rem;
   }
 
-  .battlefieldCardSlot,
+  .battleCreatureRow {
+    min-height: 7.6rem;
+    padding-bottom: 0.25rem;
+    scroll-snap-type: x proximity;
+  }
+
+  .battlefieldCardSlot {
+    flex: 0 0 88px;
+    min-height: 128px;
+    scroll-snap-align: center;
+  }
+
   .battleHandCardSlot {
-    flex-basis: min(72vw, 11rem);
+    flex: 0 0 108px;
+    scroll-snap-align: center;
+  }
+
+  .battleCard-hand,
+  .battleCard-battlefield {
+    min-height: 0;
+  }
+
+  .battlefieldCardSlot .battleCard {
+    font-size: 0.75rem;
+  }
+
+  .battlefieldCardSlot .battleCard .MuiChip-root,
+  .battleHandCardSlot .battleCard .MuiChip-root,
+  .mobileBattleHandCard .battleCard .MuiChip-root {
+    max-width: 100%;
+    height: 22px;
+    font-size: 0.66rem;
+    padding-inline: 0.1rem;
+  }
+
+  .battlefieldCardSlot .battleCard .MuiChip-icon,
+  .battleHandCardSlot .battleCard .MuiChip-icon,
+  .mobileBattleHandCard .battleCard .MuiChip-icon {
+    display: none;
+  }
+
+  .battlefieldCardSlot .battleColorPips,
+  .battlefieldCardSlot .battleTypeRow,
+  .battlefieldCardSlot .battleEffectSummary {
+    display: none;
+  }
+
+  .battlefieldCardSlot .MuiCardContent-root {
+    padding: 0.45rem !important;
+  }
+
+  .battlefieldCardSlot .battleCard > div {
+    grid-template-columns: 1fr !important;
+  }
+
+  .mobileBattleHandCard .battleCard > div {
+    grid-template-columns: 1fr !important;
+  }
+
+  .mobileBattleHandCard .battleTypeRow,
+  .mobileBattleHandCard .battleColorPips,
+  .mobileBattleHandCard .battleEffectSummary {
+    display: none;
+  }
+
+  .mobileBattleHandCard .MuiCardContent-root {
+    padding: 0.5rem !important;
   }
 
   .battlefieldZone {
+    min-height: 7rem;
+    padding: 0.55rem;
     backdrop-filter: none;
     background: rgba(5, 8, 16, 0.42);
+  }
+
+  .battlefieldZoneTitle {
+    margin-bottom: 0.3rem !important;
   }
 
   .battleCenterLane,
@@ -5982,8 +6164,76 @@ a {
     backdrop-filter: none;
   }
 
+  .battleCenterLane {
+    border-radius: 12px !important;
+  }
+
+  .battleStatsPanel .MuiCardContent-root {
+    gap: 0.65rem;
+  }
+
+  .battleStatsPanel .MuiChip-root {
+    height: 24px;
+    font-size: 0.68rem;
+  }
+
+  .battleStatsPanel .battleManaGems {
+    max-width: 4.5rem;
+  }
+
   .battleAnimatedCard {
-    width: min(64vw, 10.5rem);
+    width: min(42vw, 9rem);
+  }
+
+  .cardLandingImpact {
+    width: 96px;
+    height: 34px;
+    left: calc(50% - 48px);
+  }
+
+  .spellResolveBurst {
+    width: 126px;
+    height: 126px;
+    left: calc(50% - 63px);
+    top: calc(50% - 63px);
+  }
+
+  .mobileBattleBottomDock {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1200;
+    display: block;
+    box-shadow: 0 -18px 40px rgba(0,0,0,0.42);
+  }
+
+  .mobileDeckBuilderActionBar {
+    margin-inline: -1rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .mobileBattleHandCard {
+    flex-basis: 96px;
+  }
+
+  .battlefieldCardSlot {
+    flex-basis: 82px;
+  }
+
+  .mobileBattleActionBar {
+    gap: 0.45rem;
+    padding-inline: 0.6rem;
+  }
+
+  .mobileBattleActionBar .MuiChip-root {
+    height: 24px;
+    font-size: 0.66rem;
+  }
+
+  .mobileBattleActionBar .MuiButton-root {
+    min-width: 96px;
   }
 }
 

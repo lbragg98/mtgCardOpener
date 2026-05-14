@@ -1,3 +1,4 @@
+// Dialog for adding collection card references to a binder without moving/deleting the cards.
 import SearchIcon from '@mui/icons-material/Search';
 import {
   Box,

@@ -1,3 +1,4 @@
+// PvP battle API: challenges, matches, and AI-friend-deck games stored in Supabase.
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient.js';
 import { createInitialBattleState } from '../utils/battleEngine.js';
 import { mapCollectionCardToBattleCard } from '../utils/battleCardMapper.js';
@@ -86,6 +87,7 @@ function battleReadyCard(card) {
 }
 
 function prepareBattleDeck(deck) {
+  // PvP stores battle-ready non-land cards so both clients resolve the same state.
   const mappedCards = (deck?.cards || [])
     .map(battleReadyCard)
     .filter((card) => card && card.type !== 'land')

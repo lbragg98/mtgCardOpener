@@ -1,3 +1,4 @@
+// Collection page shows owned cards from Supabase when logged in, with local storage as guest fallback.
 import DeleteIcon from '@mui/icons-material/Delete';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import SearchIcon from '@mui/icons-material/Search';
@@ -76,6 +77,7 @@ export default function Collection() {
   const [recycleSeverity, setRecycleSeverity] = useState('success');
 
   async function loadCollection() {
+    // Logged-in users use Supabase as source of truth; guests read the browser collection.
     try {
       setIsLoadingCollection(true);
       setCollectionError('');
@@ -92,6 +94,7 @@ export default function Collection() {
   }, [user]);
 
   useEffect(() => {
+    // Collection and shard events keep this page synced after pack opening, recycling, or cloud refresh.
     function refreshLocalState() {
       setPackShards(getPackShards());
       if (user) {
@@ -132,6 +135,7 @@ export default function Collection() {
   const uniqueCardCount = useMemo(() => new Set(collection.map((card) => card.id)).size, [collection]);
 
   const filteredCollection = useMemo(() => {
+    // Filtering is client-side because the page already loads the user's normalized collection rows.
     const normalizedSearch = search.trim().toLowerCase();
 
     const filteredCards = collection.filter((card) => {

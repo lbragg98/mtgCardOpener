@@ -1,3 +1,4 @@
+// Binders page lists owned Supabase binders and links into each binder detail view.
 import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
 import CollectionsBookmarkIcon from '@mui/icons-material/CollectionsBookmark';
 import Inventory2Icon from '@mui/icons-material/Inventory2';

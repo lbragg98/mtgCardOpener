@@ -1,3 +1,4 @@
+// Supabase binder API: owned binders are catalog items, and binder cards reference user_cards rows.
 import { supabase } from '../lib/supabaseClient.js';
 import { BINDER_CATALOG, getCatalogBinderById } from '../utils/binderCatalog.js';
 import { getCardPrice } from '../utils/cardPricing.js';
@@ -15,6 +16,7 @@ async function getCurrentUserId() {
 }
 
 function normalizeOwnedBinder(row, cards = []) {
+  // Catalog data supplies capacity/art, while the owned row stores per-user cosmetics and ownership.
   const catalogBinder = getCatalogBinderById(row.binder_id);
 
   return {
@@ -72,6 +74,7 @@ async function getUserCardsByIds(userCardIds, userId) {
 }
 
 export async function getBinderCards(ownedBinderId) {
+  // Binder cards are references, so removing from a binder never deletes from the collection.
   const userId = await getCurrentUserId();
   const binderRows = await getBinderCardRows(ownedBinderId, userId);
   const userCards = await getUserCardsByIds(
@@ -131,6 +134,7 @@ export async function getOwnedBinderById(ownedBinderId) {
 }
 
 export async function purchaseBinder(binderId) {
+  // Spend shards first, then refund if the insert fails so balances stay consistent.
   const userId = await getCurrentUserId();
   const catalogBinder = getCatalogBinderById(binderId);
 
@@ -187,6 +191,7 @@ export async function purchaseBinder(binderId) {
 }
 
 export async function addCardsToBinder(ownedBinderId, userCardIds) {
+  // Capacity is enforced before inserting references into binder_cards.
   const userId = await getCurrentUserId();
   const ownedBinder = await getOwnedBinderById(ownedBinderId);
 
@@ -267,6 +272,7 @@ export async function getBinderValue(ownedBinderId) {
 }
 
 export async function updateBinderCosmetics(ownedBinderId, cosmetics = {}) {
+  // Binder cosmetics are stored per owned binder and only affect presentation.
   const userId = await getCurrentUserId();
   const { data, error } = await supabase
     .from('owned_binders')

@@ -1,3 +1,4 @@
+// CosmeticsContext exposes owned/equipped shop items and chooses cloud vs guest storage.
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import {
   equipShopItem as equipCloudShopItem,
@@ -47,6 +48,7 @@ export function CosmeticsProvider({ children }) {
   const useCloudStorage = Boolean(user && isSupabaseConfigured);
 
   const refreshCosmetics = useCallback(async () => {
+    // The rest of the app reads normalized catalog items, not raw storage rows.
     try {
       setLoading(true);
       setError('');
@@ -77,6 +79,7 @@ export function CosmeticsProvider({ children }) {
   }, [useCloudStorage]);
 
   useEffect(() => {
+    // Cosmetic updates can come from purchases, equips, auth changes, or guest localStorage changes.
     if (authLoading) {
       return undefined;
     }

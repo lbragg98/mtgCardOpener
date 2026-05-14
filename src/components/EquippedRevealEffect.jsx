@@ -1,3 +1,4 @@
+// Equipped reveal effects add flair to eligible non-foil rare/mythic cards only.
 import { Box } from "@mui/material";
 
 const DEFAULT_EFFECT = {

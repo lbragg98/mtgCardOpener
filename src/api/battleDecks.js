@@ -1,3 +1,4 @@
+// Battle deck API: saved 20-card decks live in Supabase, with local fallback for resilience.
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient.js';
 import { getSavedBattleDeck, saveBattleDeck as saveLocalBattleDeck } from '../utils/battleDeckStorage.js';
 
@@ -71,6 +72,7 @@ export async function getMyBattleDecks() {
 }
 
 export async function getFriendBattleDecks(friendUserId) {
+  // Friend battles can only see decks explicitly shared as friends/public.
   const userId = await getCurrentUserId();
   await assertFriend(userId, friendUserId);
 
@@ -106,6 +108,7 @@ export async function getLatestBattleDeck() {
 }
 
 export async function saveBattleDeckToCloud(cards, name = DEFAULT_DECK_NAME, deckId = null, visibility = 'private') {
+  // Deck cards are stored as mapped battle-card JSON so play can start without re-querying Scryfall.
   const userId = await getCurrentUserId();
   const deckCards = Array.isArray(cards) ? cards.slice(0, 20) : [];
   const payload = {

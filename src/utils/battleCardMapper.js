@@ -1,3 +1,4 @@
+// Converts real Scryfall collection cards into simplified Binder Battle cards.
 import {
   getColorBalanceModifier,
   getColorCombinationName,
@@ -7,7 +8,7 @@ import {
   getPrimaryColor as getBattlePrimaryColor,
   normalizeColors,
 } from './battleColors.js';
-import { getBattleCardOverride, normalizeArenaCardName } from './battleCardOverrides.js';
+import { getBattleCardOverride } from './battleCardOverrides.js';
 
 const RARITY_BONUS = { common: 0, uncommon: 0, rare: 1, mythic: 2 };
 const NUMBER_WORDS = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 };
@@ -146,6 +147,7 @@ export function getBattleKeywords(card) {
 }
 
 export function getBattleCardType(card) {
+  // Detection order matters: creatures/artifact creatures should not become spells because of oracle text.
   const typeLine = getCombinedTypeLine(card);
   const text = getCombinedOracleText(card);
 
@@ -327,6 +329,7 @@ function getSupportEffect(card, battleType, cost, colors) {
 }
 
 function getSpellEffects(card, battleType, cost) {
+  // Oracle text wins when recognizable; color identity supplies a fair fallback effect.
   const colors = normalizeColors(card);
   const text = getCombinedOracleText(card);
   const amount = Math.max(2, Math.ceil(cost / 2) + 1);
@@ -375,6 +378,7 @@ function getSpellEffects(card, battleType, cost) {
 }
 
 export function applyColorStatAdjustments(battleCard) {
+  // Color bonuses are deliberately capped so multicolor cards are interesting, not automatically best.
   if (battleCard.type !== 'creature') return battleCard;
   const colors = normalizeColors(battleCard);
   const signature = getColorSignature(colors);
@@ -440,6 +444,7 @@ export function getBattleCardEffectSummary(battleCard) {
 }
 
 export function mapCollectionCardToBattleCard(card) {
+  // This mapper is defensive because old saved rows may be missing parts of the Scryfall payload.
   const initialCard = { ...(card || {}) };
   const override = getBattleCardOverride(initialCard);
   const sourceCard = { ...initialCard, ...(override?.cardPatch || {}) };
@@ -502,33 +507,9 @@ export function mapCollectionCardToBattleCard(card) {
     userCardId: sourceCard.userCardId || sourceCard.collectionId || null,
   };
 
-  if (import.meta.env?.DEV && type === 'genericSpell') {
-    console.warn('Generic spell fallback:', {
-      name: sourceCard.name,
-      normalized_name: normalizeArenaCardName(sourceCard.name),
-      oracle_text: getCombinedOracleText(sourceCard),
-      type_line: getCombinedTypeLine(sourceCard),
-    });
-  }
-
   return applyColorStatAdjustments(battleCard);
 }
 
 export function mapCollectionToBattleCards(collection) {
   return (collection || []).map(mapCollectionCardToBattleCard).filter((card) => card.type !== 'land');
-}
-
-export function printGenericBattleCards(collection = []) {
-  const genericCards = (collection || [])
-    .map((card) => ({
-      name: card?.name,
-      normalized_name: normalizeArenaCardName(card?.name),
-      oracle_text: getCombinedOracleText(card),
-      type: getBattleCardType(card),
-      type_line: getCombinedTypeLine(card),
-    }))
-    .filter((card) => card.type === 'genericSpell');
-
-  console.table(genericCards);
-  return genericCards;
 }

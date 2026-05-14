@@ -1,3 +1,4 @@
+// Shared card renderer: one place for images, foil layers, collector labels, and fallbacks.
 import { Box, Chip, Typography } from '@mui/material';
 import { isOneOfOneRing } from '../utils/collectorExclusiveCards.js';
 import { FOIL_LABELS, FOIL_TREATMENTS, normalizeFoilTreatment } from '../utils/foilTypes.js';
@@ -61,6 +62,7 @@ export default function CardImage({
   sx,
   variant = 'grid',
 }) {
+  // Missing images still render as a named card so special pulls never disappear from the UI.
   const imageUrl = card?.imageUrl || card?.image;
   const variantClass = `variant${variant.charAt(0).toUpperCase()}${variant.slice(1)}`;
   const foilClass = getFoilClass(card);

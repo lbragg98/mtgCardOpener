@@ -1,3 +1,4 @@
+// AuthContext keeps Supabase session/profile state in one place for route guards and app chrome.
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { isSupabaseConfigured, supabase, supabaseConfigError } from '../lib/supabaseClient.js';
 import { isValidUsername, normalizeUsername, usernameToAuthEmail } from '../utils/authUsername.js';
@@ -50,8 +51,7 @@ export function AuthProvider({ children }) {
   }, [user?.id]);
 
   useEffect(() => {
-    console.info('AuthProvider mounted.');
-
+    // Load the initial session and then keep React state synced with Supabase auth events.
     if (!isSupabaseConfigured) {
       setSession(null);
       setUser(null);
@@ -105,6 +105,7 @@ export function AuthProvider({ children }) {
   }, [refreshProfile]);
 
   async function signUpWithUsername(usernameInput, password, displayNameInput) {
+    // Usernames are checked in profiles before creating the hidden Supabase auth email.
     if (!isSupabaseConfigured) {
       throw new Error(supabaseConfigError);
     }

@@ -1,3 +1,4 @@
+// App route table: public pack/collection entry points plus protected shop, social, binder, and battle pages.
 import { Navigate, Route, Routes } from 'react-router-dom';
 import Layout from './components/Layout.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
@@ -26,8 +27,6 @@ import TradeNew from './pages/TradeNew.jsx';
 import Trades from './pages/Trades.jsx';
 
 export default function App() {
-  console.info('App mounted.');
-
   if (!isSupabaseConfigured) {
     return <SupabaseSetupError />;
   }

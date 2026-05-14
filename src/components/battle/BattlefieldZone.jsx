@@ -1,3 +1,4 @@
+// Battlefield zones group cards by owner/zone and provide clear target highlighting.
 import { Box, Typography } from '@mui/material';
 import { AnimatePresence, motion } from 'framer-motion';
 import BattleCard from './BattleCard.jsx';
@@ -10,12 +11,14 @@ export default function BattlefieldZone({
   onInspectCard,
   owner = 'player',
   selectedCardId,
+  size,
   title,
   validTargets = [],
   zoneType = 'playerBattlefield',
 }) {
   const isHand = zoneType === 'playerHand';
   const isEnemy = owner === 'enemy';
+  const cardSize = size || (isHand ? 'hand' : 'battlefield');
 
   return (
     <Box className={`battlefieldZone ${zoneType}`} sx={{ minWidth: 0 }}>
@@ -64,6 +67,7 @@ export default function BattlefieldZone({
                     ready={Boolean(card.canAttack && !card.hasAttacked)}
                     selected={selectedCardId === cardId}
                     selectable={Boolean(onCardClick)}
+                    size={cardSize}
                     validTarget={isValidTarget}
                   />
                 </Box>

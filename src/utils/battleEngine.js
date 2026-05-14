@@ -1,3 +1,4 @@
+// Pure-ish Binder Battle rules engine for the simplified card battler, not full MTG rules.
 const PLAYER_IDS = ['player', 'enemy'];
 const STARTING_HEALTH = 20;
 const MAX_PLAYER_HEALTH = 30;
@@ -46,6 +47,7 @@ function clonePlayer(player) {
 }
 
 function cloneState(state) {
+  // Engine actions return new objects so React state and PvP sync can compare changes safely.
   return {
     ...state,
     enemy: clonePlayer(state.enemy),
@@ -76,6 +78,7 @@ function hasKeyword(card, keyword) {
 }
 
 function createBattlefieldCreature(card, summonedThisTurn = true) {
+  // Creatures enter exhausted unless Haste overrides summoning sickness.
   const maxHealth = Math.max(1, Number(card.maxHealth || card.health || 1));
   const hasHaste = hasKeyword(card, 'Haste');
   const hasDefender = hasKeyword(card, 'Defender');
@@ -420,6 +423,7 @@ export function createBattleLogEntry(message, type = 'info') {
 }
 
 export function createInitialBattleState(playerDeck, enemyDeck) {
+  // Both decks are shuffled once at battle start, then hands/decks live inside battle state.
   const playerShuffledDeck = shuffleDeck(playerDeck);
   const enemyShuffledDeck = shuffleDeck(enemyDeck);
   const initialState = {
@@ -472,6 +476,7 @@ export function drawCard(state, playerId) {
 }
 
 export function startTurn(state, playerId) {
+  // Each turn increases max mana up to 10, refills mana, readies creatures, and draws one card.
   if (!assertPlayerId(playerId) || state.status !== 'playing') return state;
 
   const nextState = cloneState(state);
@@ -513,6 +518,7 @@ export function endTurn(state) {
 }
 
 export function playCard(state, playerId, handCardId, target) {
+  // Playing a card spends generic mana, then either summons a creature or resolves one simple effect.
   if (!assertPlayerId(playerId) || state.status !== 'playing') return state;
   if (state.activePlayer !== playerId) {
     return appendLog(cloneState(state), 'It is not that player\'s turn.', 'warning');
@@ -569,6 +575,7 @@ export function playCard(state, playerId, handCardId, target) {
 }
 
 export function attackWithCreature(state, playerId, creatureId, target) {
+  // Combat handles only the supported simplified keywords such as first strike, lifelink, and trample.
   if (!assertPlayerId(playerId) || state.status !== 'playing') return state;
   if (state.activePlayer !== playerId) {
     return appendLog(cloneState(state), 'It is not that player\'s turn.', 'warning');
@@ -652,6 +659,7 @@ export function attackWithCreature(state, playerId, creatureId, target) {
 }
 
 export function resolveCardEffect(state, playerId, card, target) {
+  // Effects are intentionally small verbs so mapped Scryfall cards can resolve predictably.
   if (!assertPlayerId(playerId) || state.status !== 'playing') return state;
 
   const opponentId = getOpponentId(playerId);

@@ -1,3 +1,4 @@
+// Supabase friends API: requests become two mirrored friendship rows when accepted.
 import { supabase } from '../lib/supabaseClient.js';
 import { normalizeUsername } from '../utils/authUsername.js';
 
@@ -58,6 +59,7 @@ export async function searchProfilesByUsername(query) {
 }
 
 export async function sendFriendRequest(receiverProfileId) {
+  // Existing friendships or pending requests block duplicate friend-request spam.
   const senderId = await getCurrentUserId();
 
   if (senderId === receiverProfileId) {
@@ -178,6 +180,7 @@ export async function getOutgoingFriendRequests() {
 }
 
 export async function acceptFriendRequest(requestId) {
+  // Both directions are inserted so either user can query their friend list simply.
   const userId = await getCurrentUserId();
   const { data: request, error: loadError } = await supabase
     .from('friend_requests')

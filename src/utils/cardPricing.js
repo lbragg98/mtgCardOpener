@@ -1,3 +1,4 @@
+// Price helpers read Scryfall price fields and choose the best match for foil/nonfoil cards.
 import { FOIL_TREATMENTS, normalizeFoilTreatment } from './foilTypes.js';
 
 function parsePrice(value) {
@@ -7,6 +8,7 @@ function parsePrice(value) {
 }
 
 export function getCardPrice(card) {
+  // Etched and foil prices are preferred when the owned copy has that treatment.
   const prices = card?.prices || {};
   const foilTreatment = normalizeFoilTreatment(card);
 

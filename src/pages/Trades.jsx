@@ -1,3 +1,4 @@
+// Trades page lists active trade offers between accepted friends.
 import AddIcon from '@mui/icons-material/Add';
 import {
   Alert,

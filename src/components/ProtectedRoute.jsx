@@ -1,3 +1,4 @@
+// Keeps logged-in-only pages behind AuthContext while preserving the attempted destination.
 import { Box, CircularProgress } from '@mui/material';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';

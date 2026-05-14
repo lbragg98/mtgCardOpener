@@ -1,3 +1,4 @@
+// Duplicate grouping keeps variants separate: same Scryfall id, foil state, and foil treatment only.
 import { getCardPrice } from './cardPricing.js';
 import { isOneOfOneRing } from './collectorExclusiveCards.js';
 import { normalizeFoilTreatment } from './foilTypes.js';
@@ -25,6 +26,7 @@ function sortByOldest(cards) {
 }
 
 export function groupDuplicateCards(collection) {
+  // Keep the oldest copy by default and treat every later copy as an optional recycle extra.
   const groupsByKey = new Map();
 
   for (const card of collection || []) {

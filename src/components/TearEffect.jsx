@@ -1,3 +1,4 @@
+// Pack tear effects are visual-only overlays for the cut/open animation.
 import { Box } from "@mui/material";
 
 const DEFAULT_EFFECT = {

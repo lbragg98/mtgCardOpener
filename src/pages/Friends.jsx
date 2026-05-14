@@ -1,3 +1,4 @@
+// Friends page handles search, requests, accepted friends, and jumping into trades/battles.
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import SearchIcon from '@mui/icons-material/Search';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';

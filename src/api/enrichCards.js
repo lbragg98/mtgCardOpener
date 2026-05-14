@@ -76,16 +76,16 @@ async function fetchScryfallCardForBattleData(card) {
   if (scryfallId) {
     try {
       return await fetchScryfallCard(scryfallId);
-    } catch (error) {
-      console.warn('Scryfall id lookup failed while refreshing battle data:', scryfallId, error);
+    } catch {
+      // Fall back to exact-name lookup for older saved cards with stale ids.
     }
   }
 
   for (const cardName of [...new Set(namesToTry)]) {
     try {
       return await fetchScryfallCardByExactName(cardName);
-    } catch (error) {
-      console.warn('Scryfall name lookup failed while refreshing battle data:', cardName, error);
+    } catch {
+      // Try the next normalized name variant before failing the refresh.
     }
   }
 

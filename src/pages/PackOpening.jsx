@@ -1,3 +1,4 @@
+// PackOpening owns the full open flow: cut pack, reveal stable generated cards, save summary.
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import CollectionsBookmarkIcon from "@mui/icons-material/CollectionsBookmark";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
@@ -46,6 +47,7 @@ import {
   saveCardsToCollection,
   spendPackShards,
 } from "../utils/collectionStorage.js";
+import { isCollectorOnlySet } from "../utils/collectorOnlySets.js";
 import {
   FOIL_LABELS,
   FOIL_TREATMENTS,
@@ -81,6 +83,7 @@ function PackCuttingScreen({
   boosterType,
   onCutComplete,
 }) {
+  // The cutting phase is visual only; generation already happened so the pack cannot change later.
   const cutterControls = useAnimation();
   const cutterTrackRef = useRef(null);
   const [isCut, setIsCut] = useState(false);
@@ -261,6 +264,7 @@ function PackCuttingScreen({
 }
 
 function RevealCard({ card, cardNumber, exitX, onAdvance, revealEffectId }) {
+  // Mobile foil reveals use a simpler path so touch inspection and swiping stay smooth.
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-260, 260], [-13, 13]);
@@ -784,6 +788,7 @@ export default function PackOpening() {
   const revealEffectId = equippedRevealEffect?.id;
 
   useEffect(() => {
+    // Generate once per opening id; preview, reveal, summary, and saving all reuse this same pack.
     let isMounted = true;
 
     async function loadPack() {
@@ -798,38 +803,43 @@ export default function PackOpening() {
         setSavedMessageSeverity("success");
         setSaveResult(null);
         setCompletedOneOfOneRevealKey("");
+
+        if (isCollectorOnlySet(normalizedSetCode) && boosterType !== "collector") {
+          // Direct URL protection: collector-only sets cannot bypass PackSelection.
+          throw new Error(
+            "This set is collector-only and cannot be opened as a Play Booster.",
+          );
+        }
+
+        const collectorSpentKey = `collector-booster-spent-${openingId}`;
+        const shouldSpendCollectorShards =
+          boosterType === "collector" && !sessionStorage.getItem(collectorSpentKey);
+
+        if (shouldSpendCollectorShards) {
+          const currentShards = user ? await getCloudPackShards() : getPackShards();
+
+          if (currentShards < COLLECTOR_BOOSTER_COST) {
+            throw new Error(
+              "You need 1,000 pack shards to open a Collector Booster.",
+            );
+          }
+        }
+
         const generatedPack =
           boosterType === "collector"
             ? await generateCollectorBooster(normalizedSetCode)
             : await generatePlayBooster(normalizedSetCode);
 
-        if (boosterType === "collector") {
-          const spentKey = `collector-booster-spent-${openingId}`;
-
-          if (!sessionStorage.getItem(spentKey)) {
-            if (user) {
-              const currentShards = await getCloudPackShards();
-
-              if (currentShards < COLLECTOR_BOOSTER_COST) {
-                throw new Error(
-                  "You need 1,000 pack shards to open a Collector Booster.",
-                );
-              }
-
-              await spendCloudPackShards(COLLECTOR_BOOSTER_COST);
-            } else {
-              if (
-                getPackShards() < COLLECTOR_BOOSTER_COST ||
-                !spendPackShards(COLLECTOR_BOOSTER_COST)
-              ) {
-                throw new Error(
-                  "You need 1,000 pack shards to open a Collector Booster.",
-                );
-              }
-            }
-
-            sessionStorage.setItem(spentKey, "true");
+        if (shouldSpendCollectorShards) {
+          if (user) {
+            await spendCloudPackShards(COLLECTOR_BOOSTER_COST);
+          } else if (!spendPackShards(COLLECTOR_BOOSTER_COST)) {
+            throw new Error(
+              "You need 1,000 pack shards to open a Collector Booster.",
+            );
           }
+
+          sessionStorage.setItem(collectorSpentKey, "true");
         }
 
         if (isMounted) {
@@ -860,6 +870,7 @@ export default function PackOpening() {
 
   const advanceCard = useCallback(
     (direction = 1) => {
+      // Swipe/click advances the index only; the generated pack array stays stable.
       if (isAnimatingRef.current) {
         return;
       }
@@ -919,6 +930,7 @@ export default function PackOpening() {
   }, [advanceCard, currentIndex, revealedPack.length, phase]);
 
   useEffect(() => {
+    // Saving waits for summary so the user only gets collection updates after the full reveal.
     if (
       phase === PHASES.summary &&
       revealedPack.length > 0 &&
@@ -1022,6 +1034,7 @@ export default function PackOpening() {
   }
 
   if (phase === PHASES.cutPack) {
+    // The sealed pack art can come from route state, otherwise it falls back to a card in the pack.
     const fallbackArtwork =
       pack.find((card) => card.rarity === "mythic")?.image ||
       pack.find((card) => card.image)?.image;
@@ -1097,6 +1110,7 @@ export default function PackOpening() {
     `${activeCard.name}-${currentIndex}`;
   const isFinalStretch = currentIndex >= revealedPack.length - 3;
   const activeCardIsOneOfOneRing = isOneOfOneRing(activeCard);
+  // The special Ring animation wraps the actual active card from the pack sequence.
   const isOneOfOneAnimating =
     activeCardIsOneOfOneRing && completedOneOfOneRevealKey !== activeCardKey;
 
