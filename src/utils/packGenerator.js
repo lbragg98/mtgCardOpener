@@ -392,6 +392,21 @@ function normalizePackCard(
 
   return {
     ...card,
+    full_scryfall_data: card.full_scryfall_data || card.raw || card,
+    type_line: card.type_line || card.full_scryfall_data?.type_line || "",
+    oracle_text: card.oracle_text || card.full_scryfall_data?.oracle_text || "",
+    mana_cost: card.mana_cost || card.full_scryfall_data?.mana_cost || "",
+    cmc: card.cmc ?? card.mana_value ?? card.full_scryfall_data?.cmc ?? 0,
+    mana_value: card.mana_value ?? card.cmc ?? card.full_scryfall_data?.mana_value ?? 0,
+    power: card.power || card.full_scryfall_data?.power || null,
+    toughness: card.toughness || card.full_scryfall_data?.toughness || null,
+    colors: card.colors || card.full_scryfall_data?.colors || [],
+    color_identity:
+      card.color_identity || card.colorIdentity || card.full_scryfall_data?.color_identity || [],
+    keywords: card.keywords || card.full_scryfall_data?.keywords || [],
+    card_faces: card.card_faces || card.cardFaces || card.full_scryfall_data?.card_faces || [],
+    legalities: card.legalities || card.full_scryfall_data?.legalities || {},
+    layout: card.layout || card.full_scryfall_data?.layout || null,
     packSlot: slot,
     isFoil: resolvedTreatment !== FOIL_TREATMENTS.NONE,
     foilTreatment: resolvedTreatment,

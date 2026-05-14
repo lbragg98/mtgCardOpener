@@ -3,6 +3,9 @@ import Layout from './components/Layout.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import SupabaseSetupError from './components/SupabaseSetupError.jsx';
 import { isSupabaseConfigured } from './lib/supabaseClient.js';
+import BattleDeckBuilder from './pages/BattleDeckBuilder.jsx';
+import BattleHome from './pages/BattleHome.jsx';
+import BattlePlay from './pages/BattlePlay.jsx';
 import BinderDetail from './pages/BinderDetail.jsx';
 import Binders from './pages/Binders.jsx';
 import Collection from './pages/Collection.jsx';
@@ -43,6 +46,9 @@ export default function App() {
           <Route path="/binders" element={<Binders />} />
           <Route path="/binders/:binderId" element={<BinderDetail />} />
           <Route path="/showcase" element={<Showcase />} />
+          <Route path="/battle" element={<BattleHome />} />
+          <Route path="/battle/deck-builder" element={<BattleDeckBuilder />} />
+          <Route path="/battle/play" element={<BattlePlay />} />
           <Route path="/friends" element={<Friends />} />
           <Route path="/trades" element={<Trades />} />
           <Route path="/trades/new/:friendId" element={<TradeNew />} />

@@ -5573,3 +5573,313 @@ a {
     opacity: 0.24;
   }
 }
+
+.battleArenaShell {
+  position: relative;
+  min-height: min(1080px, calc(100vh - 120px));
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--panel-border) 78%, rgba(255,255,255,0.2));
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at 50% 8%, rgba(148, 98, 255, 0.18), transparent 22rem),
+    radial-gradient(circle at 50% 92%, rgba(255, 183, 77, 0.12), transparent 24rem),
+    linear-gradient(180deg, rgba(10, 10, 18, 0.96), rgba(22, 16, 31, 0.96));
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.46), inset 0 0 80px rgba(150, 112, 255, 0.06);
+}
+
+.battleArenaContent {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 1rem;
+  padding: clamp(0.75rem, 1.6vw, 1.5rem);
+}
+
+.battleArenaBackground {
+  background:
+    linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent),
+    radial-gradient(ellipse at center, rgba(165, 119, 255, 0.18), transparent 42%),
+    repeating-linear-gradient(90deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 72px),
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.018) 0 1px, transparent 1px 72px);
+}
+
+.battleArenaLane {
+  position: absolute;
+  left: 4%;
+  right: 4%;
+  top: 48%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(205, 174, 255, 0.62), transparent);
+  box-shadow: 0 0 26px rgba(190, 137, 255, 0.45);
+}
+
+.battleArenaParticles {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,0.18) 0 1px, transparent 1px),
+    radial-gradient(circle, rgba(187, 134, 255,0.16) 0 1px, transparent 1px);
+  background-position: 0 0, 32px 42px;
+  background-size: 96px 96px, 132px 132px;
+  animation: battleParticleDrift 18s linear infinite;
+  opacity: 0.34;
+}
+
+@keyframes battleParticleDrift {
+  to { transform: translate3d(32px, -42px, 0); }
+}
+
+.battleCommandZone {
+  position: relative;
+  z-index: 2;
+}
+
+.battleBottomGrid {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.28fr) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.battleStatsPanel {
+  height: 100%;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.075), rgba(255,255,255,0.025)),
+    rgba(12, 13, 22, 0.74) !important;
+  border-color: rgba(255,255,255,0.16) !important;
+  backdrop-filter: blur(10px);
+}
+
+.battleStatsPanel.enemy {
+  box-shadow: inset 0 -3px 0 rgba(255, 102, 92, 0.42), 0 0 26px rgba(255, 85, 80, 0.08);
+}
+
+.battleStatsPanel.player {
+  box-shadow: inset 0 3px 0 rgba(113, 207, 255, 0.42), 0 0 26px rgba(88, 174, 255, 0.08);
+}
+
+.battleManaGems {
+  display: inline-flex;
+  gap: 0.18rem;
+  max-width: 9rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.manaGem {
+  width: 0.52rem;
+  height: 0.52rem;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.22);
+}
+
+.manaGem.filled {
+  background: radial-gradient(circle, #fff, #7dd3fc 36%, #2563eb 80%);
+  box-shadow: 0 0 10px rgba(125, 211, 252, 0.75);
+}
+
+.battlefieldZone {
+  position: relative;
+  min-height: 8.5rem;
+  padding: 0.75rem;
+  border: 1px solid rgba(255,255,255,0.13);
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255,255,255,0.065), transparent 16rem),
+    linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.018));
+}
+
+.enemyBattlefield {
+  box-shadow: inset 0 -1px 0 rgba(255,255,255,0.12);
+}
+
+.playerBattlefield {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
+}
+
+.battlefieldZoneTitle {
+  display: block;
+  color: color-mix(in srgb, var(--text-accent) 80%, white);
+  font-weight: 950 !important;
+  letter-spacing: 0.08em !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.battlefieldEmptyState {
+  display: grid;
+  min-height: 6.5rem;
+  place-items: center;
+  color: rgba(255,255,255,0.48);
+  border: 1px dashed rgba(255,255,255,0.13);
+  border-radius: 8px;
+}
+
+.battleCreatureRow {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  padding: 0.25rem 0.2rem 0.45rem;
+  scrollbar-width: thin;
+}
+
+.battlefieldCardSlot {
+  flex: 0 0 clamp(9rem, 16vw, 13rem);
+}
+
+.battleHandFan {
+  display: flex;
+  gap: clamp(0.35rem, 1vw, 0.75rem);
+  overflow-x: auto;
+  padding: 0.8rem 0.4rem 1rem;
+  scrollbar-width: thin;
+}
+
+.battleHandCardSlot {
+  flex: 0 0 clamp(9.5rem, 15vw, 12.5rem);
+  transform-origin: bottom center;
+}
+
+.battleCenterLane {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at center, rgba(164, 126, 255, 0.18), transparent 64%),
+    linear-gradient(90deg, rgba(255,255,255,0.045), rgba(255,255,255,0.02)) !important;
+  border-color: rgba(255,255,255,0.15) !important;
+}
+
+.turnBanner {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.battleEndTurnButton {
+  min-width: 8rem !important;
+  box-shadow: 0 0 22px color-mix(in srgb, var(--primary-glow) 42%, transparent);
+}
+
+.battleAnimationLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  pointer-events: none;
+}
+
+.battleAnimatedCard {
+  position: absolute;
+  left: 50%;
+  top: 49%;
+  width: clamp(9rem, 15vw, 12rem);
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 24px 28px rgba(0,0,0,0.45));
+}
+
+.cardLandingImpact {
+  position: absolute;
+  left: calc(50% - 70px);
+  top: calc(50% + 34px);
+  width: 140px;
+  height: 48px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(255,255,255,0.22), transparent 68%);
+  box-shadow: 0 0 24px color-mix(in srgb, var(--battle-effect-color, rgba(180, 120, 255, 0.35)) 80%, transparent);
+  pointer-events: none;
+  animation: cardLandingImpact 650ms ease-out forwards;
+}
+
+@keyframes cardLandingImpact {
+  0% { opacity: 0; transform: scale(0.25); }
+  25% { opacity: 0.9; }
+  100% { opacity: 0; transform: scale(1.7); }
+}
+
+.spellResolveBurst {
+  position: absolute;
+  left: calc(50% - 95px);
+  top: calc(50% - 95px);
+  width: 190px;
+  height: 190px;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--battle-effect-color, #b98cff) 32%, transparent), transparent 62%);
+  animation: spellResolveBurst 720ms ease-out forwards;
+}
+
+@keyframes spellResolveBurst {
+  from { opacity: 0; transform: scale(0.35) rotate(0deg); }
+  35% { opacity: 0.9; }
+  to { opacity: 0; transform: scale(1.45) rotate(18deg); }
+}
+
+.attackTrail {
+  position: absolute;
+  left: 34%;
+  top: 49%;
+  width: 32%;
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, var(--battle-effect-color, #ff7a4f), transparent);
+  box-shadow: 0 0 20px var(--battle-effect-color, #ff7a4f);
+  animation: attackTrail 520ms ease-out forwards;
+}
+
+@keyframes attackTrail {
+  from { opacity: 0; transform: scaleX(0.2); }
+  30% { opacity: 0.95; }
+  to { opacity: 0; transform: scaleX(1.15); }
+}
+
+@keyframes battleTargetPulse {
+  0%, 100% { opacity: 0.45; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.025); }
+}
+
+@media (max-width: 760px) {
+  .battleArenaShell {
+    min-height: auto;
+    border-radius: 8px;
+  }
+
+  .battleArenaContent {
+    padding: 0.75rem;
+  }
+
+  .battleBottomGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .turnBanner {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .battleCreatureRow,
+  .battleHandFan {
+    gap: 0.55rem;
+  }
+
+  .battlefieldCardSlot,
+  .battleHandCardSlot {
+    flex-basis: min(72vw, 11rem);
+  }
+
+  .battleArenaParticles {
+    opacity: 0.18;
+    animation-duration: 28s;
+  }
+
+  .battleAnimatedCard {
+    width: min(64vw, 10.5rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .battleArenaParticles,
+  .cardLandingImpact,
+  .spellResolveBurst,
+  .attackTrail {
+    animation: none !important;
+  }
+}
