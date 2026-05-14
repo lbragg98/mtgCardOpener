@@ -5,6 +5,7 @@ import HomeIcon from '@mui/icons-material/Home';
 import Inventory2Icon from '@mui/icons-material/Inventory2';
 import LoginIcon from '@mui/icons-material/Login';
 import MenuIcon from '@mui/icons-material/Menu';
+import SportsEsportsIcon from '@mui/icons-material/SportsEsports';
 import ViewCarouselIcon from '@mui/icons-material/ViewCarousel';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 import StorefrontIcon from '@mui/icons-material/Storefront';
@@ -39,6 +40,7 @@ const navItems = [
   { label: 'Collection', path: '/collection', icon: <CollectionsBookmarkIcon /> },
   { label: 'Shop', path: '/shop', icon: <StorefrontIcon /> },
   { label: 'Binders', path: '/binders', icon: <Inventory2Icon /> },
+  { label: 'Battle', path: '/battle', icon: <SportsEsportsIcon /> },
   { label: 'Showcase', path: '/showcase', icon: <ViewCarouselIcon /> },
   { label: 'Friends', path: '/friends', icon: <GroupIcon /> },
   { label: 'Trades', path: '/trades', icon: <SwapHorizIcon /> },

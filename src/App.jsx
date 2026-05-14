@@ -3,6 +3,9 @@ import Layout from './components/Layout.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import SupabaseSetupError from './components/SupabaseSetupError.jsx';
 import { isSupabaseConfigured } from './lib/supabaseClient.js';
+import BattleDeckBuilder from './pages/BattleDeckBuilder.jsx';
+import BattleHome from './pages/BattleHome.jsx';
+import BattlePlay from './pages/BattlePlay.jsx';
 import BinderDetail from './pages/BinderDetail.jsx';
 import Binders from './pages/Binders.jsx';
 import Collection from './pages/Collection.jsx';
@@ -12,6 +15,8 @@ import Home from './pages/Home.jsx';
 import Login from './pages/Login.jsx';
 import PackOpening from './pages/PackOpening.jsx';
 import PackSelection from './pages/PackSelection.jsx';
+import PvpBattleLobby from './pages/PvpBattleLobby.jsx';
+import PvpBattlePlay from './pages/PvpBattlePlay.jsx';
 import SetSelection from './pages/SetSelection.jsx';
 import Shop from './pages/Shop.jsx';
 import Showcase from './pages/Showcase.jsx';
@@ -43,6 +48,11 @@ export default function App() {
           <Route path="/binders" element={<Binders />} />
           <Route path="/binders/:binderId" element={<BinderDetail />} />
           <Route path="/showcase" element={<Showcase />} />
+          <Route path="/battle" element={<BattleHome />} />
+          <Route path="/battle/deck-builder" element={<BattleDeckBuilder />} />
+          <Route path="/battle/play" element={<BattlePlay />} />
+          <Route path="/battle/pvp" element={<PvpBattleLobby />} />
+          <Route path="/battle/pvp/:matchId" element={<PvpBattlePlay />} />
           <Route path="/friends" element={<Friends />} />
           <Route path="/trades" element={<Trades />} />
           <Route path="/trades/new/:friendId" element={<TradeNew />} />

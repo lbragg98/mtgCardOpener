@@ -6,6 +6,20 @@ import { assertCanRecycleCard, getRecycleShardValue } from '../utils/recycleValu
 const DUPLICATE_SHARD_REWARD = 100;
 const USER_CARDS_PAGE_SIZE = 1000;
 
+function arrayValue(value, fallback = []) {
+  return Array.isArray(value) ? value : fallback;
+}
+
+function objectValue(value, fallback = {}) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : fallback;
+}
+
+function getFullScryfallData(card) {
+  if (card?.full_scryfall_data && typeof card.full_scryfall_data === 'object') return card.full_scryfall_data;
+  if (card?.raw && typeof card.raw === 'object') return card.raw;
+  return objectValue(card);
+}
+
 function isRealSaveableCard(card) {
   const typeLine = card?.type_line?.toLowerCase() || '';
 
@@ -33,13 +47,16 @@ async function getCurrentUserId() {
 export function normalizeUserCardRow(row) {
   const prices = row.prices || {};
   const isFoil = Boolean(row.is_foil);
+  const fullScryfallData = objectValue(row.full_scryfall_data);
 
   return {
+    ...row,
     collectionId: row.id,
     userCardId: row.id,
     user_id: row.user_id,
     userId: row.user_id,
     id: row.scryfall_id,
+    scryfallId: row.scryfall_id,
     name: row.name,
     set: row.set_code,
     set_name: row.set_name,
@@ -47,6 +64,7 @@ export function normalizeUserCardRow(row) {
     rarity: row.rarity,
     imageUrl: row.image_url,
     image: row.image_url,
+    image_uris: fullScryfallData.image_uris || null,
     prices,
     usd: prices.usd ?? null,
     usd_foil: prices.usd_foil ?? null,
@@ -59,6 +77,20 @@ export function normalizeUserCardRow(row) {
     isCollectorExclusive: Boolean(row.is_collector_exclusive),
     isOneOfOne: Boolean(row.is_one_of_one),
     specialPullType: row.special_pull_type || null,
+    type_line: row.type_line || fullScryfallData.type_line || '',
+    oracle_text: row.oracle_text || fullScryfallData.oracle_text || '',
+    mana_cost: row.mana_cost || fullScryfallData.mana_cost || '',
+    cmc: Number(row.cmc ?? fullScryfallData.cmc ?? fullScryfallData.mana_value ?? 0),
+    mana_value: Number(row.cmc ?? fullScryfallData.mana_value ?? fullScryfallData.cmc ?? 0),
+    power: row.power || fullScryfallData.power || null,
+    toughness: row.toughness || fullScryfallData.toughness || null,
+    colors: arrayValue(row.colors, arrayValue(fullScryfallData.colors)),
+    color_identity: arrayValue(row.color_identity, arrayValue(fullScryfallData.color_identity)),
+    keywords: arrayValue(row.keywords, arrayValue(fullScryfallData.keywords)),
+    card_faces: arrayValue(row.card_faces, arrayValue(fullScryfallData.card_faces)),
+    legalities: objectValue(row.legalities, objectValue(fullScryfallData.legalities)),
+    layout: row.layout || fullScryfallData.layout || null,
+    full_scryfall_data: fullScryfallData,
     openedAt: row.opened_at || row.created_at,
     createdAt: row.created_at,
   };
@@ -67,6 +99,7 @@ export function normalizeUserCardRow(row) {
 function cardToUserCardRow(card, userId, sourcePackId) {
   const openedAt = card.openedAt || new Date().toISOString();
   const prices = card.prices || {};
+  const fullScryfallData = getFullScryfallData(card);
   const row = {
     user_id: userId,
     scryfall_id: card.id,
@@ -82,6 +115,19 @@ function cardToUserCardRow(card, userId, sourcePackId) {
     is_one_of_one: Boolean(card.isOneOfOne),
     special_pull_type: card.specialPullType || null,
     prices,
+    type_line: card.type_line || card.typeLine || fullScryfallData.type_line || null,
+    oracle_text: card.oracle_text || card.oracleText || fullScryfallData.oracle_text || null,
+    mana_cost: card.mana_cost || card.manaCost || fullScryfallData.mana_cost || null,
+    cmc: Number(card.cmc ?? card.mana_value ?? fullScryfallData.cmc ?? fullScryfallData.mana_value ?? 0),
+    power: card.power || fullScryfallData.power || null,
+    toughness: card.toughness || fullScryfallData.toughness || null,
+    colors: arrayValue(card.colors, arrayValue(fullScryfallData.colors)),
+    color_identity: arrayValue(card.color_identity || card.colorIdentity, arrayValue(fullScryfallData.color_identity)),
+    keywords: arrayValue(card.keywords, arrayValue(fullScryfallData.keywords)),
+    card_faces: arrayValue(card.card_faces || card.cardFaces, arrayValue(fullScryfallData.card_faces)),
+    legalities: objectValue(card.legalities, objectValue(fullScryfallData.legalities)),
+    layout: card.layout || fullScryfallData.layout || null,
+    full_scryfall_data: fullScryfallData,
     opened_at: openedAt,
   };
 
