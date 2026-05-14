@@ -4,7 +4,7 @@ export default function BattleArenaBackground({ phase = 'playing', playerDominan
   return (
     <Box
       aria-hidden
-      className={`battleArenaBackground phase-${phase}`}
+      className={`battleArenaBackground battlefieldStoneRunes phase-${phase}`}
       sx={{
         '--dominance-shift': `${playerDominance}px`,
         inset: 0,
@@ -14,8 +14,11 @@ export default function BattleArenaBackground({ phase = 'playing', playerDominan
         zIndex: 0,
       }}
     >
-      <Box className="battleArenaParticles" />
-      <Box className="battleArenaLane" />
+      <Box className="battlefieldImageLayer" />
+      <Box className="battlefieldBlueGlowLayer" />
+      <Box className="battlefieldMagicParticles" />
+      <Box className="battlefieldMistLayer" />
+      <Box className="battlefieldReadabilityVignette" />
     </Box>
   );
 }

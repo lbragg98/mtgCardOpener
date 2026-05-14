@@ -13,6 +13,7 @@ import {
   Chip,
   Divider,
   FormControl,
+  FormHelperText,
   Grid,
   IconButton,
   InputAdornment,
@@ -156,6 +157,7 @@ export default function BattleDeckBuilder() {
   const [battleCards, setBattleCards] = useState([]);
   const [deckId, setDeckId] = useState(null);
   const [deckName, setDeckName] = useState('Binder Battle Deck');
+  const [deckVisibility, setDeckVisibility] = useState('private');
   const [selectedIds, setSelectedIds] = useState([]);
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState({
@@ -229,6 +231,7 @@ export default function BattleDeckBuilder() {
         setBattleCards(mappedCards);
         setDeckId(savedDeck.id || null);
         setDeckName(savedDeck.name || 'Binder Battle Deck');
+        setDeckVisibility(savedDeck.visibility || 'private');
         setSelectedIds(savedIds);
 
         if (savedDeckResult.status === 'rejected') {
@@ -363,8 +366,9 @@ export default function BattleDeckBuilder() {
 
     try {
       setIsSaving(true);
-      const savedDeck = await saveBattleDeck(selectedCards, { deckId, name: deckName });
+      const savedDeck = await saveBattleDeck(selectedCards, { deckId, name: deckName, visibility: deckVisibility });
       setDeckId(savedDeck.id || deckId);
+      setDeckVisibility(savedDeck.visibility || deckVisibility);
       setSnackbar(savedDeck.isLocalFallback ? 'Deck saved locally. Supabase save can be retried later.' : 'Battle deck saved to Supabase.');
 
       if (startAfterSave) {
@@ -408,6 +412,19 @@ export default function BattleDeckBuilder() {
               value={deckName}
               sx={{ flex: 1 }}
             />
+            <FormControl sx={{ minWidth: { xs: '100%', md: 180 } }}>
+              <InputLabel>Visibility</InputLabel>
+              <Select
+                label="Visibility"
+                onChange={(event) => setDeckVisibility(event.target.value)}
+                value={deckVisibility}
+              >
+                <MenuItem value="private">Private</MenuItem>
+                <MenuItem value="friends">Friends</MenuItem>
+                <MenuItem value="public">Public</MenuItem>
+              </Select>
+              <FormHelperText>Friend-visible decks can be used for friend battles.</FormHelperText>
+            </FormControl>
             <Stack direction={{ xs: 'column', sm: 'row' }} gap={1}>
               <Button disabled={!deckIsReady || isSaving} onClick={() => handleSaveDeck()} startIcon={<SaveIcon />} variant="outlined">
                 Save Deck

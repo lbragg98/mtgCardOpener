@@ -4,6 +4,13 @@ import {
   playCard,
 } from './battleEngine.js';
 import { mapCollectionCardToBattleCard } from './battleCardMapper.js';
+import {
+  getLegalAttackers,
+  getLegalAttackTargets,
+  getLegalPlayableCards,
+  getLegalTargetsForCard,
+  validateBattleAction,
+} from './battleMoveValidator.js';
 
 const DECK_SIZE = 20;
 
@@ -136,6 +143,24 @@ function getStrongestCreature(creatures = []) {
   return [...creatures].sort((a, b) => creatureThreat(b) - creatureThreat(a))[0] || null;
 }
 
+function getWeakestCreature(creatures = []) {
+  return [...creatures].sort((a, b) => creatureThreat(a) - creatureThreat(b))[0] || null;
+}
+
+function getOpponentKey(playerKey) {
+  return playerKey === 'enemy' ? 'player' : 'enemy';
+}
+
+function getCardId(card) {
+  return card?.instanceId || card?.battleId || card?.userCardId || card?.id || card?.scryfallId;
+}
+
+function warnInvalidAIAction(action, reason) {
+  if (import.meta.env.DEV) {
+    console.warn('AI attempted invalid action', { action, reason });
+  }
+}
+
 function getEffectTypes(card) {
   return (card.effects || []).map((effect) => effect.type);
 }
@@ -164,85 +189,351 @@ function getDamageAmount(card) {
   return 0;
 }
 
-function chooseSpellTarget(state, card, difficulty) {
-  const strongestPlayerCreature = getStrongestCreature(state.player.battlefield);
-  const strongestEnemyCreature = getStrongestCreature(state.enemy.battlefield);
-  const damageAmount = getDamageAmount(card);
+function canPlayWithoutTarget(state, playerKey, card) {
+  if (card?.type === 'creature' || card?.type === 'Creature') return true;
 
-  if (canTargetPlayer(card) && damageAmount >= state.player.health) {
-    return { playerId: 'player', type: 'player' };
+  const opponentKey = getOpponentKey(playerKey);
+  if (canTargetEnemyCreature(card) && !state[opponentKey].battlefield.length && !canTargetPlayer(card)) return false;
+  if (canTargetFriendlyCreature(card) && !state[playerKey].battlefield.length) return false;
+
+  return true;
+}
+
+function wouldCreatureSurviveAttack(attacker, defender) {
+  if (!defender) return true;
+  const attackerHealth = Number(attacker.currentHealth || attacker.health || 1);
+  const defenderAttack = Number(defender.attack || 0);
+  const attackerHasFirstStrike = (attacker.keywords || []).some((keyword) => String(keyword).toLowerCase() === 'first strike');
+  const defenderHealth = Number(defender.currentHealth || defender.health || 1);
+
+  return attackerHasFirstStrike && Number(attacker.attack || 0) >= defenderHealth
+    ? true
+    : attackerHealth > defenderAttack;
+}
+
+export function evaluateCreatureThreat(creature) {
+  return creatureThreat(creature);
+}
+
+export function evaluateCardPlay(state, aiPlayerKey, card) {
+  if (!state?.[aiPlayerKey] || !card) return -Infinity;
+
+  const opponentKey = getOpponentKey(aiPlayerKey);
+  const effectTypes = getEffectTypes(card);
+  let score = cardValue(card);
+
+  if ((card.cost || 0) > state[aiPlayerKey].mana) return -Infinity;
+  if (!canPlayWithoutTarget(state, aiPlayerKey, card)) return -Infinity;
+
+  if (card.type === 'creature') {
+    score += state[aiPlayerKey].battlefield.length < state[opponentKey].battlefield.length ? 2 : 0;
+    if ((card.keywords || []).includes('Haste')) score += 1.5;
+    if ((card.keywords || []).includes('Flying')) score += 1;
   }
 
-  if (canTargetEnemyCreature(card) && strongestPlayerCreature) {
-    if (difficulty === 'easy' && canTargetPlayer(card)) {
-      return { playerId: 'player', type: 'player' };
+  if (effectTypes.some((type) => ['damage', 'drain', 'generic', 'flex'].includes(type))) {
+    score += getDamageAmount(card) >= state[opponentKey].health ? 100 : 0;
+    score += state[opponentKey].health <= 6 ? 2 : 0;
+  }
+
+  if (effectTypes.some((type) => ['removal', 'removeCreature', 'bounce', 'weakenCreature', 'debuff'].includes(type))) {
+    const bestTarget = getStrongestCreature(state[opponentKey].battlefield);
+    score += bestTarget ? Math.min(8, evaluateCreatureThreat(bestTarget)) : -4;
+  }
+
+  if (effectTypes.some((type) => ['buff', 'artifactBuff', 'shield', 'teamBuff'].includes(type))) {
+    score += state[aiPlayerKey].battlefield.length ? 3 : -5;
+  }
+
+  if (effectTypes.includes('draw')) {
+    score += state[aiPlayerKey].hand.length <= 2 ? 3 : 1;
+  }
+
+  if (effectTypes.some((type) => ['token', 'createToken', 'reanimate'].includes(type))) {
+    score += state[aiPlayerKey].battlefield.length < 5 ? 2 : -1;
+  }
+
+  return score;
+}
+
+export function evaluateBoardState(state, aiPlayerKey) {
+  if (!state?.[aiPlayerKey]) {
+    return {
+      aiBoardPower: 0,
+      aiHealth: 0,
+      aiMana: 0,
+      enemyBoardPower: 0,
+      enemyHealth: 0,
+      score: 0,
+    };
+  }
+
+  const opponentKey = getOpponentKey(aiPlayerKey);
+  const aiBoardPower = state[aiPlayerKey].battlefield.reduce((total, creature) => total + evaluateCreatureThreat(creature), 0);
+  const enemyBoardPower = state[opponentKey].battlefield.reduce((total, creature) => total + evaluateCreatureThreat(creature), 0);
+  const score = (state[aiPlayerKey].health - state[opponentKey].health) +
+    (aiBoardPower - enemyBoardPower) +
+    state[aiPlayerKey].hand.length * 0.75 +
+    state[aiPlayerKey].mana * 0.25;
+
+  return {
+    aiBoardPower,
+    aiHealth: state[aiPlayerKey].health,
+    aiMana: state[aiPlayerKey].mana,
+    enemyBoardPower,
+    enemyHealth: state[opponentKey].health,
+    score,
+  };
+}
+
+export function chooseBestPlayableCard(state, aiPlayerKey = 'enemy', difficulty = 'normal') {
+  const normalizedDifficulty = normalizeDifficulty(difficulty);
+  const aiState = state?.[aiPlayerKey];
+  const opponentKey = getOpponentKey(aiPlayerKey);
+
+  if (!aiState || state.activePlayer !== aiPlayerKey) return null;
+
+  const playableCards = getLegalPlayableCards(state, aiPlayerKey);
+  if (!playableCards.length) return null;
+  if (normalizedDifficulty === 'easy') return playableCards.find((card) => canPlayWithoutTarget(state, aiPlayerKey, card)) || playableCards[0];
+
+  const lethalSpell = playableCards.find((card) => canTargetPlayer(card) && getDamageAmount(card) >= state[opponentKey].health);
+  if (lethalSpell) return lethalSpell;
+
+  const playableWithScores = playableCards
+    .map((card) => ({ card, score: evaluateCardPlay(state, aiPlayerKey, card) }))
+    .filter((entry) => Number.isFinite(entry.score))
+    .sort((a, b) => b.score - a.score || (b.card.cost || 0) - (a.card.cost || 0));
+
+  if (normalizedDifficulty === 'hard') {
+    const buffBeforeAttack = playableWithScores.find((entry) =>
+      getEffectTypes(entry.card).some((type) => ['buff', 'artifactBuff', 'teamBuff'].includes(type)) &&
+      aiState.battlefield.some((creature) => creature.canAttack && !creature.hasAttacked),
+    );
+    if (buffBeforeAttack) return buffBeforeAttack.card;
+  }
+
+  return playableWithScores[0]?.card || null;
+}
+
+export function chooseBestTargetForSpell(state, aiPlayerKey = 'enemy', card, difficulty = 'normal') {
+  if (!state?.[aiPlayerKey] || !card) return undefined;
+
+  const normalizedDifficulty = normalizeDifficulty(difficulty);
+  const opponentKey = getOpponentKey(aiPlayerKey);
+  const legalTargets = getLegalTargetsForCard(state, aiPlayerKey, card).filter((target) => target.type !== 'none');
+  const strongestOpponentCreature = getStrongestCreature(state[opponentKey].battlefield);
+  const weakestOpponentCreature = getWeakestCreature(state[opponentKey].battlefield);
+  const strongestFriendlyCreature = getStrongestCreature(state[aiPlayerKey].battlefield);
+  const damageAmount = getDamageAmount(card);
+  const effectTypes = getEffectTypes(card);
+
+  if (canTargetPlayer(card) && damageAmount >= state[opponentKey].health) {
+    return legalTargets.find((target) => target.type === 'player' && target.playerId === opponentKey);
+  }
+
+  if (canTargetFriendlyCreature(card)) {
+    return legalTargets.find((target) => target.creatureId === strongestFriendlyCreature?.instanceId);
+  }
+
+  if (canTargetEnemyCreature(card)) {
+    if (normalizedDifficulty === 'easy' && canTargetPlayer(card) && Math.random() < 0.45) {
+      return legalTargets.find((target) => target.type === 'player' && target.playerId === opponentKey);
     }
 
-    return { creatureId: strongestPlayerCreature.instanceId, type: 'creature' };
+    const target = normalizedDifficulty === 'hard'
+      ? strongestOpponentCreature
+      : strongestOpponentCreature || weakestOpponentCreature;
+    return legalTargets.find((legalTarget) => legalTarget.creatureId === target?.instanceId);
   }
 
-  if (canTargetFriendlyCreature(card) && strongestEnemyCreature) {
-    return { creatureId: strongestEnemyCreature.instanceId, type: 'creature' };
-  }
-
-  if (canTargetPlayer(card)) {
-    return { playerId: 'player', type: 'player' };
+  if (effectTypes.includes('discard') || effectTypes.includes('drain') || canTargetPlayer(card)) {
+    return legalTargets.find((target) => target.type === 'player' && target.playerId === opponentKey);
   }
 
   return undefined;
 }
 
-function getPlayableCards(state) {
-  return state.enemy.hand.filter((card) => (card.cost || 0) <= state.enemy.mana);
+export function chooseAttackTargets(state, aiPlayerKey = 'enemy', difficulty = 'normal') {
+  if (!state?.[aiPlayerKey]) return [];
+
+  const normalizedDifficulty = normalizeDifficulty(difficulty);
+  const opponentKey = getOpponentKey(aiPlayerKey);
+  const readyCreatures = getLegalAttackers(state, aiPlayerKey)
+    .sort((a, b) => evaluateCreatureThreat(b) - evaluateCreatureThreat(a));
+  const opponentCreatures = [...state[opponentKey].battlefield]
+    .sort((a, b) => evaluateCreatureThreat(b) - evaluateCreatureThreat(a));
+
+  return readyCreatures
+    .map((creature) => {
+      const attack = Number(creature.attack || 0);
+
+      if (attack >= state[opponentKey].health) {
+        const legalTarget = getLegalAttackTargets(state, aiPlayerKey, creature).find((target) => target.type === 'player' && target.playerId === opponentKey);
+        return legalTarget ? {
+          creatureId: creature.instanceId,
+          reason: 'lethal attack',
+          target: legalTarget,
+        } : null;
+      }
+
+      if (normalizedDifficulty === 'easy') {
+        const targetCreature = opponentCreatures[0];
+        const preferredTarget = Math.random() < 0.75 || !targetCreature
+          ? { playerId: opponentKey, type: 'player' }
+          : { creatureId: targetCreature.instanceId, type: 'creature' };
+        const target = getLegalAttackTargets(state, aiPlayerKey, creature).find((legalTarget) =>
+          legalTarget.type === preferredTarget.type &&
+          (legalTarget.playerId === preferredTarget.playerId || legalTarget.creatureId === preferredTarget.creatureId),
+        );
+        if (!target) return null;
+        return { creatureId: creature.instanceId, reason: 'easy pressure', target };
+      }
+
+      const favorableTrade = opponentCreatures.find((defender) =>
+        attack >= Number(defender.currentHealth || defender.health || 1) &&
+        (normalizedDifficulty !== 'hard' || wouldCreatureSurviveAttack(creature, defender)),
+      );
+
+      if (favorableTrade && evaluateCreatureThreat(favorableTrade) >= evaluateCreatureThreat(creature) - 1) {
+        const target = getLegalAttackTargets(state, aiPlayerKey, creature).find((legalTarget) => legalTarget.creatureId === favorableTrade.instanceId);
+        return target ? {
+          creatureId: creature.instanceId,
+          reason: 'favorable trade',
+          target,
+        } : null;
+      }
+
+      if (normalizedDifficulty === 'hard' && opponentCreatures.length) {
+        const badIntoBoard = opponentCreatures.some((defender) =>
+          Number(defender.attack || 0) >= Number(creature.currentHealth || creature.health || 1) &&
+          attack < Number(defender.currentHealth || defender.health || 1),
+        );
+
+        if (badIntoBoard && state[aiPlayerKey].health > 6) return null;
+      }
+
+      const faceTarget = getLegalAttackTargets(state, aiPlayerKey, creature).find((target) => target.type === 'player' && target.playerId === opponentKey);
+      return faceTarget ? {
+        creatureId: creature.instanceId,
+        reason: 'attack opponent',
+        target: faceTarget,
+      } : null;
+    })
+    .filter(Boolean);
 }
 
-function choosePlayableCard(state, difficulty) {
-  const playableCards = getPlayableCards(state);
+export function executeAIAction(state, action) {
+  if (!state || !action) return state;
+  const playerKey = action.playerKey || 'enemy';
+  const validation = validateBattleAction(state, playerKey, action);
 
-  if (!playableCards.length) return null;
-  if (difficulty === 'easy') return playableCards[0];
-
-  const lethalSpell = playableCards.find((card) => canTargetPlayer(card) && getDamageAmount(card) >= state.player.health);
-  if (lethalSpell) return lethalSpell;
-
-  const creatures = playableCards.filter((card) => card.type === 'creature' || card.type === 'Creature');
-  const removal = playableCards.filter((card) => getEffectTypes(card).some((type) => ['bounce', 'removal', 'removeCreature'].includes(type)));
-  const damage = playableCards.filter((card) => getEffectTypes(card).some((type) => ['damage', 'debuff', 'discard', 'drain', 'weaken', 'weakenCreature'].includes(type)));
-  const support = playableCards.filter((card) => getEffectTypes(card).some((type) => ['artifactBuff', 'buff', 'draw', 'createToken', 'manaBoost', 'reanimate', 'shield', 'teamBuff', 'token'].includes(type)));
-
-  if (difficulty === 'hard' && state.player.battlefield.length && removal.length) {
-    return [...removal].sort((a, b) => cardValue(b) - cardValue(a))[0];
+  if (!validation.valid) {
+    warnInvalidAIAction(action, validation.reason);
+    return state;
   }
 
-  const orderedCandidates = [
-    ...creatures.sort((a, b) => cardValue(b) - cardValue(a)),
-    ...damage.sort((a, b) => cardValue(b) - cardValue(a)),
-    ...support.sort((a, b) => cardValue(b) - cardValue(a)),
-    ...playableCards.sort((a, b) => cardValue(b) - cardValue(a)),
-  ];
+  if (action.type === 'playCard') {
+    return playCard(state, playerKey, action.cardId, action.target);
+  }
 
-  return orderedCandidates[0] || playableCards[0];
+  if (action.type === 'attack') {
+    return attackWithCreature(state, playerKey, action.creatureId, action.target);
+  }
+
+  if (action.type === 'endTurn') {
+    return endTurn(state);
+  }
+
+  return state;
 }
 
-function chooseAttackTarget(state, creature, difficulty) {
-  const attack = creature.attack || 0;
-  const strongestPlayerCreature = getStrongestCreature(state.player.battlefield);
+export function planAITurn(state, aiPlayerKey = 'enemy', difficulty = 'normal') {
+  const normalizedDifficulty = normalizeDifficulty(difficulty);
+  const actions = [];
+  let finalState = state;
 
-  if (attack >= state.player.health) {
-    return { playerId: 'player', type: 'player' };
+  if (!finalState || finalState.status !== 'playing' || finalState.activePlayer !== aiPlayerKey) {
+    return { actions, finalState };
   }
 
-  if (difficulty === 'easy') {
-    return Math.random() < 0.75 || !strongestPlayerCreature
-      ? { playerId: 'player', type: 'player' }
-      : { creatureId: strongestPlayerCreature.instanceId, type: 'creature' };
+  let safety = 0;
+  while (safety < 20 && finalState.status === 'playing' && finalState.activePlayer === aiPlayerKey) {
+    safety += 1;
+    const card = chooseBestPlayableCard(finalState, aiPlayerKey, normalizedDifficulty);
+    if (!card) break;
+
+    const beforeHandCount = finalState[aiPlayerKey].hand.length;
+    const target = chooseBestTargetForSpell(finalState, aiPlayerKey, card, normalizedDifficulty);
+    const action = {
+      cardId: getCardId(card),
+      cardName: card.name,
+      playerKey: aiPlayerKey,
+      reason: `played ${card.name}`,
+      target,
+      targetId: target?.creatureId || target?.playerId,
+      targetType: target?.type,
+      type: 'playCard',
+    };
+    const validation = validateBattleAction(finalState, aiPlayerKey, action);
+    if (!validation.valid) {
+      warnInvalidAIAction(action, validation.reason);
+      break;
+    }
+
+    const nextState = executeAIAction(finalState, action);
+
+    actions.push(action);
+    finalState = nextState;
+
+    if (finalState[aiPlayerKey].hand.length === beforeHandCount) break;
   }
 
-  if (strongestPlayerCreature && creatureThreat(strongestPlayerCreature) > creatureThreat(creature) + (difficulty === 'hard' ? 0 : 2)) {
-    return { creatureId: strongestPlayerCreature.instanceId, type: 'creature' };
+  chooseAttackTargets(finalState, aiPlayerKey, normalizedDifficulty).forEach((attackPlan) => {
+    if (finalState.status !== 'playing' || finalState.activePlayer !== aiPlayerKey) return;
+
+    const action = {
+      creatureId: attackPlan.creatureId,
+      playerKey: aiPlayerKey,
+      reason: attackPlan.reason,
+      target: attackPlan.target,
+      targetId: attackPlan.target?.creatureId || attackPlan.target?.playerId,
+      targetType: attackPlan.target?.type,
+      type: 'attack',
+    };
+    const validation = validateBattleAction(finalState, aiPlayerKey, action);
+    if (!validation.valid) {
+      warnInvalidAIAction(action, validation.reason);
+      return;
+    }
+
+    const nextState = executeAIAction(finalState, action);
+    if (nextState !== finalState) {
+      finalState = nextState;
+      actions.push(action);
+    }
+  });
+
+  if (finalState.status === 'playing' && finalState.activePlayer === aiPlayerKey) {
+    const action = {
+      playerKey: aiPlayerKey,
+      reason: 'AI turn complete',
+      type: 'endTurn',
+    };
+    const validation = validateBattleAction(finalState, aiPlayerKey, action);
+    if (validation.valid) {
+      finalState = executeAIAction(finalState, action);
+      actions.push(action);
+    } else {
+      warnInvalidAIAction(action, validation.reason);
+    }
   }
 
-  return { playerId: 'player', type: 'player' };
+  return { actions, finalState };
+}
+
+export function takeAITurn(state, aiPlayerKey = 'enemy', difficulty = 'normal') {
+  return planAITurn(state, aiPlayerKey, difficulty);
 }
 
 export function takeEnemyTurn(state, difficulty = 'normal') {
@@ -253,30 +544,5 @@ export function takeEnemyTurn(state, difficulty = 'normal') {
   if (nextState.activePlayer !== 'enemy') {
     nextState = endTurn(nextState);
   }
-  if (nextState.status !== 'playing' || nextState.activePlayer !== 'enemy') return nextState;
-
-  let safety = 0;
-  while (safety < 20 && nextState.status === 'playing') {
-    safety += 1;
-    const card = choosePlayableCard(nextState, normalizedDifficulty);
-
-    if (!card) break;
-
-    const beforeHandCount = nextState.enemy.hand.length;
-    nextState = playCard(nextState, 'enemy', card.instanceId, chooseSpellTarget(nextState, card, normalizedDifficulty));
-
-    if (nextState.enemy.hand.length === beforeHandCount) break;
-  }
-
-  const readyCreatures = [...nextState.enemy.battlefield]
-    .filter((creature) => creature.canAttack && !creature.hasAttacked)
-    .sort((a, b) => cardValue(b) - cardValue(a));
-
-  readyCreatures.forEach((creature) => {
-    if (nextState.status === 'playing') {
-      nextState = attackWithCreature(nextState, 'enemy', creature.instanceId, chooseAttackTarget(nextState, creature, normalizedDifficulty));
-    }
-  });
-
-  return nextState.status === 'playing' ? endTurn(nextState) : nextState;
+  return takeAITurn(nextState, 'enemy', normalizedDifficulty).finalState;
 }

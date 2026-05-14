@@ -15,6 +15,8 @@ import Home from './pages/Home.jsx';
 import Login from './pages/Login.jsx';
 import PackOpening from './pages/PackOpening.jsx';
 import PackSelection from './pages/PackSelection.jsx';
+import PvpBattleLobby from './pages/PvpBattleLobby.jsx';
+import PvpBattlePlay from './pages/PvpBattlePlay.jsx';
 import SetSelection from './pages/SetSelection.jsx';
 import Shop from './pages/Shop.jsx';
 import Showcase from './pages/Showcase.jsx';
@@ -49,6 +51,8 @@ export default function App() {
           <Route path="/battle" element={<BattleHome />} />
           <Route path="/battle/deck-builder" element={<BattleDeckBuilder />} />
           <Route path="/battle/play" element={<BattlePlay />} />
+          <Route path="/battle/pvp" element={<PvpBattleLobby />} />
+          <Route path="/battle/pvp/:matchId" element={<PvpBattlePlay />} />
           <Route path="/friends" element={<Friends />} />
           <Route path="/trades" element={<Trades />} />
           <Route path="/trades/new/:friendId" element={<TradeNew />} />

@@ -1,4 +1,5 @@
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import GroupsIcon from '@mui/icons-material/Groups';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import SettingsIcon from '@mui/icons-material/Settings';
 import StyleIcon from '@mui/icons-material/Style';
@@ -65,6 +66,9 @@ export default function BattleHome() {
             </Button>
             <Button component={Link} disabled={!hasDeck} startIcon={<PlayArrowIcon />} to="/battle/play" variant="outlined">
               Continue Saved Deck
+            </Button>
+            <Button component={Link} startIcon={<GroupsIcon />} to="/battle/pvp" variant="outlined">
+              Friend Battles
             </Button>
             <Button onClick={() => setSettingsOpen(true)} startIcon={<SettingsIcon />} variant="outlined">
               Settings

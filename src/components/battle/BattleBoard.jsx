@@ -15,12 +15,15 @@ export default function BattleBoard({
   animationEvents = [],
   animationSpeed = 1,
   enemy,
+  enemyBadge = '',
+  enemyName = 'Enemy Binder',
   log,
   onAttackCreature,
   onEndTurn,
   onInspectCard,
   onPlayCard,
   player,
+  playerName = 'You',
   status,
   showHelpTips = true,
   turnNumber,
@@ -34,7 +37,6 @@ export default function BattleBoard({
   return (
     <Box className="battleArenaShell">
       <BattleArenaBackground phase={activePlayer} playerDominance={(player.health || 0) - (enemy.health || 0)} />
-      <CardPlayAnimationLayer animationEvents={animationEvents} animationSpeed={animationSpeed} />
 
       <Box className="battleArenaContent">
         <Box className="battleCommandZone enemyZone">
@@ -46,8 +48,9 @@ export default function BattleBoard({
             health={enemy.health}
             mana={enemy.mana}
             maxMana={enemy.maxMana}
-            name="Enemy Binder"
+            name={enemyName}
             owner="enemy"
+            badge={enemyBadge}
           />
         </Box>
 
@@ -132,12 +135,13 @@ export default function BattleBoard({
             health={player.health}
             mana={player.mana}
             maxMana={player.maxMana}
-            name="You"
+            name={playerName}
             owner="player"
           />
           <BattleHand animationSpeed={animationSpeed} cards={player.hand} disabled={!isPlayerTurn} mana={player.mana} onInspectCard={onInspectCard} onPlayCard={onPlayCard} />
         </Box>
       </Box>
+      <CardPlayAnimationLayer animationEvents={animationEvents} animationSpeed={animationSpeed} />
     </Box>
   );
 }

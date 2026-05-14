@@ -126,6 +126,7 @@ export default function BattleCard({
 
   return (
     <Card
+      className={`battleCard ${playable ? 'playable' : ''}`}
       component={motion.div}
       onClick={handleClick}
       onContextMenu={handleContextMenu}
