@@ -16,7 +16,7 @@ import { fetchRedStarterEnemyDeck } from '../api/scryfallEnemyDeck.js';
 import { createFallbackEnemyDeck, takeEnemyTurn } from '../utils/battleAI.js';
 import { mapCollectionCardToBattleCard } from '../utils/battleCardMapper.js';
 import { getSavedBattleDeck } from '../utils/battleDeckStorage.js';
-import { calculateBattleReward, getBattleRewardStatus, recordBattleReward } from '../utils/battleRewards.js';
+import { calculateBattleReward, getBattleRewardStatus, recordBattleRewardSynced } from '../utils/battleRewards.js';
 import { getAnimationSpeedMultiplier, getBattleSettings } from '../utils/battleSettings.js';
 import {
   createBattleAnimationEvent,
@@ -187,19 +187,34 @@ export default function BattlePlay() {
       return;
     }
 
-    const rewardResult = calculateBattleReward(battleState.status, savedDeck, battleState);
-    const recordedReward = recordBattleReward(rewardResult.amount, rewardResult.result);
-    setResultReward({
-      ...rewardResult,
-      dailyStatusAfterReward: recordedReward,
-      newShardBalance: recordedReward.newShardBalance,
-    });
+    let isMounted = true;
 
-    setSnackbar(
-      recordedReward.amount > 0
-        ? `Battle complete: earned ${recordedReward.amount} Pack Shards.`
-        : 'Battle complete: daily reward limit reached.',
-    );
+    async function awardBattleReward() {
+      const rewardResult = calculateBattleReward(battleState.status, savedDeck, battleState);
+      const recordedReward = await recordBattleRewardSynced(rewardResult.amount, rewardResult.result);
+
+      if (!isMounted) {
+        return;
+      }
+
+      setResultReward({
+        ...rewardResult,
+        dailyStatusAfterReward: recordedReward,
+        newShardBalance: recordedReward.newShardBalance,
+      });
+
+      setSnackbar(
+        recordedReward.amount > 0
+          ? `Battle complete: earned ${recordedReward.amount} Pack Shards.`
+          : 'Battle complete: daily reward limit reached.',
+      );
+    }
+
+    awardBattleReward();
+
+    return () => {
+      isMounted = false;
+    };
   }, [battleState, resultReward, savedDeck]);
 
   function handlePlayCard(card) {

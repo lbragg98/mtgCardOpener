@@ -38,6 +38,7 @@ import TearEffect from "../components/TearEffect.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useCosmetics } from "../context/CosmeticsContext.jsx";
 import { getCardPriceLabel } from "../utils/cardPricing.js";
+import { getCloudPackShards, spendCloudPackShards } from "../api/packShards.js";
 import { saveOpenedCards } from "../api/userCards.js";
 import { isOneOfOneRing } from "../utils/collectorExclusiveCards.js";
 import {
@@ -806,13 +807,25 @@ export default function PackOpening() {
           const spentKey = `collector-booster-spent-${openingId}`;
 
           if (!sessionStorage.getItem(spentKey)) {
-            if (
-              getPackShards() < COLLECTOR_BOOSTER_COST ||
-              !spendPackShards(COLLECTOR_BOOSTER_COST)
-            ) {
-              throw new Error(
-                "You need 1,000 pack shards to open a Collector Booster.",
-              );
+            if (user) {
+              const currentShards = await getCloudPackShards();
+
+              if (currentShards < COLLECTOR_BOOSTER_COST) {
+                throw new Error(
+                  "You need 1,000 pack shards to open a Collector Booster.",
+                );
+              }
+
+              await spendCloudPackShards(COLLECTOR_BOOSTER_COST);
+            } else {
+              if (
+                getPackShards() < COLLECTOR_BOOSTER_COST ||
+                !spendPackShards(COLLECTOR_BOOSTER_COST)
+              ) {
+                throw new Error(
+                  "You need 1,000 pack shards to open a Collector Booster.",
+                );
+              }
             }
 
             sessionStorage.setItem(spentKey, "true");
@@ -840,7 +853,7 @@ export default function PackOpening() {
     return () => {
       isMounted = false;
     };
-  }, [boosterType, normalizedSetCode, openingId]);
+  }, [boosterType, normalizedSetCode, openingId, user?.id]);
 
   const revealedPack = pack;
   const isFinished = currentIndex >= revealedPack.length;

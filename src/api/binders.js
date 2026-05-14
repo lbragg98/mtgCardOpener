@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabaseClient.js';
 import { BINDER_CATALOG, getCatalogBinderById } from '../utils/binderCatalog.js';
 import { getCardPrice } from '../utils/cardPricing.js';
-import { addPackShards, getPackShards, spendPackShards } from '../utils/collectionStorage.js';
+import { addCloudPackShards, getCloudPackShards, spendCloudPackShards } from './packShards.js';
 import { normalizeUserCardRow } from './userCards.js';
 
 async function getCurrentUserId() {
@@ -153,15 +153,13 @@ export async function purchaseBinder(binderId) {
     throw new Error('You already own this binder.');
   }
 
-  const currentShards = getPackShards();
+  const currentShards = await getCloudPackShards();
 
   if (currentShards < catalogBinder.price) {
     throw new Error(`Need ${(catalogBinder.price - currentShards).toLocaleString()} more Pack Shards.`);
   }
 
-  if (!spendPackShards(catalogBinder.price)) {
-    throw new Error('Not enough Pack Shards.');
-  }
+  const newShardBalance = await spendCloudPackShards(catalogBinder.price);
 
   const { data, error } = await supabase
     .from('owned_binders')
@@ -173,7 +171,7 @@ export async function purchaseBinder(binderId) {
     .single();
 
   if (error) {
-    addPackShards(catalogBinder.price);
+    await addCloudPackShards(catalogBinder.price);
     throw new Error(error.message || 'Unable to purchase binder.');
   }
 
@@ -184,7 +182,7 @@ export async function purchaseBinder(binderId) {
   return {
     binder,
     catalogBinder,
-    newShardBalance: getPackShards(),
+    newShardBalance,
   };
 }
 

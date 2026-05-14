@@ -1,4 +1,5 @@
 import { addPackShards, getPackShards } from './collectionStorage.js';
+import { addCloudPackShards, getCloudPackShards } from '../api/packShards.js';
 
 const BATTLE_REWARD_KEY = 'binderBattleRewardStatus';
 const DAILY_REWARD_LIMIT = 5;
@@ -125,4 +126,39 @@ export function recordBattleReward(amount, result = 'lost') {
     amount: canRecordReward ? rewardAmount : 0,
     newShardBalance,
   };
+}
+
+export async function recordBattleRewardSynced(amount, result = 'lost') {
+  const status = readRewardStatus();
+  const rewardAmount = Math.max(0, Number.parseInt(amount || 0, 10) || 0);
+  const canRecordReward = status.rewardsEarned < DAILY_REWARD_LIMIT;
+  const nextStatus = {
+    ...status,
+    rewardsEarned: canRecordReward ? status.rewardsEarned + 1 : status.rewardsEarned,
+    shardsEarned: canRecordReward ? status.shardsEarned + rewardAmount : status.shardsEarned,
+    wins: result === 'won' ? status.wins + 1 : status.wins,
+  };
+
+  writeRewardStatus(nextStatus);
+
+  try {
+    const newShardBalance =
+      canRecordReward && rewardAmount > 0
+        ? await addCloudPackShards(rewardAmount)
+        : await getCloudPackShards();
+
+    return {
+      ...getBattleRewardStatus(),
+      amount: canRecordReward ? rewardAmount : 0,
+      newShardBalance,
+    };
+  } catch {
+    const newShardBalance = canRecordReward && rewardAmount > 0 ? addPackShards(rewardAmount) : getPackShards();
+
+    return {
+      ...getBattleRewardStatus(),
+      amount: canRecordReward ? rewardAmount : 0,
+      newShardBalance,
+    };
+  }
 }
