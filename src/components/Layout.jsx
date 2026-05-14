@@ -31,6 +31,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useCosmetics } from '../context/CosmeticsContext.jsx';
 import { getThemeVariables } from '../theme/cosmeticThemes.js';
+import { subscribeToPackShardWallet, syncPackShardsFromCloud } from '../api/packShards.js';
 import { getPackShards } from '../utils/collectionStorage.js';
 import LocalCollectionMigrationDialog from './LocalCollectionMigrationDialog.jsx';
 
@@ -67,18 +68,48 @@ export default function Layout() {
   const themeVariables = getThemeVariables(equippedTheme?.id);
 
   useEffect(() => {
+    let isMounted = true;
+    let unsubscribeWallet = null;
+
     function refreshPackShards() {
       setPackShards(getPackShards());
     }
 
+    async function syncLoggedInWallet() {
+      if (!user) {
+        refreshPackShards();
+        return;
+      }
+
+      try {
+        const cloudBalance = await syncPackShardsFromCloud({ migrateLocal: true });
+
+        if (isMounted) {
+          setPackShards(cloudBalance);
+        }
+
+        unsubscribeWallet = await subscribeToPackShardWallet((nextBalance) => {
+          if (isMounted) {
+            setPackShards(nextBalance);
+          }
+        });
+      } catch (error) {
+        console.warn('Unable to sync Pack Shards from Supabase.', error);
+        refreshPackShards();
+      }
+    }
+
+    syncLoggedInWallet();
     window.addEventListener('packShardsUpdated', refreshPackShards);
     window.addEventListener('storage', refreshPackShards);
 
     return () => {
+      isMounted = false;
       window.removeEventListener('packShardsUpdated', refreshPackShards);
       window.removeEventListener('storage', refreshPackShards);
+      unsubscribeWallet?.();
     };
-  }, []);
+  }, [user?.id]);
 
   const visibleNavItems = user ? navItems : loggedOutNavItems;
   const navLinks = visibleNavItems.map((item) => (

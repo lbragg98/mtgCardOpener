@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabaseClient.js';
-import { addPackShards, getPackShards, spendPackShards } from '../utils/collectionStorage.js';
 import { getShopItemById } from '../utils/shopCatalog.js';
+import { addCloudPackShards, getCloudPackShards, spendCloudPackShards } from './packShards.js';
 
 async function getCurrentUserId() {
   const { data, error } = await supabase.auth.getUser();
@@ -100,15 +100,13 @@ export async function purchaseShopItem(itemId) {
     throw new Error('You already own this cosmetic.');
   }
 
-  const currentShards = getPackShards();
+  const currentShards = await getCloudPackShards();
 
   if (currentShards < item.price) {
     throw new Error(`Need ${(item.price - currentShards).toLocaleString()} more Pack Shards.`);
   }
 
-  if (!spendPackShards(item.price)) {
-    throw new Error('Not enough Pack Shards.');
-  }
+  const newShardBalance = await spendCloudPackShards(item.price);
 
   const { error } = await supabase.from('user_shop_items').insert({
     user_id: userId,
@@ -116,7 +114,7 @@ export async function purchaseShopItem(itemId) {
   });
 
   if (error) {
-    addPackShards(item.price);
+    await addCloudPackShards(item.price);
     throw new Error(error.message || 'Unable to purchase cosmetic.');
   }
 
@@ -125,7 +123,7 @@ export async function purchaseShopItem(itemId) {
 
   return {
     ownedItems: await getOwnedShopItems(),
-    newShardBalance: getPackShards(),
+    newShardBalance,
   };
 }
 

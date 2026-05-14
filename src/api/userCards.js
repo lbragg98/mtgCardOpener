@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabaseClient.js';
-import { addPackShards, getPackShards } from '../utils/collectionStorage.js';
 import { normalizeFoilTreatment } from '../utils/foilTypes.js';
 import { assertCanRecycleCard, getRecycleShardValue } from '../utils/recycleValue.js';
+import { addCloudPackShards, getCloudPackShards } from './packShards.js';
 
 const DUPLICATE_SHARD_REWARD = 100;
 const USER_CARDS_PAGE_SIZE = 1000;
@@ -195,7 +195,7 @@ export async function saveOpenedCards(cards, sourcePackId, options = {}) {
       savedCards: [],
       duplicateCount: 0,
       shardsAwarded: 0,
-      newShardBalance: getPackShards(),
+      newShardBalance: await getCloudPackShards(),
     };
   }
 
@@ -206,7 +206,7 @@ export async function saveOpenedCards(cards, sourcePackId, options = {}) {
   }
 
   const shardsAwarded = duplicateCount * DUPLICATE_SHARD_REWARD;
-  const newShardBalance = shardsAwarded > 0 ? addPackShards(shardsAwarded) : getPackShards();
+  const newShardBalance = shardsAwarded > 0 ? await addCloudPackShards(shardsAwarded) : await getCloudPackShards();
   window.dispatchEvent(new Event('collectionUpdated'));
 
   return {
@@ -298,7 +298,7 @@ export async function recycleUserCards(userCardIds) {
     throw new Error(deleteError.message || 'Unable to recycle selected cards.');
   }
 
-  const newShardBalance = addPackShards(shardsAwarded);
+  const newShardBalance = await addCloudPackShards(shardsAwarded);
   window.dispatchEvent(new Event('packShardsUpdated'));
   window.dispatchEvent(new Event('collectionUpdated'));
 
