@@ -93,8 +93,7 @@ export default function Layout() {
             setPackShards(nextBalance);
           }
         });
-      } catch (error) {
-        console.warn('Unable to sync Pack Shards from Supabase.', error);
+      } catch {
         refreshPackShards();
       }
     }

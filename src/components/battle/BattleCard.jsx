@@ -1,3 +1,4 @@
+// Battle card renderer shows simplified stats/effects while keeping the original card art recognizable.
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
 import ShieldIcon from '@mui/icons-material/Shield';
@@ -71,6 +72,7 @@ export default function BattleCard({
   ready = false,
   selectable = false,
   selected = false,
+  size = 'battlefield',
   validTarget = false,
 }) {
   const stats = getDisplayStats(card);
@@ -79,6 +81,8 @@ export default function BattleCard({
   const cardColors = getCardColors(card);
   const colorAccent = card?.colorProfile?.uiColors || getColorBadgeColors(cardColors);
   const keywords = Array.isArray(card?.keywords) ? card.keywords.slice(0, compact ? 2 : 4) : [];
+  const isMobileHand = size === 'hand';
+  const shouldShowColorName = !isMobileHand;
   const longPressTimerRef = useRef(null);
   const didLongPressRef = useRef(false);
 
@@ -126,7 +130,7 @@ export default function BattleCard({
 
   return (
     <Card
-      className={`battleCard ${playable ? 'playable' : ''}`}
+      className={`battleCard battleCard-${size} ${playable ? 'playable' : ''}`}
       component={motion.div}
       onClick={handleClick}
       onContextMenu={handleContextMenu}
@@ -172,15 +176,15 @@ export default function BattleCard({
         },
       }}
     >
-      <Box sx={{ display: 'grid', gridTemplateColumns: compact ? '72px minmax(0, 1fr)' : '1fr', gap: compact ? 1 : 0 }}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: compact ? { xs: '58px minmax(0, 1fr)', sm: '72px minmax(0, 1fr)' } : '1fr', gap: compact ? 1 : 0 }}>
         <Box sx={{ minWidth: 0 }}>
           <CardImage card={card} variant="grid" />
         </Box>
-        <CardContent sx={{ display: 'grid', gap: 0.75, p: compact ? 1 : 1.2 }}>
-          <Typography fontWeight={950} noWrap variant="body2">
+        <CardContent sx={{ display: 'grid', gap: { xs: 0.45, sm: 0.75 }, p: compact ? { xs: 0.75, sm: 1 } : 1.2 }}>
+          <Typography fontWeight={950} noWrap sx={{ fontSize: { xs: size === 'hand' ? 12 : 11.5, sm: 14 } }} variant="body2">
             {card?.name || 'Unknown Card'}
           </Typography>
-          <Stack direction="row" gap={0.75} sx={{ flexWrap: 'wrap' }}>
+          <Stack direction="row" gap={{ xs: 0.4, sm: 0.75 }} sx={{ flexWrap: 'wrap' }}>
             <Chip
               icon={<AutoAwesomeIcon />}
               label={stats.cost}
@@ -199,21 +203,23 @@ export default function BattleCard({
                 <Chip icon={<ShieldIcon />} label={`${currentHealth}/${stats.health}`} size="small" color="secondary" variant="outlined" />
               </>
             )}
-            <Tooltip title={`${card?.colorName || 'Colorless'}: ${card?.colorStrategy || 'Flexible modest utility'}`}>
-              <Chip
-                label={card?.colorName || card?.colorSignature || 'Colorless'}
-                size="small"
-                sx={{
-                  bgcolor: colorAccent.chipBg,
-                  borderColor: colorAccent.border,
-                  color: colorAccent.text,
-                  maxWidth: '100%',
-                }}
-                variant="outlined"
-              />
-            </Tooltip>
+            {shouldShowColorName && (
+              <Tooltip title={`${card?.colorName || 'Colorless'}: ${card?.colorStrategy || 'Flexible modest utility'}`}>
+                <Chip
+                  label={card?.colorName || card?.colorSignature || 'Colorless'}
+                  size="small"
+                  sx={{
+                    bgcolor: colorAccent.chipBg,
+                    borderColor: colorAccent.border,
+                    color: colorAccent.text,
+                    maxWidth: '100%',
+                  }}
+                  variant="outlined"
+                />
+              </Tooltip>
+            )}
           </Stack>
-          <Stack direction="row" gap={0.4} sx={{ flexWrap: 'wrap' }}>
+          <Stack className="battleColorPips" direction="row" gap={0.4} sx={{ flexWrap: 'wrap' }}>
             {cardColors.map((color) => (
               <Box
                 key={color}
@@ -237,13 +243,13 @@ export default function BattleCard({
               </Box>
             ))}
           </Stack>
-          <Stack direction="row" gap={0.5} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
+          <Stack className="battleTypeRow" direction="row" gap={0.5} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
             <Chip color={TYPE_CHIP_COLORS[card?.type] || 'default'} label={card?.displayType || type} size="small" sx={{ mr: 0.5 }} />
             <Typography color="text.secondary" sx={{ fontSize: 12, fontWeight: 800 }}>
               {card?.rarity || 'common'}
             </Typography>
           </Stack>
-          <Typography color="text.secondary" sx={{ fontSize: 12 }} noWrap>
+          <Typography className="battleEffectSummary" color="text.secondary" sx={{ fontSize: { xs: 11, sm: 12 } }} noWrap>
             {getEffectSummary(card, type)}
           </Typography>
           {keywords.length > 0 && (

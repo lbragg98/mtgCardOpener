@@ -1,3 +1,4 @@
+// Equipped opening scenes are CSS-only backgrounds behind the pack opening flow.
 import { Box, useMediaQuery } from "@mui/material";
 
 const DEFAULT_SCENE = {

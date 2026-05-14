@@ -1,4 +1,5 @@
 import { addPackShards, getPackShards } from './collectionStorage.js';
+// Battle reward rules: daily-capped Pack Shard payouts for solo Binder Battle results.
 import { addCloudPackShards, getCloudPackShards } from '../api/packShards.js';
 
 const BATTLE_REWARD_KEY = 'binderBattleRewardStatus';

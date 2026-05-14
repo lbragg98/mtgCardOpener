@@ -1,3 +1,4 @@
+// SealedPack is the visual wrapper shown before cards are revealed.
 export default function SealedPack({
   accentArtwork,
   boosterLabel = 'PLAY BOOSTER',

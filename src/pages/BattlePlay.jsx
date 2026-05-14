@@ -1,5 +1,6 @@
+// Solo Binder Battle play screen: local battle state, target prompts, rewards, and result UI.
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { Alert, Box, Button, Card, CardContent, Snackbar, Stack, Typography } from '@mui/material';
+import { Alert, Box, Button, Card, CardContent, Dialog, DialogActions, DialogContent, DialogTitle, Snackbar, Stack, Typography, useMediaQuery } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -26,7 +27,9 @@ import {
 } from '../utils/battleAnimationQueue.js';
 
 function prepareDeck(deck) {
-  return deck.map((card) => (card?.type && card?.cost !== undefined ? { ...card } : mapCollectionCardToBattleCard(card)));
+  return deck
+    .map((card) => (card?.type && card?.cost !== undefined ? { ...card } : mapCollectionCardToBattleCard(card)))
+    .filter((card) => card.type !== 'land');
 }
 
 function needsTarget(card) {
@@ -86,6 +89,7 @@ function getTargetOptions(state, playerId, card, mode) {
 }
 
 export default function BattlePlay() {
+  const isMobile = useMediaQuery((theme) => theme.breakpoints.down('sm'));
   const savedDeck = useMemo(() => prepareDeck(getSavedBattleDeck()), []);
   const [settings, setSettings] = useState(() => getBattleSettings());
   const animationSpeed = getAnimationSpeedMultiplier(settings.animationSpeed);
@@ -96,6 +100,7 @@ export default function BattlePlay() {
   const [targetPicker, setTargetPicker] = useState(null);
   const [resultReward, setResultReward] = useState(null);
   const [snackbar, setSnackbar] = useState('');
+  const [showMobileTips, setShowMobileTips] = useState(() => isMobile && localStorage.getItem('battleMobileTipsSeen') !== 'true');
 
   function enqueueAnimation(event) {
     setAnimationEvents((currentEvents) => [...currentEvents, event].slice(-4));
@@ -163,8 +168,7 @@ export default function BattlePlay() {
 
         if (!isMounted) return;
         setBattleState(createInitialBattleState(savedDeck, enemyDeck.length === 20 ? enemyDeck : createFallbackEnemyDeck(savedDeck, settings.difficulty)));
-      } catch (error) {
-        console.warn('Using fallback enemy deck because Scryfall enemy deck failed.', error);
+      } catch {
         if (isMounted) {
           setBattleState(createInitialBattleState(savedDeck, createFallbackEnemyDeck(savedDeck, settings.difficulty)));
         }
@@ -344,11 +348,15 @@ export default function BattlePlay() {
       .then((enemyDeck) => {
         setBattleState(createInitialBattleState(savedDeck, enemyDeck.length === 20 ? enemyDeck : createFallbackEnemyDeck(savedDeck, settings.difficulty)));
       })
-      .catch((error) => {
-        console.warn('Using fallback enemy deck because Scryfall enemy deck failed.', error);
+      .catch(() => {
         setBattleState(createInitialBattleState(savedDeck, createFallbackEnemyDeck(savedDeck, settings.difficulty)));
       })
       .finally(() => setIsLoadingEnemyDeck(false));
+  }
+
+  function closeMobileTips() {
+    localStorage.setItem('battleMobileTipsSeen', 'true');
+    setShowMobileTips(false);
   }
 
   if (savedDeck.length !== 20 || !battleState) {
@@ -476,6 +484,21 @@ export default function BattlePlay() {
         open={Boolean(inspectedCard)}
         showOfficialText={settings.showOfficialText}
       />
+
+      <Dialog fullWidth onClose={closeMobileTips} open={showMobileTips}>
+        <DialogTitle>Mobile Battle Tips</DialogTitle>
+        <DialogContent>
+          <Stack gap={1}>
+            <Typography>Tap a card in your hand to play it.</Typography>
+            <Typography>Tap a ready creature on your field to attack.</Typography>
+            <Typography>When choosing a target, select one of the large highlighted options.</Typography>
+            <Typography>Swipe the hand tray at the bottom to browse your cards.</Typography>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeMobileTips} variant="contained">Got it</Button>
+        </DialogActions>
+      </Dialog>
 
       <Snackbar autoHideDuration={3600} onClose={() => setSnackbar('')} open={Boolean(snackbar)} message={snackbar} />
     </Box>

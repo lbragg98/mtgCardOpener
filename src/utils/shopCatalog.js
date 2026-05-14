@@ -1,3 +1,4 @@
+// Cosmetic shop catalog: static item data only; ownership/equipping live in storage APIs.
 export const SHOP_CATEGORIES = {
   THEMES: 'themes',
   OPENING_SCENES: 'openingScenes',

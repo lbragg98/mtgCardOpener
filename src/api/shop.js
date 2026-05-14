@@ -1,3 +1,4 @@
+// Supabase cosmetic shop API: ownership and equipped slots are stored separately from catalog data.
 import { supabase } from '../lib/supabaseClient.js';
 import { getShopItemById } from '../utils/shopCatalog.js';
 import { addCloudPackShards, getCloudPackShards, spendCloudPackShards } from './packShards.js';
@@ -89,6 +90,7 @@ export async function userOwnsItem(itemId) {
 }
 
 export async function purchaseShopItem(itemId) {
+  // Cosmetics spend Pack Shards but never affect pack odds or card generation.
   const userId = await getCurrentUserId();
   const item = getShopItemById(itemId);
 
@@ -128,6 +130,7 @@ export async function purchaseShopItem(itemId) {
 }
 
 export async function equipShopItem(itemId) {
+  // Equipping is an upsert by slot so each slot has at most one active cosmetic.
   const userId = await getCurrentUserId();
   const item = getShopItemById(itemId);
 

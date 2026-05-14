@@ -1,3 +1,4 @@
+// Special reveal wrapper for the actual one-of-one Ring card when it is active in the pack.
 import { Box, Typography } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useEffect, useMemo, useState } from 'react';
@@ -56,6 +57,7 @@ export const ONE_OF_ONE_CARD_MOTION = {
 };
 
 export function OneOfOneRingAtmosphere({ active = true, isMobile = false, settled = false }) {
+  // Particle counts are lower on mobile to keep the rare reveal smooth.
   const particleCount = isMobile ? 18 : 36;
   const particles = useMemo(
     () =>
@@ -121,6 +123,7 @@ export function OneOfOneRingAtmosphere({ active = true, isMobile = false, settle
 }
 
 export default function OneOfOneRingReveal({ active, card, isMobile = false, onComplete }) {
+  // Completion hands control back to the normal reveal card so the user can inspect and advance it.
   const [complete, setComplete] = useState(false);
   const motionConfig = isMobile ? ONE_OF_ONE_CARD_MOTION.mobile : ONE_OF_ONE_CARD_MOTION.desktop;
   const imageUrl = card?.imageUrl || card?.image;

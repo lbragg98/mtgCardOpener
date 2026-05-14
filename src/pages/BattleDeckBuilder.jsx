@@ -1,3 +1,4 @@
+// Deck builder maps the user's real collection into a 20-card simplified battle deck.
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DeleteIcon from '@mui/icons-material/Delete';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
@@ -23,8 +24,11 @@ import {
   Select,
   Snackbar,
   Stack,
+  Tab,
+  Tabs,
   TextField,
   Typography,
+  useMediaQuery,
 } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -154,6 +158,7 @@ function getDeckAnalysis(cards) {
 
 export default function BattleDeckBuilder() {
   const navigate = useNavigate();
+  const isMobile = useMediaQuery((theme) => theme.breakpoints.down('sm'));
   const [battleCards, setBattleCards] = useState([]);
   const [deckId, setDeckId] = useState(null);
   const [deckName, setDeckName] = useState('Binder Battle Deck');
@@ -174,6 +179,7 @@ export default function BattleDeckBuilder() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
   const [snackbar, setSnackbar] = useState('');
+  const [mobileTab, setMobileTab] = useState('collection');
 
   useEffect(() => {
     let isMounted = true;
@@ -194,35 +200,7 @@ export default function BattleDeckBuilder() {
         }
 
         const collection = collectionResult.value;
-
-        if (import.meta.env.DEV) {
-          console.log('RAW COLLECTION FIRST CARD:', collection[0]);
-          console.log('RAW COLLECTION FIRST CARD KEYS:', collection[0] ? Object.keys(collection[0]) : []);
-          console.log('TYPE LINE:', collection[0]?.type_line);
-          console.log('ORACLE TEXT:', collection[0]?.oracle_text);
-          console.log('FULL SCRYFALL:', collection[0]?.full_scryfall_data);
-          console.log('RAW FIRST CARD VALUES:', {
-            name: collection[0]?.name,
-            type_line: collection[0]?.type_line,
-            oracle_text: collection[0]?.oracle_text,
-            cmc: collection[0]?.cmc,
-            mana_cost: collection[0]?.mana_cost,
-            colors: collection[0]?.colors,
-            color_identity: collection[0]?.color_identity,
-            full_scryfall_data: collection[0]?.full_scryfall_data,
-          });
-          console.log('Raw collection card sample before battle mapping:', collection[0]);
-          console.log('Raw collection card keys:', collection[0] ? Object.keys(collection[0]) : []);
-        }
-
-        const mappedCards = mapCollectionToBattleCards(collection);
-        if (import.meta.env.DEV) {
-          console.table(mappedCards.reduce((acc, card) => {
-            acc[card.type] = (acc[card.type] || 0) + 1;
-            return acc;
-          }, {}));
-          console.log('Mapped battle card sample:', mappedCards[0]);
-        }
+        const mappedCards = mapCollectionToBattleCards(collection).filter((card) => card.type !== 'land');
         const savedDeck = savedDeckResult.status === 'fulfilled' && savedDeckResult.value
           ? savedDeckResult.value
           : getCachedBattleDeck();
@@ -322,17 +300,7 @@ export default function BattleDeckBuilder() {
       const collection = await getMyCards();
       const result = await enrichMissingBattleData(collection);
       const refreshedCollection = await getMyCards();
-      const mappedCards = mapCollectionToBattleCards(refreshedCollection);
-
-      if (import.meta.env.DEV) {
-        console.log('Raw collection card sample before battle mapping:', refreshedCollection[0]);
-        console.log('Raw collection card keys:', refreshedCollection[0] ? Object.keys(refreshedCollection[0]) : []);
-        console.table(mappedCards.reduce((acc, card) => {
-          acc[card.type] = (acc[card.type] || 0) + 1;
-          return acc;
-        }, {}));
-        console.log('Mapped battle card sample:', mappedCards[0]);
-      }
+      const mappedCards = mapCollectionToBattleCards(refreshedCollection).filter((card) => card.type !== 'land');
 
       setBattleCards(mappedCards);
       setSnackbar(`Updated battle data for ${result.updatedCount} cards.`);
@@ -383,7 +351,7 @@ export default function BattleDeckBuilder() {
 
   return (
     <Box>
-      <Button component={Link} startIcon={<ArrowBackIcon />} to="/battle" variant="outlined" sx={{ mb: 3 }}>
+      <Button component={Link} startIcon={<ArrowBackIcon />} to="/battle" variant="outlined" sx={{ mb: 3, minHeight: { xs: 44, sm: 36 } }}>
         Back to Battle
       </Button>
       <PageHeader eyebrow="Binder Battle" title="Deck Builder">
@@ -426,13 +394,13 @@ export default function BattleDeckBuilder() {
               <FormHelperText>Friend-visible decks can be used for friend battles.</FormHelperText>
             </FormControl>
             <Stack direction={{ xs: 'column', sm: 'row' }} gap={1}>
-              <Button disabled={!deckIsReady || isSaving} onClick={() => handleSaveDeck()} startIcon={<SaveIcon />} variant="outlined">
+              <Button disabled={!deckIsReady || isSaving} onClick={() => handleSaveDeck()} startIcon={<SaveIcon />} sx={{ minHeight: { xs: 44, sm: 36 } }} variant="outlined">
                 Save Deck
               </Button>
-              <Button disabled={isRefreshingBattleData || isSaving} onClick={handleRefreshBattleData} startIcon={<RefreshIcon />} variant="outlined">
+              <Button disabled={isRefreshingBattleData || isSaving} onClick={handleRefreshBattleData} startIcon={<RefreshIcon />} sx={{ minHeight: { xs: 44, sm: 36 } }} variant="outlined">
                 Refresh Battle Data
               </Button>
-              <Button disabled={!deckIsReady || isSaving} onClick={() => handleSaveDeck({ startAfterSave: true })} startIcon={<PlayArrowIcon />} variant="contained">
+              <Button disabled={!deckIsReady || isSaving} onClick={() => handleSaveDeck({ startAfterSave: true })} startIcon={<PlayArrowIcon />} sx={{ minHeight: { xs: 44, sm: 36 } }} variant="contained">
                 Start Battle
               </Button>
             </Stack>
@@ -451,10 +419,22 @@ export default function BattleDeckBuilder() {
         </CardContent>
       </Card>
 
+      {isMobile && (
+        <Tabs
+          onChange={(_, value) => setMobileTab(value)}
+          sx={{ mb: 2, borderBottom: '1px solid var(--panel-border)' }}
+          value={mobileTab}
+          variant="fullWidth"
+        >
+          <Tab label={`Collection (${filteredCards.length})`} value="collection" />
+          <Tab label={`Deck (${selectedCards.length}/20)`} value="deck" />
+        </Tabs>
+      )}
+
       <Grid container spacing={2.5}>
-        <Grid size={{ xs: 12, lg: 8 }}>
+        <Grid size={{ xs: 12, lg: 8 }} sx={{ display: isMobile && mobileTab !== 'collection' ? 'none' : 'block' }}>
           <Card>
-            <CardContent sx={{ display: 'grid', gap: 2 }}>
+            <CardContent sx={{ display: 'grid', gap: 2, p: { xs: 1.25, sm: 2 } }}>
               <Stack direction={{ xs: 'column', md: 'row' }} gap={1.25}>
                 <TextField
                   fullWidth
@@ -494,13 +474,19 @@ export default function BattleDeckBuilder() {
                 </FormControl>
               </Stack>
 
-              <Stack direction="row" gap={1} sx={{ flexWrap: 'wrap' }}>
+              <Stack
+                className="mobileDeckFilterScroller"
+                direction="row"
+                gap={1}
+                sx={{ flexWrap: { xs: 'nowrap', sm: 'wrap' }, overflowX: { xs: 'auto', sm: 'visible' }, pb: { xs: 0.5, sm: 0 } }}
+              >
                 {[{ label: 'All Types', value: 'all' }, ...TYPE_OPTIONS].map((type) => (
                   <Chip
                     key={type.value}
                     color={filters.type === type.value ? 'primary' : 'default'}
                     label={type.label}
                     onClick={() => updateFilter('type', type.value)}
+                    sx={{ flex: { xs: '0 0 auto', sm: 'initial' } }}
                     variant={filters.type === type.value ? 'filled' : 'outlined'}
                   />
                 ))}
@@ -510,6 +496,7 @@ export default function BattleDeckBuilder() {
                     color={filters.rarity === rarity ? 'secondary' : 'default'}
                     label={rarity === 'all' ? 'All Rarities' : rarity}
                     onClick={() => updateFilter('rarity', rarity)}
+                    sx={{ flex: { xs: '0 0 auto', sm: 'initial' } }}
                     variant={filters.rarity === rarity ? 'filled' : 'outlined'}
                   />
                 ))}
@@ -519,6 +506,7 @@ export default function BattleDeckBuilder() {
                     color={filters.color === color.value ? 'warning' : 'default'}
                     label={color.label}
                     onClick={() => updateFilter('color', filters.color === color.value ? 'all' : color.value)}
+                    sx={{ flex: { xs: '0 0 auto', sm: 'initial' } }}
                     variant={filters.color === color.value ? 'filled' : 'outlined'}
                   />
                 ))}
@@ -528,6 +516,7 @@ export default function BattleDeckBuilder() {
                     color={filters.foil === foil ? 'success' : 'default'}
                     label={foil === 'all' ? 'All Finishes' : foil}
                     onClick={() => updateFilter('foil', foil)}
+                    sx={{ flex: { xs: '0 0 auto', sm: 'initial' } }}
                     variant={filters.foil === foil ? 'filled' : 'outlined'}
                   />
                 ))}
@@ -537,6 +526,7 @@ export default function BattleDeckBuilder() {
                     color={filters.cost === cost ? 'info' : 'default'}
                     label={cost === 'all' ? 'All Costs' : cost}
                     onClick={() => updateFilter('cost', cost)}
+                    sx={{ flex: { xs: '0 0 auto', sm: 'initial' } }}
                     variant={filters.cost === cost ? 'filled' : 'outlined'}
                   />
                 ))}
@@ -554,7 +544,7 @@ export default function BattleDeckBuilder() {
                 <Alert severity="info">No collection cards match those filters.</Alert>
               )}
 
-              <Grid container spacing={1.5}>
+              <Grid container spacing={{ xs: 1, sm: 1.5 }}>
                 {filteredCards.map((card) => (
                   <Grid key={card.userCardId} size={{ xs: 12, sm: 6, xl: 4 }}>
                     <BattleCard
@@ -574,7 +564,7 @@ export default function BattleDeckBuilder() {
           </Card>
         </Grid>
 
-        <Grid size={{ xs: 12, lg: 4 }}>
+        <Grid size={{ xs: 12, lg: 4 }} sx={{ display: isMobile && mobileTab !== 'deck' ? 'none' : 'block' }}>
           <Card sx={{ position: { lg: 'sticky' }, top: { lg: 88 } }}>
             <CardContent sx={{ display: 'grid', gap: 1.5 }}>
               <Stack direction="row" justifyContent="space-between" sx={{ alignItems: 'center' }}>
@@ -653,7 +643,7 @@ export default function BattleDeckBuilder() {
                           {card.type} - Cost {card.cost} - {getEffectSummary(card)}
                         </Typography>
                       </Box>
-                      <IconButton aria-label={`Remove ${card.name}`} onClick={() => toggleCard(card)} size="small">
+                      <IconButton aria-label={`Remove ${card.name}`} onClick={() => toggleCard(card)} size="small" sx={{ minHeight: { xs: 44, sm: 34 }, minWidth: { xs: 44, sm: 34 } }}>
                         <DeleteIcon fontSize="small" />
                       </IconButton>
                     </CardContent>
@@ -664,6 +654,15 @@ export default function BattleDeckBuilder() {
           </Card>
         </Grid>
       </Grid>
+
+      {isMobile && (
+        <Box className="mobileDeckBuilderActionBar">
+          <Chip color={deckIsReady ? 'success' : 'warning'} label={`${selectedCards.length}/20`} />
+          <Button disabled={!deckIsReady || isSaving} onClick={() => handleSaveDeck({ startAfterSave: true })} sx={{ minHeight: 44 }} variant="contained">
+            Start Battle
+          </Button>
+        </Box>
+      )}
 
       <Snackbar autoHideDuration={3600} onClose={() => setSnackbar('')} open={Boolean(snackbar)} message={snackbar} />
     </Box>

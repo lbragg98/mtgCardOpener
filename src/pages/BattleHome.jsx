@@ -1,3 +1,4 @@
+// Battle home explains the simplified Binder Battle mode and links into deck/build/play flows.
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import GroupsIcon from '@mui/icons-material/Groups';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';

@@ -1,3 +1,4 @@
+// Pack selection chooses wrapper art and enforces Play vs Collector Booster access.
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
@@ -21,11 +22,12 @@ import {
 } from '@mui/material';
 import { animate, motion, useMotionValue, useTransform } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { getArtCardsBySet, getCardsBySet, getSets } from '../api/scryfall.js';
 import PageHeader from '../components/PageHeader.jsx';
 import PackCard from '../components/PackCard.jsx';
 import { getPackShards } from '../utils/collectionStorage.js';
+import { getCollectorOnlySetReason, isCollectorOnlySet } from '../utils/collectorOnlySets.js';
 import { getPackArtForSet } from '../utils/packArt.js';
 
 const PACK_COUNT = 7;
@@ -251,6 +253,7 @@ function WheelPack({ index, isActive, isDragging, isMobile, onCenterPack, pack, 
 
 export default function PackSelection() {
   const { setCode } = useParams();
+  const { state } = useLocation();
   const navigate = useNavigate();
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down('sm'));
   const normalizedSetCode = setCode?.trim().toLowerCase() || '';
@@ -263,6 +266,7 @@ export default function PackSelection() {
   const [isLoading, setIsLoading] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState('');
+  const [actionError, setActionError] = useState('');
   const rotation = useMotionValue(0);
   const activeIndexRef = useRef(0);
   const liveActiveIndexRef = useRef(0);
@@ -346,6 +350,8 @@ export default function PackSelection() {
   const swipeThreshold = isMobile ? 28 : 60;
   const wheelRadius = isMobile ? 190 : 360;
   const canAffordCollectorBooster = packShards >= COLLECTOR_BOOSTER_COST;
+  const isCollectorOnly = isCollectorOnlySet(normalizedSetCode);
+  const missingCollectorShards = Math.max(COLLECTOR_BOOSTER_COST - packShards, 0);
 
   useEffect(() => {
     activeIndexRef.current = activeIndex;
@@ -388,10 +394,22 @@ export default function PackSelection() {
   }, [packOptions.length, rotation]);
 
   function openPack(pack, boosterType = 'play') {
+    // UI guard mirrors PackOpening's hard guard so route navigation cannot bypass locks.
+    setActionError('');
     const centeredIndex = wrapIndex(liveActiveIndexRef.current, packOptions.length);
     const selectedPack = pack || packOptions[centeredIndex] || activePack;
 
-    if (!selectedPack || (boosterType === 'collector' && packShards < COLLECTOR_BOOSTER_COST)) {
+    if (!selectedPack) {
+      return;
+    }
+
+    if (isCollectorOnly && boosterType !== 'collector') {
+      setActionError('This set is collector-only and cannot be opened as a Play Booster.');
+      return;
+    }
+
+    if (boosterType === 'collector' && packShards < COLLECTOR_BOOSTER_COST) {
+      setActionError(`You need ${missingCollectorShards.toLocaleString()} more shards to open this Collector Booster.`);
       return;
     }
 
@@ -410,6 +428,7 @@ export default function PackSelection() {
 
   function openBoosterDialog() {
     if (activePack) {
+      setActionError('');
       setIsBoosterDialogOpen(true);
     }
   }
@@ -465,8 +484,9 @@ export default function PackSelection() {
   return (
     <Box sx={{ minHeight: 'calc(100vh - 96px)' }}>
       <PageHeader eyebrow={normalizedSetCode.toUpperCase()} title="Choose your pack">
-        Pick a wrapper for {setName}, then open it as a free Play Booster or spend shards on a
-        mostly foil Collector Booster.
+        {isCollectorOnly
+          ? `${setName} is collector-edition only. Open it as a Collector Booster when you have enough shards.`
+          : `Pick a wrapper for ${setName}, then open it as a free Play Booster or spend shards on a mostly foil Collector Booster.`}
       </PageHeader>
 
       <Button component={Link} startIcon={<ArrowBackIcon />} to="/sets" variant="outlined" sx={{ mb: 4 }}>
@@ -517,14 +537,37 @@ export default function PackSelection() {
             <Typography variant="h4" component="h2" sx={{ fontSize: { xs: 30, md: 38 }, mb: 0.5 }}>
               Choose Your Pack
             </Typography>
-            <Typography color="text.secondary">Sealed boosters circle through the dark.</Typography>
+            <Typography color="text.secondary">
+              {isCollectorOnly ? 'Collector-only set. Requires Collector Booster.' : 'Sealed boosters circle through the dark.'}
+            </Typography>
             <Chip
               color="warning"
               label={`${packShards.toLocaleString()} Pack Shards`}
               sx={{ mt: 1.5, fontWeight: 900 }}
               variant="outlined"
             />
+            {isCollectorOnly && (
+              <Chip
+                color="warning"
+                icon={<LockIcon />}
+                label="Collector Only"
+                sx={{ mt: 1.5, ml: { xs: 0, sm: 1 }, fontWeight: 900 }}
+                variant="filled"
+              />
+            )}
           </Box>
+
+          {isCollectorOnly && (
+            <Alert severity="warning" sx={{ width: '100%', maxWidth: 760 }} variant="outlined">
+              {getCollectorOnlySetReason(normalizedSetCode)}
+            </Alert>
+          )}
+
+          {actionError && (
+            <Alert severity="error" sx={{ width: '100%', maxWidth: 760 }} onClose={() => setActionError('')}>
+              {actionError}
+            </Alert>
+          )}
 
           <Box
             className="carouselStage"
@@ -678,26 +721,28 @@ export default function PackSelection() {
               maxWidth: 760,
             }}
           >
-            <Card sx={{ borderColor: 'rgba(244, 201, 93, 0.5)' }}>
-              <CardContent sx={{ display: 'grid', gap: 1.25 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
-                  <Typography variant="h5">Play Booster</Typography>
-                  <Chip color="success" label="Free" size="small" />
-                </Box>
-                <Typography color="text.secondary">
-                  A standard 15-card pack using the current set and the existing Play Booster generator.
-                </Typography>
-                <Button
-                  disabled={!activePack}
-                  onClick={() => openPack(undefined, 'play')}
-                  size="large"
-                  startIcon={<AutoAwesomeIcon />}
-                  variant="contained"
-                >
-                  Open Play Booster
-                </Button>
-              </CardContent>
-            </Card>
+            {!isCollectorOnly && (
+              <Card sx={{ borderColor: 'rgba(244, 201, 93, 0.5)' }}>
+                <CardContent sx={{ display: 'grid', gap: 1.25 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                    <Typography variant="h5">Play Booster</Typography>
+                    <Chip color="success" label="Free" size="small" />
+                  </Box>
+                  <Typography color="text.secondary">
+                    A standard 15-card pack using the current set and the existing Play Booster generator.
+                  </Typography>
+                  <Button
+                    disabled={!activePack}
+                    onClick={() => openPack(undefined, 'play')}
+                    size="large"
+                    startIcon={<AutoAwesomeIcon />}
+                    variant="contained"
+                  >
+                    Open Play Booster
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
 
             <Card
               sx={{
@@ -728,7 +773,7 @@ export default function PackSelection() {
                 </Typography>
                 {!canAffordCollectorBooster && (
                   <Alert severity="info" variant="outlined">
-                    Earn shards from duplicate cards.
+                    Need {missingCollectorShards.toLocaleString()} more shards. Earn shards from duplicate cards.
                   </Alert>
                 )}
                 <Button
@@ -760,8 +805,10 @@ export default function PackSelection() {
             <DialogTitle sx={{ pb: 0.5 }}>Open {activePack?.name || 'Pack'}</DialogTitle>
             <DialogContent sx={{ display: 'grid', gap: 1.25, pt: 1 }}>
               <Typography color="text.secondary">
-                {setInfo.name} is ready as a free Play Booster. Collector Booster costs{' '}
-                {COLLECTOR_BOOSTER_COST.toLocaleString()} shards.
+                {isCollectorOnly
+                  ? `${setInfo.name} is collector-only and requires a Collector Booster.`
+                  : `${setInfo.name} is ready as a free Play Booster.`}{' '}
+                Collector Booster costs {COLLECTOR_BOOSTER_COST.toLocaleString()} shards.
               </Typography>
               <Chip
                 color="warning"
@@ -771,22 +818,25 @@ export default function PackSelection() {
               />
               {!canAffordCollectorBooster && (
                 <Alert severity="info" variant="outlined">
-                  Earn shards from duplicate cards to unlock Collector Boosters.
+                  Need {missingCollectorShards.toLocaleString()} more shards. Earn shards from duplicate cards to unlock Collector Boosters.
                 </Alert>
               )}
             </DialogContent>
             <DialogActions sx={{ display: 'grid', gap: 1, p: 3, pt: 1.5 }}>
+              {!isCollectorOnly && (
+                <Button
+                  autoFocus={state?.preferredBoosterType !== 'collector'}
+                  disabled={!activePack}
+                  onClick={() => openSelectedPack('play')}
+                  size="large"
+                  startIcon={<AutoAwesomeIcon />}
+                  variant="contained"
+                >
+                  Open Play Booster
+                </Button>
+              )}
               <Button
-                autoFocus
-                disabled={!activePack}
-                onClick={() => openSelectedPack('play')}
-                size="large"
-                startIcon={<AutoAwesomeIcon />}
-                variant="contained"
-              >
-                Open Play Booster
-              </Button>
-              <Button
+                autoFocus={isCollectorOnly || state?.preferredBoosterType === 'collector'}
                 disabled={!activePack || !canAffordCollectorBooster}
                 onClick={() => openSelectedPack('collector')}
                 size="large"

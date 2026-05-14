@@ -1,3 +1,4 @@
+// Binder detail manages card references inside one owned binder plus its per-binder cosmetics.
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AddIcon from '@mui/icons-material/Add';
 import CollectionsBookmarkIcon from '@mui/icons-material/CollectionsBookmark';

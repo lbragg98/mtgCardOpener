@@ -1,3 +1,4 @@
+// New trade flow picks exact card copies from each friend's collection.
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SendIcon from '@mui/icons-material/Send';
 import { Alert, Box, Button, Card, CardContent, Snackbar, TextField, Typography } from '@mui/material';

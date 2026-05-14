@@ -1,3 +1,4 @@
+// Duplicate Manager helps recycle extra copies in bulk while protecting one-of-one cards.
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import DeleteIcon from '@mui/icons-material/Delete';
 import {
@@ -73,6 +74,7 @@ export default function Duplicates() {
 
   const duplicateGroups = useMemo(() => getDuplicateGroups(collection), [collection]);
   const selectableExtras = useMemo(
+    // Auto-selection never includes protected one-of-one cards.
     () => duplicateGroups.flatMap((group) => group.extras).filter((card) => !isOneOfOneRing(card)),
     [duplicateGroups],
   );
@@ -200,19 +202,19 @@ export default function Duplicates() {
       {duplicateGroups.map((group) => {
         const groupSelectableIds = group.extras.filter((card) => !isOneOfOneRing(card)).map(getCardDuplicateId);
         const allGroupSelected = groupSelectableIds.length > 0 && groupSelectableIds.every((id) => selectedIds.includes(id));
-        const sampleCard = group.keepCard;
+        const representativeCard = group.keepCard;
 
         return (
           <Accordion key={group.key} sx={{ mb: 1.5 }}>
             <AccordionSummary>
               <Stack direction="row" gap={1.5} sx={{ alignItems: 'center', minWidth: 0, width: '100%' }}>
                 <Box sx={{ width: 58, flexShrink: 0 }}>
-                  <CardImage card={sampleCard} variant="grid" />
+                  <CardImage card={representativeCard} variant="grid" />
                 </Box>
                 <Box sx={{ minWidth: 0, flexGrow: 1 }}>
-                  <Typography fontWeight={950} noWrap>{sampleCard.name}</Typography>
+                  <Typography fontWeight={950} noWrap>{representativeCard.name}</Typography>
                   <Typography color="text.secondary" sx={{ fontSize: 13 }}>
-                    {sampleCard.rarity} - {FOIL_LABELS[normalizeFoilTreatment(sampleCard)] || 'Non-foil'} - {group.cards.length} owned
+                    {representativeCard.rarity} - {FOIL_LABELS[normalizeFoilTreatment(representativeCard)] || 'Non-foil'} - {group.cards.length} owned
                   </Typography>
                   <Typography color="warning.main" sx={{ fontSize: 13, fontWeight: 900 }}>
                     {group.extras.length} extras - {group.totalRecycleValue.toLocaleString()} shards
@@ -231,7 +233,7 @@ export default function Duplicates() {
             <AccordionDetails>
               <Stack spacing={1}>
                 <Alert severity="info" variant="outlined">
-                  Keeping oldest copy from {sampleCard.openedAt ? new Date(sampleCard.openedAt).toLocaleDateString() : 'unknown date'}.
+                  Keeping oldest copy from {representativeCard.openedAt ? new Date(representativeCard.openedAt).toLocaleDateString() : 'unknown date'}.
                 </Alert>
                 {group.cards.map((card) => {
                   const id = getCardDuplicateId(card);

@@ -1,3 +1,4 @@
+// Calm card inspection dialog used by collection/binders, separate from pack-opening reveal motion.
 import DeleteIcon from '@mui/icons-material/Delete';
 import {
   Box,

@@ -1,3 +1,4 @@
+// Shop item card: shared purchase/equip presentation for every cosmetic category.
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import LocalAtmIcon from '@mui/icons-material/LocalAtm';

@@ -1,3 +1,4 @@
+// PvP lobby lets friends send challenges or start AI matches using shared decks.
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import CancelIcon from '@mui/icons-material/Cancel';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';

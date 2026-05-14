@@ -1,3 +1,4 @@
+// PvP battle play screen syncs match state through Supabase and can pilot friend decks with AI.
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import FlagIcon from '@mui/icons-material/Flag';
 import ReplayIcon from '@mui/icons-material/Replay';

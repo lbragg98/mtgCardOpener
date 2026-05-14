@@ -1,3 +1,4 @@
+// Recycling value rules: higher rarity, foils, treatments, and collector exclusives pay more shards.
 import { isOneOfOneRing } from './collectorExclusiveCards.js';
 import { FOIL_LABELS, FOIL_TREATMENTS, normalizeFoilTreatment } from './foilTypes.js';
 
@@ -24,6 +25,7 @@ function titleCase(value) {
 }
 
 export function getRecycleBreakdown(card) {
+  // Return line items so confirmation dialogs can show exactly where the shard total came from.
   if (!card) {
     return [];
   }

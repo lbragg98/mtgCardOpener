@@ -1,3 +1,4 @@
+// Scryfall API helpers: fetch real set/card data and normalize it into the app's card shape.
 import { FOIL_TREATMENTS } from '../utils/foilTypes.js';
 import { markCollectorExclusive } from '../utils/collectorExclusiveCards.js';
 
@@ -33,6 +34,7 @@ function buildSearchUrl(query) {
 }
 
 async function fetchJson(url, options = {}) {
+  // Scryfall asks clients to pace requests, so all GETs share one small queue and cache.
   const method = options.method || 'GET';
   const canUseCache = method === 'GET';
 
@@ -127,6 +129,7 @@ function normalizeSet(set) {
 }
 
 function normalizeCard(card) {
+  // Preserve full Scryfall data for collection saving and Binder Battle while exposing app-friendly fields.
   const imageUrl = getCardImage(card);
   const prices = card.prices || {};
 
@@ -190,6 +193,7 @@ export function getCardImage(card) {
 }
 
 export async function getSets() {
+  // Keep Scryfall products visible unless they are not usable as card-opening sets in this app.
   const payload = await fetchJson(`${SCRYFALL_BASE_URL}/sets`);
 
   return (payload.data || [])
@@ -234,6 +238,7 @@ async function fetchCollectorCandidateQuery(query) {
 }
 
 export async function getCollectorExclusiveCandidates(setCode) {
+  // Collector candidates are inferred from frames, finishes, promo tags, and high collector numbers.
   const normalizedSetCode = setCode.trim().toLowerCase();
   const queries = [
     `set:${normalizedSetCode} (frame:showcase OR frame:borderless OR frame:extendedart)`,

@@ -1,3 +1,4 @@
+// Stone battlefield background and atmosphere stay behind cards without blocking pointer events.
 import { Box } from '@mui/material';
 
 export default function BattleArenaBackground({ phase = 'playing', playerDominance = 0 }) {

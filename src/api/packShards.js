@@ -1,3 +1,4 @@
+// Pack Shard wallet API: logged-in balances sync through Supabase, guests stay local.
 import { isSupabaseConfigured, supabase } from '../lib/supabaseClient.js';
 import { addPackShards, getPackShards, setPackShards, spendPackShards } from '../utils/collectionStorage.js';
 
@@ -38,6 +39,7 @@ function cacheCloudBalance(row) {
 }
 
 export async function syncPackShardsFromCloud({ migrateLocal = true } = {}) {
+  // On login, local shards can seed the cloud wallet once through the database RPC.
   const user = await getCurrentUser();
 
   if (!user) {

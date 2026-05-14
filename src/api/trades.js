@@ -1,3 +1,4 @@
+// Supabase trade API: trades reference exact user_card rows and acceptance transfers ownership.
 import { supabase } from '../lib/supabaseClient.js';
 import { normalizeUserCardRow } from './userCards.js';
 
@@ -60,6 +61,7 @@ async function getUserCardsByIds(cardIds) {
 }
 
 function hydrateTrade(trade, profiles, cardsById) {
+  // Hydration attaches profiles and card details so pages do not need extra lookups.
   const items = trade.trade_items || [];
   const offeredItems = items
     .filter((item) => item.side === 'offered')
@@ -87,6 +89,7 @@ async function hydrateTrades(trades) {
 }
 
 export async function createTrade(receiverId, offeredCardIds, requestedCardIds, message = '') {
+  // Each side can only trade cards currently owned by that side.
   const senderId = await assertFriend(receiverId);
   const offeredIds = [...new Set(offeredCardIds.filter(Boolean))];
   const requestedIds = [...new Set(requestedCardIds.filter(Boolean))];
@@ -175,6 +178,7 @@ export async function getTradeById(tradeId) {
 }
 
 export async function acceptTrade(tradeId) {
+  // The database function performs the ownership swap atomically.
   const { data, error } = await supabase.rpc('accept_trade', { p_trade_id: tradeId });
 
   if (error) {

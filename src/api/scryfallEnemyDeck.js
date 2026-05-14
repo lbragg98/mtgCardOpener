@@ -87,8 +87,7 @@ export async function fetchEnemyDeckByNames(cardNames = RED_STARTER_ENEMY_DECK_N
     try {
       await wait(SCRYFALL_REQUEST_INTERVAL_MS);
       fetchedCards.push(await fetchEnemyCardByName(cardName));
-    } catch (error) {
-      console.warn('Failed to fetch enemy deck card from Scryfall:', cardName, error);
+    } catch {
       fetchedCards.push(createRedFallbackCard(cardName));
     }
   }

@@ -196,9 +196,9 @@ function HomeWidgetPanel({ collection, ownedBinders, packShards, stats, widgetId
     'home-widget-favorite-card': {
       icon: <StyleIcon />,
       label: 'Favorite Card',
-      title: 'Favorite card pinning coming soon',
-      helper: bestPull ? `For now: ${bestPull.name}` : 'No card available yet',
-      body: bestPull ? `Using your best available pull as a placeholder: ${formatPrice(getCardPrice(bestPull))}.` : 'Once favorites exist, your pinned card will live here.',
+      title: bestPull?.name || 'No favorite card yet',
+      helper: bestPull ? 'Showing your best available pull' : 'Open packs to find a standout card',
+      body: bestPull ? `Estimated value: ${formatPrice(getCardPrice(bestPull))}.` : 'Your highlighted card will appear here once your collection has cards.',
     },
     'home-widget-binder-progress': {
       icon: <ViewCarouselIcon />,
@@ -220,9 +220,9 @@ function HomeWidgetPanel({ collection, ownedBinders, packShards, stats, widgetId
     'home-widget-daily-reward': {
       icon: <WhatshotIcon />,
       label: 'Daily Reward',
-      title: 'Daily rewards coming soon',
-      helper: 'Widget slot reserved',
-      body: 'When daily rewards are available, this widget will show streaks and claim status.',
+      title: 'Daily Battle Rewards',
+      helper: 'Earn Pack Shards in Binder Battle',
+      body: 'Battle rewards reset daily and can be earned from completed matches.',
     },
     'home-widget-best-pull': {
       icon: <AutoAwesomeIcon />,
