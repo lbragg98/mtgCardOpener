@@ -8,6 +8,21 @@ create table if not exists public.battle_decks (
   updated_at timestamptz default now()
 );
 
+create or replace function public.set_battle_decks_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+drop trigger if exists set_battle_decks_updated_at on public.battle_decks;
+create trigger set_battle_decks_updated_at
+before update on public.battle_decks
+for each row execute function public.set_battle_decks_updated_at();
+
 alter table public.battle_decks
 add column if not exists visibility text default 'private' not null;
 
