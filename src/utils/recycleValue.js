@@ -1,12 +1,16 @@
 // Recycling value rules: higher rarity, foils, treatments, and collector exclusives pay more shards.
-import { isOneOfOneRing } from './collectorExclusiveCards.js';
-import { FOIL_LABELS, FOIL_TREATMENTS, normalizeFoilTreatment } from './foilTypes.js';
+import { isOneOfOneRing } from "./collectorExclusiveCards.js";
+import {
+  FOIL_LABELS,
+  FOIL_TREATMENTS,
+  normalizeFoilTreatment,
+} from "./foilTypes.js";
 
 const RARITY_SHARDS = {
   common: 10,
   uncommon: 25,
   rare: 75,
-  mythic: 150,000,000
+  mythic: 150000000,
 };
 
 const FOIL_TREATMENT_SHARDS = {
@@ -19,9 +23,9 @@ const FOIL_TREATMENT_SHARDS = {
 };
 
 function titleCase(value) {
-  const text = String(value || '').trim();
+  const text = String(value || "").trim();
 
-  return text ? `${text.charAt(0).toUpperCase()}${text.slice(1)}` : 'Card';
+  return text ? `${text.charAt(0).toUpperCase()}${text.slice(1)}` : "Card";
 }
 
 export function getRecycleBreakdown(card) {
@@ -31,43 +35,50 @@ export function getRecycleBreakdown(card) {
   }
 
   if (isOneOfOneRing(card)) {
-    return [{ label: 'One-of-One protected value', amount: 10000 }];
+    return [{ label: "One-of-One protected value", amount: 10000 }];
   }
 
-  const rarity = String(card.rarity || '').toLowerCase();
+  const rarity = String(card.rarity || "").toLowerCase();
   const treatment = normalizeFoilTreatment(card);
   const breakdown = [
     {
-      label: titleCase(rarity || 'card'),
+      label: titleCase(rarity || "card"),
       amount: RARITY_SHARDS[rarity] || 0,
     },
   ];
 
   if (card.isFoil) {
-    breakdown.push({ label: 'Foil', amount: 25 });
+    breakdown.push({ label: "Foil", amount: 25 });
   }
 
   if (card.isFoil && treatment !== FOIL_TREATMENTS.NONE) {
     const treatmentLabel = FOIL_LABELS[treatment] || titleCase(treatment);
     breakdown.push({
-      label: /foil/i.test(treatmentLabel) ? treatmentLabel : `${treatmentLabel} Foil`,
+      label: /foil/i.test(treatmentLabel)
+        ? treatmentLabel
+        : `${treatmentLabel} Foil`,
       amount: FOIL_TREATMENT_SHARDS[treatment] || 0,
     });
   }
 
   if (card.isCollectorExclusive) {
-    breakdown.push({ label: 'Collector Booster Exclusive', amount: 100 });
+    breakdown.push({ label: "Collector Booster Exclusive", amount: 100 });
   }
 
   return breakdown.filter((item) => item.amount > 0);
 }
 
 export function getRecycleShardValue(card) {
-  return getRecycleBreakdown(card).reduce((total, item) => total + item.amount, 0);
+  return getRecycleBreakdown(card).reduce(
+    (total, item) => total + item.amount,
+    0,
+  );
 }
 
 export function assertCanRecycleCard(card) {
   if (isOneOfOneRing(card)) {
-    throw new Error('One-of-One cards are protected and cannot be recycled by default.');
+    throw new Error(
+      "One-of-One cards are protected and cannot be recycled by default.",
+    );
   }
 }
