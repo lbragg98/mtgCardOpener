@@ -308,7 +308,7 @@ export default function PackSelection() {
         }
       } catch (loadError) {
         if (isMounted) {
-          setError(loadError.message || 'Unable to load cards for this set.');
+          setError(loadError.message || 'Cards for this set could not be loaded.');
         }
       } finally {
         if (isMounted) {
@@ -409,7 +409,7 @@ export default function PackSelection() {
     }
 
     if (boosterType === 'collector' && packShards < COLLECTOR_BOOSTER_COST) {
-      setActionError(`You need ${missingCollectorShards.toLocaleString()} more shards to open this Collector Booster.`);
+      setActionError(`You need ${missingCollectorShards.toLocaleString()} more Pack Shards to open this Collector Booster.`);
       return;
     }
 
@@ -485,8 +485,8 @@ export default function PackSelection() {
     <Box sx={{ minHeight: 'calc(100vh - 96px)' }}>
       <PageHeader eyebrow={normalizedSetCode.toUpperCase()} title="Choose your pack">
         {isCollectorOnly
-          ? `${setName} is collector-edition only. Open it as a Collector Booster when you have enough shards.`
-          : `Pick a wrapper for ${setName}, then open it as a free Play Booster or spend shards on a mostly foil Collector Booster.`}
+          ? `${setName} is collector-edition only. It can be opened with a Collector Booster when you have enough Pack Shards.`
+          : `Pick a wrapper for ${setName}, then open a free Play Booster or spend Pack Shards on a mostly foil Collector Booster.`}
       </PageHeader>
 
       <Button component={Link} startIcon={<ArrowBackIcon />} to="/sets" variant="outlined" sx={{ mb: 4 }}>
@@ -497,13 +497,13 @@ export default function PackSelection() {
 
       {!isLoading && error && (
         <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
+          {error} Try changing sets or refreshing this page.
         </Alert>
       )}
 
       {!isLoading && !error && packOptions.length === 0 && (
         <Alert severity="warning" sx={{ mb: 3 }}>
-          No usable card artwork was found for this set.
+          No usable pack artwork was found for this set. Try another set.
         </Alert>
       )}
 
@@ -538,7 +538,7 @@ export default function PackSelection() {
               Choose Your Pack
             </Typography>
             <Typography color="text.secondary">
-              {isCollectorOnly ? 'Collector-only set. Requires Collector Booster.' : 'Sealed boosters circle through the dark.'}
+              {isCollectorOnly ? 'Collector-only set. Requires a Collector Booster.' : 'Browse the sealed wrappers, then choose a booster type.'}
             </Typography>
             <Chip
               color="warning"
@@ -704,7 +704,7 @@ export default function PackSelection() {
           </Box>
 
           <Typography color="text.secondary" fontWeight={700}>
-            Click the centered pack or swipe to browse
+            Click the centered pack, or swipe to browse.
           </Typography>
 
           <Typography color="text.secondary" sx={{ fontSize: 13, textAlign: 'center' }}>
@@ -729,7 +729,7 @@ export default function PackSelection() {
                     <Chip color="success" label="Free" size="small" />
                   </Box>
                   <Typography color="text.secondary">
-                    A standard 15-card pack using the current set and the existing Play Booster generator.
+                    A standard 15-card opening from the selected set.
                   </Typography>
                   <Button
                     disabled={!activePack}
@@ -773,7 +773,7 @@ export default function PackSelection() {
                 </Typography>
                 {!canAffordCollectorBooster && (
                   <Alert severity="info" variant="outlined">
-                    Need {missingCollectorShards.toLocaleString()} more shards. Earn shards from duplicate cards.
+                    Need {missingCollectorShards.toLocaleString()} more Pack Shards. Recycle duplicate cards to earn more.
                   </Alert>
                 )}
                 <Button
@@ -783,7 +783,7 @@ export default function PackSelection() {
                   startIcon={canAffordCollectorBooster ? <AutoAwesomeIcon /> : <LockIcon />}
                   variant={canAffordCollectorBooster ? 'contained' : 'outlined'}
                 >
-                  {canAffordCollectorBooster ? 'Open Collector Booster' : 'Locked'}
+                  {canAffordCollectorBooster ? 'Open Collector Booster' : 'Locked until you have enough Pack Shards'}
                 </Button>
               </CardContent>
             </Card>
@@ -818,7 +818,7 @@ export default function PackSelection() {
               />
               {!canAffordCollectorBooster && (
                 <Alert severity="info" variant="outlined">
-                  Need {missingCollectorShards.toLocaleString()} more shards. Earn shards from duplicate cards to unlock Collector Boosters.
+                  Need {missingCollectorShards.toLocaleString()} more Pack Shards. Recycle duplicates to unlock Collector Boosters.
                 </Alert>
               )}
             </DialogContent>
@@ -843,7 +843,7 @@ export default function PackSelection() {
                 startIcon={canAffordCollectorBooster ? <AutoAwesomeIcon /> : <LockIcon />}
                 variant="outlined"
               >
-                {canAffordCollectorBooster ? 'Open Collector Booster' : 'Collector Booster Locked'}
+                {canAffordCollectorBooster ? 'Open Collector Booster' : 'Locked until you have enough Pack Shards'}
               </Button>
             </DialogActions>
           </Dialog>

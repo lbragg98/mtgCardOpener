@@ -88,7 +88,7 @@ export default function Friends() {
       setOutgoingRequests(outgoing);
       setFriends(friendRows);
     } catch (loadError) {
-      setError(loadError.message || 'Unable to load friends.');
+      setError(loadError.message || 'Your friends could not be loaded. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -106,7 +106,7 @@ export default function Friends() {
       setError('');
       setSearchResults(await searchProfilesByUsername(query));
     } catch (searchError) {
-      setError(searchError.message || 'Unable to search users.');
+      setError(searchError.message || 'Search could not be completed. Please try again.');
     } finally {
       setIsSearching(false);
     }
@@ -118,7 +118,7 @@ export default function Friends() {
       await loadFriendData();
       setSnackbar({ message: successMessage, severity: 'success' });
     } catch (actionError) {
-      setSnackbar({ message: actionError.message || 'Something went wrong.', severity: 'error' });
+      setSnackbar({ message: actionError.message || 'That request could not be completed. Please try again.', severity: 'error' });
     }
   }
 
@@ -131,7 +131,7 @@ export default function Friends() {
   return (
     <Box>
       <PageHeader eyebrow="Social" title="Friends">
-        Search collectors, manage requests, and jump into trades with your friends.
+        Find collectors, manage requests, and start trades with accepted friends.
       </PageHeader>
 
       {error && (
@@ -146,13 +146,13 @@ export default function Friends() {
         sx={{ mb: 3, borderBottom: '1px solid rgba(248, 247, 255, 0.12)' }}
         variant="scrollable"
       >
-        <Tab label="Search Users" />
+        <Tab label="Search users" />
         <Tab label={`Incoming (${incomingRequests.length})`} />
         <Tab label={`Outgoing (${outgoingRequests.length})`} />
         <Tab label={`My Friends (${friends.length})`} />
       </Tabs>
 
-      {isLoading && <Alert severity="info">Loading friends...</Alert>}
+      {isLoading && <Alert severity="info">Loading your friends...</Alert>}
 
       {!isLoading && activeTab === 0 && (
         <Box sx={{ display: 'grid', gap: 2 }}>
@@ -204,7 +204,7 @@ export default function Friends() {
                               startIcon={<PersonAddIcon />}
                               variant="contained"
                             >
-                              Add Friend
+                              Add friend
                             </Button>
                           )}
                         </>
@@ -289,7 +289,7 @@ export default function Friends() {
                           Trade
                         </Button>
                         <Button color="error" onClick={() => setFriendToRemove(friendship.friend)} variant="outlined">
-                          Remove Friend
+                          Remove friend
                         </Button>
                       </Box>
                     )}

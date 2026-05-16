@@ -142,7 +142,7 @@ function PackCuttingScreen({
           {setCode.toUpperCase()} {boosterLabel}
         </Typography>
         <Typography color="text.secondary">
-          Swipe across the top seal to open
+          Swipe across the top seal to open the pack.
         </Typography>
       </Box>
 
@@ -566,7 +566,7 @@ function RevealCard({ card, cardNumber, exitX, onAdvance, revealEffectId }) {
             color="text.secondary"
             sx={{ mt: 1, fontSize: 13, fontWeight: 800 }}
           >
-            Drag to inspect the foil shine
+            Drag gently to inspect the foil shine.
           </Typography>
         )}
         {isFinale && !card.isFoil && (
@@ -610,7 +610,7 @@ function SummaryGrid({ boosterLabel, pack, saveResult, sceneId, setCode }) {
           component="h1"
           sx={{ mb: 3, fontSize: { xs: 32, md: 40 } }}
         >
-          Pack Summary
+          Pack summary
         </Typography>
 
         {saveResult && (
@@ -820,7 +820,7 @@ export default function PackOpening() {
 
           if (currentShards < COLLECTOR_BOOSTER_COST) {
             throw new Error(
-              "You need 1,000 pack shards to open a Collector Booster.",
+              "You need 1,000 Pack Shards to open a Collector Booster.",
             );
           }
         }
@@ -835,7 +835,7 @@ export default function PackOpening() {
             await spendCloudPackShards(COLLECTOR_BOOSTER_COST);
           } else if (!spendPackShards(COLLECTOR_BOOSTER_COST)) {
             throw new Error(
-              "You need 1,000 pack shards to open a Collector Booster.",
+              "You need 1,000 Pack Shards to open a Collector Booster.",
             );
           }
 
@@ -847,7 +847,7 @@ export default function PackOpening() {
         }
       } catch (packError) {
         if (isMounted) {
-          setError(packError.message || "Unable to generate this pack.");
+          setError(packError.message || "Something went wrong while building this pack. Try again or choose another set.");
         }
       } finally {
         if (isMounted) {
@@ -952,7 +952,7 @@ export default function PackOpening() {
 
           if (saveResult.shardsAwarded > 0) {
             messages.push(
-              `${saveResult.duplicateCount} duplicates converted into ${saveResult.shardsAwarded} pack shards.`,
+              `${saveResult.duplicateCount} duplicate ${saveResult.duplicateCount === 1 ? "copy was" : "copies were"} converted into ${saveResult.shardsAwarded} Pack Shards.`,
             );
           }
 
@@ -961,7 +961,7 @@ export default function PackOpening() {
         } catch {
           setSavedMessageSeverity("error");
           setSavedMessage(
-            "Pack summary is ready, but the collection could not be saved.",
+            "Pack summary is ready, but the cards could not be saved. Please try refreshing your collection.",
           );
         }
       }
@@ -984,7 +984,7 @@ export default function PackOpening() {
         <Box sx={{ textAlign: "center" }}>
           <CircularProgress color="warning" sx={{ mb: 3 }} />
           <Typography color="text.secondary">
-            Generating {boosterLabel}...
+            Preparing your {boosterLabel}...
           </Typography>
         </Box>
       </Box>
@@ -1184,7 +1184,7 @@ export default function PackOpening() {
             <Chip color="warning" label="1 of 1" size="small" sx={{ mr: 1, mt: 1, fontWeight: 900 }} />
             <Chip color="warning" label="Collector Booster Exclusive" size="small" sx={{ mt: 1, fontWeight: 900 }} variant="outlined" />
             <Typography color="text.secondary" sx={{ mt: 1, fontSize: 13, fontWeight: 800 }}>
-              Drag to inspect the ringlight
+              Drag gently to inspect the ringlight.
             </Typography>
           </Box>
         </>

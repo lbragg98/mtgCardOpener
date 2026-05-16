@@ -2,7 +2,7 @@
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
 import ShieldIcon from '@mui/icons-material/Shield';
-import { Box, Card, CardContent, Chip, Stack, Tooltip, Typography } from '@mui/material';
+import { Box, Card, CardContent, Chip, Stack, Tooltip, Typography, useMediaQuery } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useRef } from 'react';
 import CardImage from '../CardImage.jsx';
@@ -29,6 +29,21 @@ const TYPE_CHIP_COLORS = {
   removalSpell: 'secondary',
   shieldSpell: 'warning',
   tokenSpell: 'success',
+};
+
+const CARD_WIDTHS = {
+  desktop: {
+    field: 125,
+    hand: 150,
+    inspect: 340,
+    preview: 180,
+  },
+  mobile: {
+    field: 104,
+    hand: 126,
+    inspect: '88vw',
+    preview: 150,
+  },
 };
 
 function getDisplayStats(card) {
@@ -72,17 +87,20 @@ export default function BattleCard({
   ready = false,
   selectable = false,
   selected = false,
-  size = 'battlefield',
+  size = 'field',
   validTarget = false,
 }) {
+  const isMobile = useMediaQuery((theme) => theme.breakpoints.down('sm'));
+  const normalizedSize = size === 'battlefield' ? 'field' : size;
   const stats = getDisplayStats(card);
   const type = getDisplayType(card);
   const currentHealth = card?.currentHealth ?? stats.health;
   const cardColors = getCardColors(card);
   const colorAccent = card?.colorProfile?.uiColors || getColorBadgeColors(cardColors);
   const keywords = Array.isArray(card?.keywords) ? card.keywords.slice(0, compact ? 2 : 4) : [];
-  const isMobileHand = size === 'hand';
-  const shouldShowColorName = !isMobileHand;
+  const isMobileHand = normalizedSize === 'hand';
+  const shouldShowColorName = normalizedSize !== 'field';
+  const cardWidth = (isMobile ? CARD_WIDTHS.mobile : CARD_WIDTHS.desktop)[normalizedSize] || CARD_WIDTHS.desktop.field;
   const longPressTimerRef = useRef(null);
   const didLongPressRef = useRef(false);
 
@@ -130,7 +148,7 @@ export default function BattleCard({
 
   return (
     <Card
-      className={`battleCard battleCard-${size} ${playable ? 'playable' : ''}`}
+      className={`battleCard battleCard-${normalizedSize} ${playable ? 'playable' : ''}`}
       component={motion.div}
       onClick={handleClick}
       onContextMenu={handleContextMenu}
@@ -142,7 +160,10 @@ export default function BattleCard({
       whileTap={disabled ? undefined : { scale: 0.985 }}
       sx={{
         height: '100%',
-        minWidth: 0,
+        flex: '0 0 auto',
+        width: cardWidth,
+        maxWidth: normalizedSize === 'inspect' ? cardWidth : '100%',
+        minWidth: cardWidth,
         overflow: 'hidden',
         borderColor: selected || validTarget ? colorAccent.border : `color-mix(in srgb, ${colorAccent.border} 64%, var(--panel-border))`,
         boxShadow: selected
@@ -176,9 +197,9 @@ export default function BattleCard({
         },
       }}
     >
-      <Box sx={{ display: 'grid', gridTemplateColumns: compact ? { xs: '58px minmax(0, 1fr)', sm: '72px minmax(0, 1fr)' } : '1fr', gap: compact ? 1 : 0 }}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr', gap: 0 }}>
         <Box sx={{ minWidth: 0 }}>
-          <CardImage card={card} variant="grid" />
+          <CardImage card={card} className="battleCardImage" variant="battle" />
         </Box>
         <CardContent sx={{ display: 'grid', gap: { xs: 0.45, sm: 0.75 }, p: compact ? { xs: 0.75, sm: 1 } : 1.2 }}>
           <Typography fontWeight={950} noWrap sx={{ fontSize: { xs: size === 'hand' ? 12 : 11.5, sm: 14 } }} variant="body2">

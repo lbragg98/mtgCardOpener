@@ -4,7 +4,7 @@ import { Box, Button, Dialog, DialogContent, DialogTitle, IconButton, Stack, Typ
 import BattleCard from './BattleCard.jsx';
 
 export default function TargetPickerDialog({
-  actionLabel = 'Choose Target',
+  actionLabel = 'Choose target',
   onClose,
   onSelectTarget,
   open,

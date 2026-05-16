@@ -2,7 +2,7 @@
 import { Box, Button, Card, CardContent, Chip, Collapse, Drawer, IconButton, Stack, Typography, useMediaQuery } from '@mui/material';
 import MenuOpenIcon from '@mui/icons-material/MenuOpen';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import BattleArenaBackground from './BattleArenaBackground.jsx';
 import BattleHand from './BattleHand.jsx';
 import BattleLog from './BattleLog.jsx';
@@ -20,6 +20,8 @@ export default function BattleBoard({
   enemy,
   enemyBadge = '',
   enemyName = 'Enemy Binder',
+  hiddenCardIds = [],
+  interactionDisabled = false,
   log,
   onAttackCreature,
   onEndTurn,
@@ -33,10 +35,48 @@ export default function BattleBoard({
 }) {
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down('sm'));
   const [logOpen, setLogOpen] = useState(false);
-  const isPlayerTurn = activePlayer === 'player' && status === 'playing';
+  const centerLaneRef = useRef(null);
+  const enemyBattlefieldRef = useRef(null);
+  const playerBattlefieldRef = useRef(null);
+  const isPlayerTurn = activePlayer === 'player' && status === 'playing' && !interactionDisabled;
   const latestPopup = ['damage', 'heal', 'spell', 'destroy'].includes(log?.[0]?.type) ? log[0] : null;
   const resultType = status === 'won' ? 'Victory' : status === 'lost' ? 'Defeat' : null;
   const phaseLabel = resultType || (isPlayerTurn ? 'Your Turn' : 'Enemy Turn');
+
+  function getCardTargetRect(container, width) {
+    const rect = container?.getBoundingClientRect?.();
+    const fallbackTop = isMobile ? window.innerHeight * 0.46 : window.innerHeight * 0.58;
+    const targetWidth = width || (isMobile ? 104 : 125);
+    const targetHeight = targetWidth * 1.4;
+
+    if (!rect) {
+      return {
+        height: targetHeight,
+        left: window.innerWidth / 2 - targetWidth / 2,
+        top: fallbackTop,
+        width: targetWidth,
+      };
+    }
+
+    return {
+      height: targetHeight,
+      left: rect.left + Math.max(8, (rect.width - targetWidth) / 2),
+      top: rect.top + Math.max(34, (rect.height - targetHeight) / 2),
+      width: targetWidth,
+    };
+  }
+
+  function getPlayDestinationRect(card) {
+    if (card?.type === 'creature') {
+      return getCardTargetRect(playerBattlefieldRef.current, isMobile ? 104 : 125);
+    }
+
+    return getCardTargetRect(centerLaneRef.current, isMobile ? 150 : 180);
+  }
+
+  function handlePlayCard(card, event) {
+    onPlayCard?.(card, event, { toRect: getPlayDestinationRect(card) });
+  }
 
   if (isMobile) {
     return (
@@ -60,14 +100,16 @@ export default function BattleBoard({
           <BattlefieldZone
             animationSpeed={animationSpeed * 0.8}
             cards={enemy.battlefield}
+            hiddenCardIds={hiddenCardIds}
             onInspectCard={onInspectCard}
             owner="enemy"
-            size="battlefield"
+            ref={enemyBattlefieldRef}
+            size="field"
             title="Enemy Field"
             zoneType="enemyBattlefield"
           />
 
-          <Card className="battleCenterLane mobileBattleTurnCard">
+          <Card className="battleCenterLane mobileBattleTurnCard" ref={centerLaneRef}>
             <CardContent sx={{ p: 1.25, '&:last-child': { pb: 1.25 } }}>
               <Box className="mobileTurnBanner">
                 <Box sx={{ minWidth: 0 }}>
@@ -100,10 +142,12 @@ export default function BattleBoard({
             animationSpeed={animationSpeed * 0.8}
             cards={player.battlefield}
             getCardDisabled={(card) => !isPlayerTurn || !card.canAttack || card.hasAttacked}
+            hiddenCardIds={hiddenCardIds}
             onCardClick={onAttackCreature}
             onInspectCard={onInspectCard}
             owner="player"
-            size="battlefield"
+            ref={playerBattlefieldRef}
+            size="field"
             title="Your Field"
             zoneType="playerBattlefield"
           />
@@ -113,12 +157,14 @@ export default function BattleBoard({
           <MobileHandTray
             cards={player.hand}
             disabled={!isPlayerTurn}
+            hiddenCardIds={hiddenCardIds}
             mana={player.mana}
             onInspectCard={onInspectCard}
-            onPlayCard={onPlayCard}
+            onPlayCard={handlePlayCard}
           />
           <MobileActionBar
             activePlayer={activePlayer}
+            disabled={interactionDisabled}
             onEndTurn={onEndTurn}
             onOpenLog={() => setLogOpen(true)}
             player={player}
@@ -160,13 +206,15 @@ export default function BattleBoard({
         <BattlefieldZone
           animationSpeed={animationSpeed}
           cards={enemy.battlefield}
+          hiddenCardIds={hiddenCardIds}
           onInspectCard={onInspectCard}
           owner="enemy"
+          ref={enemyBattlefieldRef}
           title="Enemy Battlefield"
           zoneType="enemyBattlefield"
         />
 
-        <Card className="battleCenterLane">
+        <Card className="battleCenterLane" ref={centerLaneRef}>
           <CardContent sx={{ p: { xs: 1.25, sm: 1.8 }, '&:last-child': { pb: { xs: 1.25, sm: 1.8 } } }}>
             <AnimatePresence mode="wait">
               <Box
@@ -222,9 +270,11 @@ export default function BattleBoard({
           animationSpeed={animationSpeed}
           cards={player.battlefield}
           getCardDisabled={(card) => !isPlayerTurn || !card.canAttack || card.hasAttacked}
+          hiddenCardIds={hiddenCardIds}
           onCardClick={onAttackCreature}
           onInspectCard={onInspectCard}
           owner="player"
+          ref={playerBattlefieldRef}
           title="Your Battlefield"
           zoneType="playerBattlefield"
         />
@@ -241,7 +291,7 @@ export default function BattleBoard({
             name={playerName}
             owner="player"
           />
-          <BattleHand animationSpeed={animationSpeed} cards={player.hand} disabled={!isPlayerTurn} mana={player.mana} onInspectCard={onInspectCard} onPlayCard={onPlayCard} />
+          <BattleHand animationSpeed={animationSpeed} cards={player.hand} disabled={!isPlayerTurn} hiddenCardIds={hiddenCardIds} mana={player.mana} onInspectCard={onInspectCard} onPlayCard={handlePlayCard} />
         </Box>
       </Box>
       <CardPlayAnimationLayer animationEvents={animationEvents} animationSpeed={animationSpeed} />

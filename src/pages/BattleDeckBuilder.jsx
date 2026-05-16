@@ -161,7 +161,7 @@ export default function BattleDeckBuilder() {
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down('sm'));
   const [battleCards, setBattleCards] = useState([]);
   const [deckId, setDeckId] = useState(null);
-  const [deckName, setDeckName] = useState('Binder Battle Deck');
+  const [deckName, setDeckName] = useState('Binder Battle deck');
   const [deckVisibility, setDeckVisibility] = useState('private');
   const [selectedIds, setSelectedIds] = useState([]);
   const [search, setSearch] = useState('');
@@ -208,7 +208,7 @@ export default function BattleDeckBuilder() {
 
         setBattleCards(mappedCards);
         setDeckId(savedDeck.id || null);
-        setDeckName(savedDeck.name || 'Binder Battle Deck');
+        setDeckName(savedDeck.name || 'Binder Battle deck');
         setDeckVisibility(savedDeck.visibility || 'private');
         setSelectedIds(savedIds);
 
@@ -217,7 +217,7 @@ export default function BattleDeckBuilder() {
         }
       } catch (loadError) {
         if (isMounted) {
-          setError(loadError.message || 'Unable to load your battle deck builder.');
+          setError(loadError.message || 'The battle deck builder could not be loaded. Please try again.');
         }
       } finally {
         if (isMounted) {
@@ -303,9 +303,9 @@ export default function BattleDeckBuilder() {
       const mappedCards = mapCollectionToBattleCards(refreshedCollection).filter((card) => card.type !== 'land');
 
       setBattleCards(mappedCards);
-      setSnackbar(`Updated battle data for ${result.updatedCount} cards.`);
+      setSnackbar(`Updated battle data for ${result.updatedCount} card${result.updatedCount === 1 ? '' : 's'}.`);
     } catch (refreshError) {
-      setSnackbar(refreshError.message || 'Unable to refresh battle data.');
+      setSnackbar(refreshError.message || 'Battle data could not be refreshed. Please try again.');
     } finally {
       setIsRefreshingBattleData(false);
     }
@@ -337,13 +337,13 @@ export default function BattleDeckBuilder() {
       const savedDeck = await saveBattleDeck(selectedCards, { deckId, name: deckName, visibility: deckVisibility });
       setDeckId(savedDeck.id || deckId);
       setDeckVisibility(savedDeck.visibility || deckVisibility);
-      setSnackbar(savedDeck.isLocalFallback ? 'Deck saved locally. Supabase save can be retried later.' : 'Battle deck saved to Supabase.');
+      setSnackbar(savedDeck.isLocalFallback ? 'Deck saved locally. Supabase can sync it later.' : 'Battle deck saved.');
 
       if (startAfterSave) {
         navigate('/battle/play');
       }
     } catch (saveError) {
-      setSnackbar(saveError.message || 'Unable to save battle deck.');
+      setSnackbar(saveError.message || 'Battle deck could not be saved. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -352,14 +352,14 @@ export default function BattleDeckBuilder() {
   return (
     <Box>
       <Button component={Link} startIcon={<ArrowBackIcon />} to="/battle" variant="outlined" sx={{ mb: 3, minHeight: { xs: 44, sm: 36 } }}>
-        Back to Battle
+        Back to battle
       </Button>
-      <PageHeader eyebrow="Binder Battle" title="Deck Builder">
+      <PageHeader eyebrow="Binder Battle" title="Deck builder">
         Build a 20-card battle deck from specific card copies in your Supabase collection.
       </PageHeader>
 
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
-      {isLoading && <Alert severity="info" sx={{ mb: 3 }}>Loading your Supabase collection...</Alert>}
+      {isLoading && <Alert severity="info" sx={{ mb: 3 }}>Loading your collection for battle...</Alert>}
       {!isLoading && battleCards.length < DECK_SIZE && (
         <Alert severity="warning" sx={{ mb: 3 }}>
           Your collection has fewer than 20 cards. Open more packs before building a Binder Battle deck.
@@ -395,13 +395,13 @@ export default function BattleDeckBuilder() {
             </FormControl>
             <Stack direction={{ xs: 'column', sm: 'row' }} gap={1}>
               <Button disabled={!deckIsReady || isSaving} onClick={() => handleSaveDeck()} startIcon={<SaveIcon />} sx={{ minHeight: { xs: 44, sm: 36 } }} variant="outlined">
-                Save Deck
+                Save deck
               </Button>
               <Button disabled={isRefreshingBattleData || isSaving} onClick={handleRefreshBattleData} startIcon={<RefreshIcon />} sx={{ minHeight: { xs: 44, sm: 36 } }} variant="outlined">
-                Refresh Battle Data
+                Refresh battle data
               </Button>
               <Button disabled={!deckIsReady || isSaving} onClick={() => handleSaveDeck({ startAfterSave: true })} startIcon={<PlayArrowIcon />} sx={{ minHeight: { xs: 44, sm: 36 } }} variant="contained">
-                Start Battle
+                Start battle
               </Button>
             </Stack>
           </Stack>
@@ -484,7 +484,7 @@ export default function BattleDeckBuilder() {
                   <Chip
                     key={type.value}
                     color={filters.type === type.value ? 'primary' : 'default'}
-                    label={type.label}
+                    label={type.label === 'All Types' ? 'All types' : type.label}
                     onClick={() => updateFilter('type', type.value)}
                     sx={{ flex: { xs: '0 0 auto', sm: 'initial' } }}
                     variant={filters.type === type.value ? 'filled' : 'outlined'}
@@ -494,7 +494,7 @@ export default function BattleDeckBuilder() {
                   <Chip
                     key={rarity}
                     color={filters.rarity === rarity ? 'secondary' : 'default'}
-                    label={rarity === 'all' ? 'All Rarities' : rarity}
+                    label={rarity === 'all' ? 'All rarities' : rarity}
                     onClick={() => updateFilter('rarity', rarity)}
                     sx={{ flex: { xs: '0 0 auto', sm: 'initial' } }}
                     variant={filters.rarity === rarity ? 'filled' : 'outlined'}
@@ -514,7 +514,7 @@ export default function BattleDeckBuilder() {
                   <Chip
                     key={foil}
                     color={filters.foil === foil ? 'success' : 'default'}
-                    label={foil === 'all' ? 'All Finishes' : foil}
+                    label={foil === 'all' ? 'All finishes' : foil}
                     onClick={() => updateFilter('foil', foil)}
                     sx={{ flex: { xs: '0 0 auto', sm: 'initial' } }}
                     variant={filters.foil === foil ? 'filled' : 'outlined'}
@@ -524,7 +524,7 @@ export default function BattleDeckBuilder() {
                   <Chip
                     key={cost}
                     color={filters.cost === cost ? 'info' : 'default'}
-                    label={cost === 'all' ? 'All Costs' : cost}
+                    label={cost === 'all' ? 'All costs' : cost}
                     onClick={() => updateFilter('cost', cost)}
                     sx={{ flex: { xs: '0 0 auto', sm: 'initial' } }}
                     variant={filters.cost === cost ? 'filled' : 'outlined'}
@@ -541,7 +541,7 @@ export default function BattleDeckBuilder() {
               </Stack>
 
               {!isLoading && !filteredCards.length && (
-                <Alert severity="info">No collection cards match those filters.</Alert>
+                <Alert severity="info">No battle-ready cards match those filters. Try clearing one filter.</Alert>
               )}
 
               <Grid container spacing={{ xs: 1, sm: 1.5 }}>
@@ -569,7 +569,7 @@ export default function BattleDeckBuilder() {
             <CardContent sx={{ display: 'grid', gap: 1.5 }}>
               <Stack direction="row" justifyContent="space-between" sx={{ alignItems: 'center' }}>
                 <Box>
-                  <Typography variant="h5">Current Deck</Typography>
+                  <Typography variant="h5">Current deck</Typography>
                   <Typography color="text.secondary" variant="body2">
                     Specific owned copies selected
                   </Typography>
@@ -582,7 +582,7 @@ export default function BattleDeckBuilder() {
               )}
               <Card variant="outlined" sx={{ bgcolor: 'rgba(255,255,255,0.025)' }}>
                 <CardContent sx={{ display: 'grid', gap: 1.25, p: 1.5, '&:last-child': { pb: 1.5 } }}>
-                  <Typography fontWeight={950}>Deck Quality</Typography>
+                  <Typography fontWeight={950}>Deck quality</Typography>
                   <Stack direction="row" gap={0.75} sx={{ flexWrap: 'wrap' }}>
                     <Chip label={`${deckAnalysis.creatureCount} creatures`} size="small" variant="outlined" />
                     <Chip label={`${deckAnalysis.spellCount} spells`} size="small" variant="outlined" />
@@ -659,7 +659,7 @@ export default function BattleDeckBuilder() {
         <Box className="mobileDeckBuilderActionBar">
           <Chip color={deckIsReady ? 'success' : 'warning'} label={`${selectedCards.length}/20`} />
           <Button disabled={!deckIsReady || isSaving} onClick={() => handleSaveDeck({ startAfterSave: true })} sx={{ minHeight: 44 }} variant="contained">
-            Start Battle
+            Start battle
           </Button>
         </Box>
       )}

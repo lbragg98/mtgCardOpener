@@ -64,7 +64,7 @@ export default function AddCardsToDisplayCaseDialog({
 
   return (
     <Dialog fullWidth maxWidth="lg" onClose={handleClose} open={open}>
-      <DialogTitle>Add Cards to {displayCase?.name}</DialogTitle>
+      <DialogTitle>Add cards to {displayCase?.name}</DialogTitle>
       <DialogContent>
         <Stack direction={{ xs: 'column', sm: 'row' }} gap={1.5} sx={{ mb: 2, mt: 1 }}>
           <TextField
@@ -153,15 +153,15 @@ export default function AddCardsToDisplayCaseDialog({
 
         {!filteredCards.length && (
           <Box sx={{ py: 6, textAlign: 'center' }}>
-            <Typography variant="h5">No cards match that search</Typography>
-            <Typography color="text.secondary">Try another card name.</Typography>
+            <Typography variant="h5">No matching cards</Typography>
+            <Typography color="text.secondary">Try another card name or clear the search.</Typography>
           </Box>
         )}
       </DialogContent>
       <DialogActions sx={{ p: 3, pt: 1 }}>
         <Button onClick={handleClose}>Cancel</Button>
         <Button disabled={!selectedIds.length} onClick={handleAddCards} variant="contained">
-          Add Selected
+          Add selected cards
         </Button>
       </DialogActions>
     </Dialog>

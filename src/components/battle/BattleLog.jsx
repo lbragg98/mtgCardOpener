@@ -22,7 +22,7 @@ export default function BattleLog({ animationSpeed = 1, entries = [] }) {
     <Card sx={{ height: '100%' }}>
       <CardContent sx={{ display: 'grid', gap: 1 }}>
         <Typography fontWeight={950} sx={{ color: 'var(--text-accent)' }}>
-          Battle Log
+          Battle log
         </Typography>
         <List dense sx={{ maxHeight: 260, overflow: 'auto', py: 0 }}>
           <AnimatePresence initial={false}>

@@ -84,7 +84,7 @@ export default function TradeCardPicker({ cards, emptyText, selectedIds, setSele
 
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '2fr repeat(4, 1fr)' }, gap: 1 }}>
           <TextField
-            label="Search"
+            label="Search cards"
             onChange={(event) => setSearch(event.target.value)}
             size="small"
             value={search}

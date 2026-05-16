@@ -87,7 +87,7 @@ export default function BattleCardInspectionDialog({ card, onClose, open, showOf
 
               <Stack spacing={1.5} sx={{ maxHeight: { xs: 'none', md: '70vh' }, overflowY: { xs: 'visible', md: 'auto' }, pr: { md: 1 } }}>
                 <Stack direction="row" gap={1} sx={{ flexWrap: 'wrap' }}>
-                  <Chip label={card.displayType || card.type || 'Battle Card'} />
+                  <Chip label={card.displayType || card.type || 'Battle card'} />
                   <Chip label={card.rarity || 'common'} sx={{ textTransform: 'capitalize' }} />
                   <Chip label={`${card.colorSignature || card.primaryColor || 'C'} ${card.colorName || ''}`.trim()} variant="outlined" />
                   {card.isFoil && <Chip color="warning" label={FOIL_LABELS[foilTreatment] || 'Foil'} />}
@@ -109,7 +109,7 @@ export default function BattleCardInspectionDialog({ card, onClose, open, showOf
                 <Typography><strong>Keywords:</strong> {card.keywords?.length ? card.keywords.join(', ') : 'None'}</Typography>
                 <Typography><strong>Foil treatment:</strong> {card.isFoil ? FOIL_LABELS[foilTreatment] || foilTreatment : 'None'}</Typography>
                 <Typography><strong>Set:</strong> {card.setName || card.set_name || card.setCode || card.set || 'Unknown'}</Typography>
-                <Typography><strong>Estimated value:</strong> {estimatedValue ? formatPrice(estimatedValue) : 'No price'}</Typography>
+                <Typography><strong>Estimated value:</strong> {estimatedValue ? formatPrice(estimatedValue) : 'No price available'}</Typography>
                 {showOfficialText && (
                   <Typography sx={{ whiteSpace: 'pre-line' }}>
                     <strong>Oracle text:</strong> {card.oracleText || card.sourceCard?.oracle_text || 'No oracle text available.'}

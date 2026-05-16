@@ -168,12 +168,12 @@ export default function Shop() {
   useEffect(() => {
     function refreshWithErrorHandling() {
       refreshShopState().catch((error) => {
-        setSnackbar({ message: error.message || 'Unable to load shop data.', severity: 'error' });
+        setSnackbar({ message: error.message || 'Shop data could not be loaded. Please try again.', severity: 'error' });
       });
     }
 
     refreshShopState().catch((error) => {
-      setSnackbar({ message: error.message || 'Unable to load shop data.', severity: 'error' });
+      setSnackbar({ message: error.message || 'Shop data could not be loaded. Please try again.', severity: 'error' });
     });
 
     window.addEventListener('packShardsUpdated', refreshWithErrorHandling);
@@ -229,7 +229,7 @@ export default function Shop() {
       setPackShards(result?.newShardBalance ?? getPackShards());
       setSnackbar({ message: `Purchased ${itemToBuy.name}!`, severity: 'success' });
     } catch (error) {
-      setSnackbar({ message: error.message || 'Unable to purchase cosmetic.', severity: 'error' });
+      setSnackbar({ message: error.message || 'That cosmetic could not be purchased. Please try again.', severity: 'error' });
     }
   }
 
@@ -238,7 +238,7 @@ export default function Shop() {
       await equipItem(item.id);
       setSnackbar({ message: `Equipped ${item.name}.`, severity: 'success' });
     } catch (error) {
-      setSnackbar({ message: error.message || 'Unable to equip cosmetic.', severity: 'error' });
+      setSnackbar({ message: error.message || 'That cosmetic could not be equipped. Please try again.', severity: 'error' });
     }
   }
 
@@ -284,12 +284,12 @@ export default function Shop() {
           <Card sx={{ height: '100%' }}>
             <CardContent sx={{ display: 'grid', gap: 1.5 }}>
               <Typography fontWeight={950} sx={{ color: 'var(--text-accent)' }}>
-                Shard Balance
+                Pack Shard balance
               </Typography>
               <Typography variant="h3" sx={{ fontSize: { xs: 34, md: 44 } }}>
                 {packShards.toLocaleString()}
               </Typography>
-              <Typography color="text.secondary">Duplicates grant 100 shards. Recycling grants 25 shards.</Typography>
+              <Typography color="text.secondary">Recycle duplicates and extra cards to earn more Pack Shards.</Typography>
             </CardContent>
           </Card>
         </Grid>
@@ -301,7 +301,7 @@ export default function Shop() {
                   Owned Progress
                 </Typography>
                 <Typography fontWeight={900}>
-                  Owned {ownedCount} / {BINDER_CATALOG.length} binders
+                  {ownedCount} / {BINDER_CATALOG.length} binders owned
                 </Typography>
               </Stack>
               <LinearProgress color="warning" value={ownedProgress} variant="determinate" sx={{ height: 12, borderRadius: 99, bgcolor: 'rgba(248, 247, 255, 0.08)' }} />
@@ -331,7 +331,7 @@ export default function Shop() {
           <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" gap={2} sx={{ alignItems: { xs: 'stretch', md: 'center' } }}>
             <Box>
               <Typography fontWeight={950} sx={{ color: 'var(--text-accent)' }}>
-                Cosmetic Shop
+                Cosmetic shop
               </Typography>
               <Typography color="text.secondary">
                 Spend Pack Shards on themes, opening scenes, sleeves, binders, and cosmetics.
@@ -438,7 +438,7 @@ export default function Shop() {
                   }}
                   variant="outlined"
                 >
-                  Reset Filters
+                  Reset filters
                 </Button>
               </CardContent>
             </Card>
@@ -472,10 +472,10 @@ export default function Shop() {
       <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" gap={2} sx={{ alignItems: { xs: 'flex-start', sm: 'center' }, mb: 2 }}>
         <Box>
           <Typography fontWeight={950} sx={{ color: 'var(--text-accent)' }}>
-            Binder Shop
+            Binder shop
           </Typography>
           <Typography color="text.secondary">
-            Physical binder unlocks remain available here.
+            Buy binders here, then fill them from your collection.
           </Typography>
         </Box>
         <Chip label={`${BINDER_CATALOG.length} binders`} variant="outlined" />
@@ -575,7 +575,7 @@ export default function Shop() {
                     startIcon={owned ? <Inventory2Icon /> : <AutoAwesomeIcon />}
                     variant={owned || canAfford ? 'contained' : 'outlined'}
                   >
-                    {owned ? 'View Binder' : canAfford ? `Buy for ${binder.price.toLocaleString()} Shards` : `Need ${needShards.toLocaleString()} more shards`}
+                    {owned ? 'View binder' : canAfford ? `Buy for ${binder.price.toLocaleString()} Pack Shards` : `Need ${needShards.toLocaleString()} more Pack Shards`}
                   </Button>
                 </CardContent>
               </Card>
@@ -598,7 +598,7 @@ export default function Shop() {
         <DialogActions sx={{ p: 3, pt: 1 }}>
           <Button onClick={() => setItemToBuy(null)}>Cancel</Button>
           <Button onClick={handleConfirmCosmeticPurchase} variant="contained">
-            Buy Cosmetic
+            Buy cosmetic
           </Button>
         </DialogActions>
       </Dialog>
@@ -607,13 +607,13 @@ export default function Shop() {
         <DialogTitle>Buy {binderToBuy?.name}?</DialogTitle>
         <DialogContent>
           <Typography color="text.secondary">
-            Buy this binder for {binderToBuy?.price.toLocaleString()} Pack Shards? It can hold {binderToBuy?.capacity} cards.
+            Buy this binder for {binderToBuy?.price.toLocaleString()} Pack Shards? It holds {binderToBuy?.capacity} cards.
           </Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setBinderToBuy(null)}>Cancel</Button>
           <Button onClick={handleConfirmPurchase} variant="contained">
-            Buy Binder
+            Buy binder
           </Button>
         </DialogActions>
       </Dialog>

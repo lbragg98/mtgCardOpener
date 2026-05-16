@@ -46,7 +46,7 @@ export default function CardInspectionDialog({
   }
 
   function formatCardPrice(value) {
-    return value ? formatPrice(value) : 'No price';
+    return value ? formatPrice(value) : 'No price available';
   }
 
   return (

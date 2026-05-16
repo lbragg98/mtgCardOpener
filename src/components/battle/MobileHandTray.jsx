@@ -2,7 +2,10 @@
 import { Box, Typography } from '@mui/material';
 import BattleCard from './BattleCard.jsx';
 
-export default function MobileHandTray({ cards = [], disabled = false, mana = 0, onInspectCard, onPlayCard }) {
+export default function MobileHandTray({ cards = [], disabled = false, hiddenCardIds = [], mana = 0, onInspectCard, onPlayCard }) {
+  const hiddenIds = new Set(hiddenCardIds);
+  const visibleCards = cards.filter((card) => !hiddenIds.has(card.instanceId || card.userCardId || card.collectionId || card.battleId));
+
   return (
     <Box className="mobileBattleHandTray">
       <Box className="mobileBattleHandHeader">
@@ -12,7 +15,7 @@ export default function MobileHandTray({ cards = [], disabled = false, mana = 0,
         </Typography>
       </Box>
       <Box className="mobileBattleHandScroller" role="list" aria-label="Cards in hand">
-        {cards.length ? cards.map((card) => {
+        {visibleCards.length ? visibleCards.map((card) => {
           const isDisabled = disabled || (card.cost || card.battleStats?.cost || 1) > mana;
 
           return (
@@ -21,7 +24,7 @@ export default function MobileHandTray({ cards = [], disabled = false, mana = 0,
                 card={card}
                 compact
                 disabled={isDisabled}
-                onClick={() => onPlayCard?.(card)}
+                onClick={(event) => onPlayCard?.(card, event)}
                 onInspect={onInspectCard}
                 playable={!isDisabled}
                 size="hand"
@@ -29,7 +32,7 @@ export default function MobileHandTray({ cards = [], disabled = false, mana = 0,
             </Box>
           );
         }) : (
-          <Box className="mobileBattleHandEmpty">No cards in hand</Box>
+          <Box className="mobileBattleHandEmpty">No cards in hand.</Box>
         )}
       </Box>
     </Box>
