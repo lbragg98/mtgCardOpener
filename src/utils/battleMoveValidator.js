@@ -44,7 +44,7 @@ function getTargetKindsForCard(card) {
   if (targetTypes.includes('friendlyCreature') || effectTypes.some((type) => ['artifactBuff', 'buff', 'shield'].includes(type))) {
     targetKinds.add('friendlyCreature');
   }
-  if (targetTypes.includes('enemyCreature') || effectTypes.some((type) => ['bounce', 'debuff', 'removal', 'removeCreature', 'weaken', 'weakenCreature'].includes(type))) {
+  if (targetTypes.includes('enemyCreature') || effectTypes.some((type) => ['bounce', 'debuff', 'removal', 'removeCreature', 'tapStun', 'weaken', 'weakenCreature'].includes(type))) {
     targetKinds.add('enemyCreature');
   }
   if (targetTypes.includes('enemyAny') || effectTypes.some((type) => ['damage', 'discard', 'drain', 'generic', 'flex'].includes(type))) {
@@ -76,7 +76,7 @@ export function getLegalPlayableCards(state, playerKey) {
   if (!validateBaseState(state, playerKey).valid) return [];
 
   return (state[playerKey]?.hand || []).filter((card) => {
-    if (!card || card.type === 'land') return false;
+    if (!card) return false;
     return Number(card.cost || 0) <= Number(state[playerKey].mana || 0);
   });
 }
@@ -144,7 +144,6 @@ export function validateBattleAction(state, playerKey, action) {
   if (action.type === 'playCard') {
     const card = findCard(state[playerKey].hand, action.cardId);
     if (!card) return { reason: 'Card is not in hand.', valid: false };
-    if (card.type === 'land') return { reason: 'Lands are not playable in Binder Battle.', valid: false };
     if (Number(card.cost || 0) > Number(state[playerKey].mana || 0)) return { reason: 'Not enough mana.', valid: false };
 
     const legalTargets = getLegalTargetsForCard(state, playerKey, card);

@@ -73,6 +73,25 @@ function isCreature(card) {
   return card?.type === 'creature' || card?.type === 'Creature' || Number(card?.health || card?.maxHealth) > 0;
 }
 
+function getFallbackEffectsForRole(card) {
+  const role = card?.role || card?.mapping?.role || card?.type;
+  const amount = Math.max(1, Math.ceil((card?.cost || 1) / 2));
+
+  if (role === 'damageSpell') return [{ amount: amount + 1, targetType: 'enemyAny', type: 'damage' }];
+  if (role === 'removalSpell') return [{ amount: amount + 1, targetType: 'enemyCreature', type: 'weakenCreature' }];
+  if (role === 'healSpell') return [{ amount: amount + 2, targetType: 'self', type: 'heal' }];
+  if (role === 'drawSpell') return [{ amount: 1, targetType: 'self', type: 'draw' }];
+  if (['buffSpell', 'equipmentBuff', 'enchantmentBuff', 'auraBuff'].includes(role)) return [{ attackBonus: 1, healthBonus: 1, targetType: 'friendlyCreature', type: 'buff' }];
+  if (role === 'debuffSpell') return [{ attackPenalty: 1, healthPenalty: 1, targetType: 'enemyCreature', type: 'debuff' }];
+  if (role === 'tokenSpell') return [{ amount: 1, targetType: 'self', token: { attack: 1, health: 1, name: 'Summoned Token' }, type: 'createToken' }];
+  if (role === 'rampSpell' || role === 'landResource') return [{ amount: 1, targetType: 'self', type: 'manaBoost' }];
+  if (role === 'controlSpell') return [{ amount: 1, targetType: 'enemyCreature', type: 'tapStun' }];
+  if (role === 'reviveSpell') return [{ amount: 1, targetType: 'self', type: 'reanimate' }];
+  if (role === 'artifactUtility') return [{ amount: 1, targetType: 'self', type: 'draw' }];
+  if (role === 'planeswalkerSupport') return [{ amount: 1, targetType: 'self', type: 'draw' }];
+  return [{ amount: Math.max(1, amount), targetType: 'enemyAny', type: 'damage' }];
+}
+
 function hasKeyword(card, keyword) {
   return (card?.keywords || []).some((cardKeyword) => String(cardKeyword).toLowerCase() === keyword.toLowerCase());
 }
@@ -336,6 +355,27 @@ function bounceCreature(state, playerId, creatureId) {
       ...playerState,
       battlefield: playerState.battlefield.filter((creature) => creature.instanceId !== creatureId),
       hand: [...playerState.hand, handCard],
+    },
+  };
+}
+
+function stunCreature(state, playerId, creatureId) {
+  const playerState = state[playerId];
+
+  return {
+    ...state,
+    [playerId]: {
+      ...playerState,
+      battlefield: playerState.battlefield.map((creature) =>
+        creature.instanceId === creatureId
+          ? {
+              ...creature,
+              canAttack: false,
+              hasAttacked: true,
+              stunned: Math.max(1, Number(creature.stunned || 0) + 1),
+            }
+          : creature,
+      ),
     },
   };
 }
@@ -666,7 +706,7 @@ export function resolveCardEffect(state, playerId, card, target) {
   const normalizedTarget = normalizeTarget(target);
   const effects = Array.isArray(card.effects) && card.effects.length
     ? card.effects
-    : [{ amount: Math.max(1, Math.ceil((card.cost || 1) / 2)), target: 'enemy', type: 'damage' }];
+    : getFallbackEffectsForRole(card);
 
   let nextState = cloneState(state);
 
@@ -760,6 +800,18 @@ export function resolveCardEffect(state, playerId, card, target) {
       if (enemyTargetId) {
         nextState = bounceCreature(nextState, opponentId, enemyTargetId);
         nextState = appendLog(nextState, `${card.name} bounced an enemy creature.`, 'spell');
+      }
+      return;
+    }
+
+    if (effect.type === 'tapStun') {
+      const enemyTargetId = normalizedTarget.creatureId || normalizedTarget.instanceId || nextState[opponentId].battlefield[0]?.instanceId;
+      if (enemyTargetId) {
+        nextState = stunCreature(nextState, opponentId, enemyTargetId);
+        nextState = appendLog(nextState, `${card.name} stunned an enemy creature.`, 'spell');
+      } else {
+        nextState = damagePlayer(nextState, opponentId, Math.max(1, effect.amount || 1));
+        nextState = appendLog(nextState, `${card.name} disrupted the opposing player.`, 'damage');
       }
       return;
     }

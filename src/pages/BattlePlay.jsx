@@ -30,7 +30,7 @@ import {
 function prepareDeck(deck) {
   return deck
     .map((card) => (card?.type && card?.cost !== undefined ? { ...card } : mapCollectionCardToBattleCard(card)))
-    .filter((card) => card.type !== 'land');
+    .filter(Boolean);
 }
 
 function needsTarget(card) {

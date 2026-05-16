@@ -56,6 +56,7 @@ import DeckBuilderInsights from '../components/battle/DeckBuilder.jsx';
 import SavedDeckCard from '../components/battle/SavedDeckCard.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 import { getBattleCardEffectSummary, mapCollectionToBattleCards } from '../utils/battleCardMapper.js';
+import { generateBattleMappingReport } from '../utils/battleMappingReport.js';
 import { saveBattleDeck as saveActiveBattleDeck } from '../utils/battleDeckStorage.js';
 import { getDeckCardId, getDeckStats, getMissingDeckCards } from '../utils/battleDeckValidation.js';
 import { analyzeDeckColors, getDeckBalanceWarnings, getDeckStrategy } from '../utils/deckBalance.js';
@@ -63,21 +64,48 @@ import { analyzeDeckColors, getDeckBalanceWarnings, getDeckStrategy } from '../u
 const DECK_SIZE = 20;
 const DEFAULT_DECK_NAME = 'New Battle Deck';
 const RARITY_RANK = { common: 1, uncommon: 2, rare: 3, mythic: 4 };
+const SHOW_MAPPING_DEBUG = import.meta.env.VITE_SHOW_BATTLE_MAPPING_DEBUG === 'true';
 
 const FILTER_GROUPS = [
   {
     key: 'type',
-    title: 'Card Type',
+    title: 'Creatures',
     options: [
       ['all', 'All'],
-      ['creature', 'Creatures'],
-      ['spell', 'Spells'],
-      ['damage', 'Damage'],
-      ['heal', 'Heal'],
-      ['draw', 'Draw'],
-      ['buff', 'Buff'],
-      ['removal', 'Removal'],
-      ['tokens', 'Tokens'],
+      ['attackerCreature', 'Attackers'],
+      ['defensiveCreature', 'Defensive'],
+      ['evasiveCreature', 'Evasive'],
+      ['utilityCreature', 'Utility'],
+    ],
+  },
+  {
+    key: 'spellRole',
+    title: 'Spells',
+    options: [
+      ['all', 'All'],
+      ['damageSpell', 'Damage'],
+      ['removalSpell', 'Removal'],
+      ['healSpell', 'Heal'],
+      ['drawSpell', 'Draw'],
+      ['buffSpell', 'Buff'],
+      ['debuffSpell', 'Debuff'],
+      ['tokenSpell', 'Tokens'],
+      ['rampSpell', 'Ramp'],
+      ['controlSpell', 'Control'],
+      ['reviveSpell', 'Revive'],
+    ],
+  },
+  {
+    key: 'permanentRole',
+    title: 'Permanents',
+    options: [
+      ['all', 'All'],
+      ['equipmentBuff', 'Equipment'],
+      ['artifactUtility', 'Artifacts'],
+      ['enchantmentBuff', 'Enchantments'],
+      ['auraBuff', 'Auras'],
+      ['planeswalkerSupport', 'Planeswalkers'],
+      ['landResource', 'Lands'],
     ],
   },
   {
@@ -144,7 +172,9 @@ const INITIAL_FILTERS = {
   color: 'all',
   cost: 'all',
   foil: 'all',
+  permanentRole: 'all',
   rarity: 'all',
+  spellRole: 'all',
   status: 'all',
   type: 'all',
 };
@@ -175,15 +205,7 @@ function sortBattleCards(cards, sortBy) {
 
 function matchesTypeFilter(card, value) {
   if (value === 'all') return true;
-  if (value === 'creature') return card.type === 'creature';
-  if (value === 'spell') return card.type !== 'creature';
-  if (value === 'damage') return ['damageSpell', 'drainSpell'].includes(card.type);
-  if (value === 'heal') return card.type === 'healSpell';
-  if (value === 'draw') return card.type === 'drawSpell';
-  if (value === 'buff') return ['buffSpell', 'shieldSpell'].includes(card.type);
-  if (value === 'removal') return ['removalSpell', 'bounceSpell', 'debuffSpell'].includes(card.type);
-  if (value === 'tokens') return card.type === 'tokenSpell';
-  return card.type === value;
+  return (card.role || card.mapping?.role || card.type) === value;
 }
 
 function matchesCostFilter(card, value) {
@@ -233,6 +255,7 @@ export default function BattleDeckBuilder() {
   const [mobileBuildView, setMobileBuildView] = useState('collection');
   const [savedDecks, setSavedDecks] = useState([]);
   const [deleteCandidate, setDeleteCandidate] = useState(null);
+  const [mappingReport, setMappingReport] = useState(null);
   const [savedFingerprint, setSavedFingerprint] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
   const [search, setSearch] = useState('');
@@ -275,6 +298,8 @@ export default function BattleDeckBuilder() {
       const cardId = getDeckCardId(card);
       const matchesSearch = !normalizedSearch || card.name.toLowerCase().includes(normalizedSearch);
       const matchesType = matchesTypeFilter(card, filters.type);
+      const matchesSpellRole = matchesTypeFilter(card, filters.spellRole);
+      const matchesPermanentRole = matchesTypeFilter(card, filters.permanentRole);
       const matchesRarity = filters.rarity === 'all' || card.rarity === filters.rarity;
       const matchesColor = matchesColorFilter(card, filters.color);
       const matchesFoil = filters.foil === 'all' || (filters.foil === 'foil' ? card.isFoil : !card.isFoil);
@@ -286,7 +311,7 @@ export default function BattleDeckBuilder() {
         (filters.status === 'playableCreatures' && card.type === 'creature') ||
         (filters.status === 'playableSpells' && card.type !== 'creature');
 
-      return matchesSearch && matchesType && matchesRarity && matchesColor && matchesFoil && matchesCost && matchesStatus;
+      return matchesSearch && matchesType && matchesSpellRole && matchesPermanentRole && matchesRarity && matchesColor && matchesFoil && matchesCost && matchesStatus;
     });
 
     return sortBattleCards(filtered, sortBy);
@@ -303,7 +328,7 @@ export default function BattleDeckBuilder() {
 
         if (!isMounted) return;
 
-        const mappedCards = mapCollectionToBattleCards(collection).filter((card) => card.type !== 'land');
+        const mappedCards = mapCollectionToBattleCards(collection);
         setBattleCards(mappedCards);
         setSavedDecks(decks);
 
@@ -400,7 +425,7 @@ export default function BattleDeckBuilder() {
       const collection = await getMyCards();
       const result = await enrichMissingBattleData(collection);
       const refreshedCollection = await getMyCards();
-      const mappedCards = mapCollectionToBattleCards(refreshedCollection).filter((card) => card.type !== 'land');
+      const mappedCards = mapCollectionToBattleCards(refreshedCollection);
 
       setBattleCards(mappedCards);
       setSnackbar(`Updated battle data for ${result.updatedCount} card${result.updatedCount === 1 ? '' : 's'}.`);
@@ -409,6 +434,10 @@ export default function BattleDeckBuilder() {
     } finally {
       setIsRefreshingBattleData(false);
     }
+  }
+
+  function handleOpenMappingReport() {
+    setMappingReport(generateBattleMappingReport(battleCards));
   }
 
   function toggleCard(card) {
@@ -574,6 +603,11 @@ export default function BattleDeckBuilder() {
             <Button disabled={!currentDeckCards.length || isSaving} onClick={handleClearDeck} startIcon={<ClearIcon />} variant="outlined">
               Clear Deck
             </Button>
+            {SHOW_MAPPING_DEBUG && (
+              <Button onClick={handleOpenMappingReport} variant="outlined">
+                Mapping Report
+              </Button>
+            )}
             <Button disabled={!deckIsReady || isSaving} onClick={() => startDeck(currentDeckCards)} startIcon={<PlayArrowIcon />} variant="contained">
               Start Battle
             </Button>
@@ -659,8 +693,13 @@ export default function BattleDeckBuilder() {
                   size="preview"
                 />
                 <Typography color="text.secondary" sx={{ fontSize: 12, mt: 0.5, px: 0.5 }}>
-                  {getEffectSummary(card)} - {getColorLabel(card)}
+                  {card.displayType || card.role} - {getEffectSummary(card)} - {getColorLabel(card)}
                 </Typography>
+                {SHOW_MAPPING_DEBUG && (
+                  <Typography color="warning.main" sx={{ fontSize: 11, mt: 0.25, px: 0.5 }}>
+                    {card.mapping?.role} | {card.mapping?.confidence} | {card.mapping?.effectTags?.join(', ') || 'no tags'}
+                  </Typography>
+                )}
               </Grid>
             );
           })}
@@ -716,7 +755,7 @@ export default function BattleDeckBuilder() {
                     {index + 1}. {card.name}
                   </Typography>
                   <Typography color="text.secondary" noWrap variant="caption">
-                    {card.type} - Cost {card.cost} - {getEffectSummary(card)}
+                    {card.displayType || card.role} - Cost {card.cost} - {getEffectSummary(card)}
                   </Typography>
                 </Box>
                 <IconButton aria-label={`Remove ${card.name}`} onClick={() => toggleCard(card)} size="small">
@@ -765,7 +804,7 @@ export default function BattleDeckBuilder() {
       )}
       {!isLoading && (
         <Alert severity="info" sx={{ mb: 3 }}>
-          Binder Battle uses automatic mana. Lands are not needed, so lands are excluded from deck building.
+          Binder Battle uses automatic mana. Lands become simple resource cards for this simplified mode.
         </Alert>
       )}
 
@@ -866,6 +905,49 @@ export default function BattleDeckBuilder() {
           <Button color="error" onClick={handleDeleteDeck} variant="contained">Delete</Button>
         </DialogActions>
       </Dialog>
+
+      {SHOW_MAPPING_DEBUG && (
+        <Dialog fullWidth maxWidth="md" open={Boolean(mappingReport)} onClose={() => setMappingReport(null)}>
+          <DialogTitle>Battle Mapping Report</DialogTitle>
+          <DialogContent sx={{ display: 'grid', gap: 2 }}>
+            <Stack direction="row" gap={1} sx={{ flexWrap: 'wrap' }}>
+              <Chip label={`${mappingReport?.total || 0} total`} />
+              <Chip color="success" label={`${mappingReport?.highConfidence || 0} high`} />
+              <Chip color="warning" label={`${mappingReport?.mediumConfidence || 0} medium`} />
+              <Chip color="error" label={`${mappingReport?.lowConfidence || 0} low`} />
+            </Stack>
+            <Box>
+              <Typography fontWeight={950}>By role</Typography>
+              <Stack direction="row" gap={0.75} sx={{ flexWrap: 'wrap', mt: 1 }}>
+                {Object.entries(mappingReport?.byRole || {}).map(([role, count]) => (
+                  <Chip key={role} label={`${role}: ${count}`} size="small" variant="outlined" />
+                ))}
+              </Stack>
+            </Box>
+            <Box>
+              <Typography fontWeight={950}>By category</Typography>
+              <Stack direction="row" gap={0.75} sx={{ flexWrap: 'wrap', mt: 1 }}>
+                {Object.entries(mappingReport?.byCategory || {}).map(([category, count]) => (
+                  <Chip key={category} label={`${category}: ${count}`} size="small" variant="outlined" />
+                ))}
+              </Stack>
+            </Box>
+            <Box>
+              <Typography fontWeight={950}>Low confidence cards</Typography>
+              <Stack gap={0.75} sx={{ maxHeight: 280, mt: 1, overflow: 'auto' }}>
+                {(mappingReport?.lowConfidenceCards || []).slice(0, 80).map((card) => (
+                  <Typography key={`${card.name}-${card.role}`} color="text.secondary" variant="body2">
+                    {card.name}: {card.role} ({card.category}) - {card.reason}
+                  </Typography>
+                ))}
+              </Stack>
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setMappingReport(null)}>Close</Button>
+          </DialogActions>
+        </Dialog>
+      )}
 
       <Snackbar autoHideDuration={3600} onClose={() => setSnackbar('')} open={Boolean(snackbar)} message={snackbar} />
     </Box>
