@@ -117,7 +117,7 @@ export default function LocalCollectionMigrationDialog() {
       window.dispatchEvent(new Event('collectionUpdated'));
       setIsOpen(false);
     } catch (importError) {
-      setError(importError.message || 'Unable to import your local collection.');
+      setError(importError.message || 'Your local collection could not be imported. Please try again.');
     } finally {
       setIsImporting(false);
     }

@@ -4,12 +4,13 @@ import { Box, Button, Chip, IconButton, Stack } from '@mui/material';
 
 export default function MobileActionBar({
   activePlayer,
+  disabled = false,
   onEndTurn,
   onOpenLog,
   player,
   status,
 }) {
-  const isPlayerTurn = activePlayer === 'player' && status === 'playing';
+  const isPlayerTurn = activePlayer === 'player' && status === 'playing' && !disabled;
 
   return (
     <Box className="mobileBattleActionBar">

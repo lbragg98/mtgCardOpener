@@ -271,7 +271,7 @@ export default function PvpBattlePlay() {
           if (isMounted) setOpponentProfile(profile || null);
         }
       } catch (loadError) {
-        if (isMounted) setError(loadError.message || 'Unable to load PvP battle match.');
+        if (isMounted) setError(loadError.message || 'This friend battle could not be loaded. Please try again.');
       } finally {
         if (isMounted) setIsLoading(false);
       }
@@ -343,14 +343,14 @@ export default function PvpBattlePlay() {
     if (!canAct || !gameState) return;
 
     if ((card.cost || 0) > gameState[actualPlayerKey].mana) {
-      setSnackbar('Not enough mana.');
+      setSnackbar('Not enough mana to play that card.');
       return;
     }
 
     if (needsTarget(card)) {
       const targets = getTargetOptions(gameState, actualPlayerKey, card, 'play');
       if (!targets.length) {
-        setSnackbar('No valid targets for that card.');
+        setSnackbar('That card has no valid targets right now.');
         return;
       }
       setTargetPicker({ actionLabel: `Choose target for ${card.name}`, card, mode: 'play', targets });
@@ -362,7 +362,7 @@ export default function PvpBattlePlay() {
       const nextState = playCard(gameState, actualPlayerKey, card.instanceId);
       await persistAction('playCard', { cardId: card.instanceId, cardName: card.name, playerKey: actualPlayerKey }, nextState);
     } catch (actionError) {
-      setSnackbar(actionError.message || 'Unable to play card.');
+      setSnackbar(actionError.message || 'That card could not be played. Please try again.');
       await reloadMatch();
     } finally {
       setIsSavingAction(false);
@@ -388,7 +388,7 @@ export default function PvpBattlePlay() {
       const nextState = attackWithCreature(gameState, actualPlayerKey, creature.instanceId, targets[0].value);
       await persistAction('attack', { creatureId: creature.instanceId, creatureName: creature.name, playerKey: actualPlayerKey, target: targets[0].value }, nextState);
     } catch (actionError) {
-      setSnackbar(actionError.message || 'Unable to attack.');
+      setSnackbar(actionError.message || 'That attack could not be completed. Please try again.');
       await reloadMatch();
     } finally {
       setIsSavingAction(false);
@@ -412,7 +412,7 @@ export default function PvpBattlePlay() {
         target,
       }, nextState);
     } catch (actionError) {
-      setSnackbar(actionError.message || 'Unable to complete action.');
+      setSnackbar(actionError.message || 'That action could not be completed. Please try again.');
       await reloadMatch();
     } finally {
       setIsSavingAction(false);
@@ -427,7 +427,7 @@ export default function PvpBattlePlay() {
       const nextState = endTurn(gameState);
       await persistAction('endTurn', { playerKey: actualPlayerKey }, nextState);
     } catch (actionError) {
-      setSnackbar(actionError.message || 'Unable to end turn.');
+      setSnackbar(actionError.message || 'Your turn could not be ended. Please try again.');
       await reloadMatch();
     } finally {
       setIsSavingAction(false);
@@ -443,7 +443,7 @@ export default function PvpBattlePlay() {
       setMatch(updatedMatch);
       setSnackbar('Match forfeited.');
     } catch (forfeitError) {
-      setSnackbar(forfeitError.message || 'Unable to forfeit match.');
+      setSnackbar(forfeitError.message || 'The match could not be forfeited. Please try again.');
       await reloadMatch();
     } finally {
       setIsSavingAction(false);
@@ -476,7 +476,7 @@ export default function PvpBattlePlay() {
       await persistAction('ai_turn', { actions, actionCount: actions.length }, animatedState);
     } catch (aiError) {
       lastProcessedAITurnRef.current = '';
-      setSnackbar(aiError.message || 'AI turn failed. Try refreshing the match.');
+      setSnackbar(aiError.message || 'The AI turn could not finish. Try refreshing the match.');
       await reloadMatch();
     } finally {
       aiTurnInProgressRef.current = false;
@@ -500,9 +500,9 @@ export default function PvpBattlePlay() {
     return (
       <Box>
         <Button component={Link} startIcon={<ArrowBackIcon />} to="/battle/pvp" variant="outlined" sx={{ mb: 3 }}>
-          Back to Lobby
+          Back to lobby
         </Button>
-        <Alert severity="info">Loading PvP battle match...</Alert>
+        <Alert severity="info">Loading friend battle...</Alert>
       </Box>
     );
   }
@@ -511,7 +511,7 @@ export default function PvpBattlePlay() {
     return (
       <Box>
         <Button component={Link} startIcon={<ArrowBackIcon />} to="/battle/pvp" variant="outlined" sx={{ mb: 3 }}>
-          Back to Lobby
+          Back to lobby
         </Button>
         <Alert severity="error">{error || 'This match was not found or you are not part of it.'}</Alert>
       </Box>
@@ -521,10 +521,10 @@ export default function PvpBattlePlay() {
   return (
     <Box>
       <Button component={Link} startIcon={<ArrowBackIcon />} to="/battle/pvp" variant="outlined" sx={{ mb: 3 }}>
-        Back to Lobby
+        Back to lobby
       </Button>
-      <PageHeader eyebrow="Friend Battle" title={`Vs ${getProfileName(opponentProfile)}`}>
-        Supabase-backed Binder Battle match.
+      <PageHeader eyebrow="Friend battle" title={`Vs ${getProfileName(opponentProfile)}`}>
+        Play a Supabase-synced Binder Battle match.
       </PageHeader>
 
       <Card sx={{ mb: 2 }}>
@@ -547,7 +547,7 @@ export default function PvpBattlePlay() {
               )}
               {isAITurn && !isAIThinking && (
                 <Button disabled={isSavingAction} onClick={runAITurn} startIcon={<SmartToyIcon />} variant="outlined">
-                  Retry AI Turn
+                  Retry AI turn
                 </Button>
               )}
               {gameState.status === 'playing' && (
@@ -575,7 +575,7 @@ export default function PvpBattlePlay() {
                   Rematch
                 </Button>
                 <Button component={Link} to="/battle/pvp" variant="outlined">
-                  Back to Lobby
+                  Back to lobby
                 </Button>
               </Stack>
             </Stack>

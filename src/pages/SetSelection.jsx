@@ -278,7 +278,7 @@ export default function SetSelection() {
         }
       } catch (loadError) {
         if (isMounted) {
-          setError(loadError.message || 'Unable to load Magic sets from Scryfall.');
+          setError(loadError.message || 'Magic sets could not be loaded from Scryfall.');
         }
       } finally {
         if (isMounted) {
@@ -367,10 +367,10 @@ export default function SetSelection() {
           Open Packs
         </Typography>
         <Typography variant="h2" component="h1" sx={{ fontSize: { xs: 38, md: 58 }, mb: 1 }}>
-          Choose a Set
+          Choose a set
         </Typography>
         <Typography color="text.secondary" sx={{ mx: 'auto', maxWidth: 700, fontSize: 18, lineHeight: 1.65 }}>
-          Select a Magic set to generate a booster pack from real Scryfall data.
+          Pick a Magic set from Scryfall, then choose how you want to open it.
         </Typography>
 
         <Box
@@ -416,7 +416,7 @@ export default function SetSelection() {
 
       {!isLoading && error && (
         <Alert severity="error" sx={{ position: 'relative', zIndex: 1, mt: 4 }}>
-          {error}
+          {error} Try refreshing the page or searching again in a moment.
         </Alert>
       )}
 
@@ -427,7 +427,7 @@ export default function SetSelection() {
               No sets found
             </Typography>
             <Typography color="text.secondary">
-              Try searching by a set name like Dominaria or a code like DMU.
+              Try a set name like Dominaria or a short code like DMU.
             </Typography>
           </CardContent>
         </Card>
@@ -555,14 +555,14 @@ export default function SetSelection() {
           {activeSet && (
             <Box sx={{ display: 'grid', justifyItems: 'center', gap: 1.5, textAlign: 'center' }}>
               <Typography color="text.secondary">
-                Selected: {activeSet.name} ({activeSet.code.toUpperCase()})
+                Selected set: {activeSet.name} ({activeSet.code.toUpperCase()})
               </Typography>
               {isCollectorOnlySet(activeSet) && (
                 <Alert severity="warning" sx={{ maxWidth: 560, textAlign: 'left' }} variant="outlined">
                   {getCollectorOnlySetReason(activeSet)}{' '}
                   {packShards >= COLLECTOR_BOOSTER_COST
                     ? 'Collector Booster is available.'
-                    : `Need ${(COLLECTOR_BOOSTER_COST - packShards).toLocaleString()} more shards.`}
+                    : `Need ${(COLLECTOR_BOOSTER_COST - packShards).toLocaleString()} more Pack Shards.`}
                 </Alert>
               )}
               <Button
@@ -572,7 +572,7 @@ export default function SetSelection() {
                 startIcon={isCollectorOnlySet(activeSet) ? <LockIcon /> : undefined}
                 variant="contained"
               >
-                {isCollectorOnlySet(activeSet) ? 'Choose Collector Booster' : 'Choose This Set'}
+                {isCollectorOnlySet(activeSet) ? 'Continue to Collector Booster' : 'Continue'}
               </Button>
             </Box>
           )}

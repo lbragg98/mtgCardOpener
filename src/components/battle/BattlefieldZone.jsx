@@ -1,12 +1,14 @@
 // Battlefield zones group cards by owner/zone and provide clear target highlighting.
 import { Box, Typography } from '@mui/material';
 import { AnimatePresence, motion } from 'framer-motion';
+import { forwardRef } from 'react';
 import BattleCard from './BattleCard.jsx';
 
-export default function BattlefieldZone({
+const BattlefieldZone = forwardRef(function BattlefieldZone({
   animationSpeed = 1,
   cards = [],
   getCardDisabled,
+  hiddenCardIds = [],
   onCardClick,
   onInspectCard,
   owner = 'player',
@@ -15,28 +17,33 @@ export default function BattlefieldZone({
   title,
   validTargets = [],
   zoneType = 'playerBattlefield',
-}) {
+}, ref) {
   const isHand = zoneType === 'playerHand';
   const isEnemy = owner === 'enemy';
-  const cardSize = size || (isHand ? 'hand' : 'battlefield');
+  const hiddenIds = new Set(hiddenCardIds);
+  const visibleCards = cards.filter((card) => {
+    const cardId = card.instanceId || card.userCardId || card.collectionId || card.battleId;
+    return !hiddenIds.has(cardId);
+  });
+  const cardSize = size || (isHand ? 'hand' : 'field');
 
   return (
-    <Box className={`battlefieldZone ${zoneType}`} sx={{ minWidth: 0 }}>
+    <Box className={`battlefieldZone ${zoneType}`} ref={ref} sx={{ minWidth: 0 }}>
       <Typography className="battlefieldZoneTitle" variant="overline">
         {title}
       </Typography>
-      {!cards.length ? (
+      {!visibleCards.length ? (
         <Box className="battlefieldEmptyState">
-          {isHand ? 'No cards in hand' : 'No creatures in play'}
+          {isHand ? 'No cards in hand.' : 'No creatures in play.'}
         </Box>
       ) : (
         <Box className={isHand ? 'battleHandFan' : 'battleCreatureRow'}>
           <AnimatePresence initial={false}>
-            {cards.map((card, index) => {
+            {visibleCards.map((card, index) => {
               const cardId = card.instanceId || card.userCardId || card.collectionId || card.battleId;
               const disabled = getCardDisabled ? getCardDisabled(card) : false;
               const isValidTarget = validTargets.includes(cardId);
-              const fanOffset = index - (cards.length - 1) / 2;
+              const fanOffset = index - (visibleCards.length - 1) / 2;
 
               return (
                 <Box
@@ -61,7 +68,7 @@ export default function BattlefieldZone({
                     compact
                     disabled={disabled}
                     exhausted={Boolean(card.hasAttacked || (!card.canAttack && !card.summonedThisTurn && zoneType !== 'playerHand'))}
-                    onClick={onCardClick ? () => onCardClick(card) : undefined}
+                    onClick={onCardClick ? (event) => onCardClick(card, event) : undefined}
                     onInspect={onInspectCard}
                     playable={isHand && !disabled}
                     ready={Boolean(card.canAttack && !card.hasAttacked)}
@@ -78,4 +85,6 @@ export default function BattlefieldZone({
       )}
     </Box>
   );
-}
+});
+
+export default BattlefieldZone;

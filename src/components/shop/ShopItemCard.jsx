@@ -139,11 +139,11 @@ export default function ShopItemCard({
         />
         {owned && isBinderCosmetic ? (
           <Button fullWidth onClick={onManageBinderCosmetics} startIcon={<AutoAwesomeIcon />} variant="outlined" sx={{ minHeight: 42, whiteSpace: 'normal' }}>
-            Customize Binder
+            Customize binder
           </Button>
         ) : owned && isDisplayCase ? (
           <Button disabled fullWidth startIcon={<AutoAwesomeIcon />} variant="outlined" sx={{ minHeight: 42, whiteSpace: 'normal' }}>
-            Purchased
+            Owned
           </Button>
         ) : owned ? (
           <Button fullWidth disabled={equipped} onClick={() => onEquip(item)} startIcon={<AutoAwesomeIcon />} variant={equipped ? 'outlined' : 'contained'} sx={{ minHeight: 42, whiteSpace: 'normal' }}>
@@ -151,7 +151,7 @@ export default function ShopItemCard({
           </Button>
         ) : (
           <Button fullWidth disabled={!canAfford} onClick={() => onBuy(item)} startIcon={<AutoAwesomeIcon />} variant={canAfford ? 'contained' : 'outlined'} sx={{ minHeight: 42, whiteSpace: 'normal' }}>
-            {canAfford ? 'Buy' : `Need ${missingShards.toLocaleString()} more shards`}
+            {canAfford ? 'Buy' : `Need ${missingShards.toLocaleString()} more Pack Shards`}
           </Button>
         )}
       </CardContent>

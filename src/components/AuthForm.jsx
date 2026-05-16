@@ -58,13 +58,13 @@ export default function AuthForm({ mode = 'login' }) {
         <CardContent sx={{ display: 'grid', gap: 2.25, p: { xs: 3, md: 4 } }}>
           <Box>
             <Typography color="warning.main" fontWeight={900} gutterBottom>
-              {isSignup ? 'Create Account' : 'Welcome Back'}
+              {isSignup ? 'Create account' : 'Welcome back'}
             </Typography>
             <Typography variant="h3" sx={{ fontSize: { xs: 34, md: 42 } }}>
               {isSignup ? 'Sign up' : 'Log in'}
             </Typography>
             <Typography color="text.secondary" sx={{ mt: 1 }}>
-              Use a username and password. No email address needed.
+              Use a username and password. No email address is needed.
             </Typography>
           </Box>
 
@@ -104,7 +104,7 @@ export default function AuthForm({ mode = 'login' }) {
               type="submit"
               variant="contained"
             >
-              {isSubmitting ? 'Working...' : isSignup ? 'Create Account' : 'Log In'}
+              {isSubmitting ? 'Please wait...' : isSignup ? 'Create account' : 'Log in'}
             </Button>
           </Box>
 

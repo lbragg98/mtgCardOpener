@@ -51,7 +51,7 @@ export default function TradeNew() {
         setMyCards(mine);
         setFriendCards(theirs);
       } catch (loadError) {
-        setError(loadError.message || 'Unable to prepare trade.');
+        setError(loadError.message || 'This trade could not be prepared. Please try again.');
       } finally {
         setIsLoading(false);
       }
@@ -66,10 +66,10 @@ export default function TradeNew() {
     try {
       setIsSending(true);
       const trade = await createTrade(friendId, offeredCardIds, requestedCardIds, message);
-      setSnackbar({ message: 'Trade sent.', severity: 'success' });
+      setSnackbar({ message: 'Trade request sent.', severity: 'success' });
       navigate(`/trades/${trade.id}`);
     } catch (sendError) {
-      setSnackbar({ message: sendError.message || 'Unable to send trade.', severity: 'error' });
+      setSnackbar({ message: sendError.message || 'Trade request could not be sent. Please try again.', severity: 'error' });
     } finally {
       setIsSending(false);
     }
@@ -78,14 +78,14 @@ export default function TradeNew() {
   return (
     <TradeSkinSurface>
       <Button component={Link} startIcon={<ArrowBackIcon />} to="/friends" variant="outlined" sx={{ mb: 3 }}>
-        Back to Friends
+        Back to friends
       </Button>
-      <PageHeader eyebrow="New Trade" title={friend ? `Trade with ${friend.display_name}` : 'New Trade'}>
+      <PageHeader eyebrow="New trade" title={friend ? `Trade with ${friend.display_name}` : 'New trade'}>
         Choose cards to offer, request cards from your friend, then send a trade proposal.
       </PageHeader>
 
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
-      {isLoading && <Alert severity="info">Loading collections...</Alert>}
+      {isLoading && <Alert severity="info">Loading both collections...</Alert>}
 
       {!isLoading && !error && (
         <Box sx={{ display: 'grid', gap: 3 }}>
@@ -95,23 +95,23 @@ export default function TradeNew() {
               emptyText="Your cloud collection has no matching cards."
               selectedIds={offeredCardIds}
               setSelectedIds={setOfferedCardIds}
-              title="My Collection"
+              title="Your collection"
             />
             <TradeCardPicker
               cards={friendCards}
               emptyText="Your friend's visible collection has no matching cards."
               selectedIds={requestedCardIds}
               setSelectedIds={setRequestedCardIds}
-              title={`${friend?.display_name || 'Friend'}'s Collection`}
+              title={`${friend?.display_name || 'Friend'}'s collection`}
             />
           </Box>
 
           <Card className="tradePreviewPanel" sx={{ borderColor: 'var(--trade-border)' }}>
             <CardContent sx={{ display: 'grid', gap: 2 }}>
-              <Typography variant="h5">Trade Preview</Typography>
+              <Typography variant="h5">Trade preview</Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                <TradeValueSummary cards={offeredCards} label="I give" />
-                <TradeValueSummary cards={requestedCards} label="I receive" />
+                <TradeValueSummary cards={offeredCards} label="You give" />
+                <TradeValueSummary cards={requestedCards} label="You receive" />
               </Box>
               <TextField
                 fullWidth
@@ -128,7 +128,7 @@ export default function TradeNew() {
                 startIcon={<SendIcon />}
                 variant="contained"
               >
-                {isSending ? 'Sending...' : 'Send Trade Request'}
+                {isSending ? 'Sending request...' : 'Send trade request'}
               </Button>
             </CardContent>
           </Card>

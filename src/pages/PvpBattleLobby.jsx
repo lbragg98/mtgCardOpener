@@ -59,7 +59,7 @@ function getFriendProfile(friendship) {
 
 function getDeckLabel(deck) {
   const count = Array.isArray(deck.cards) ? deck.cards.length : 0;
-  return `${deck.name || 'Battle Deck'} (${count}/20, ${deck.visibility || 'private'})`;
+  return `${deck.name || 'Battle deck'} (${count}/20, ${deck.visibility || 'private'})`;
 }
 
 function getDeckSelectValue(decks, selectedId) {
@@ -67,7 +67,7 @@ function getDeckSelectValue(decks, selectedId) {
   return decks[0]?.id || '';
 }
 
-function DeckPreview({ deck, title = 'Deck Preview' }) {
+function DeckPreview({ deck, title = 'Deck preview' }) {
   const cards = Array.isArray(deck?.cards) ? deck.cards : [];
   const colorAnalysis = analyzeDeckColors(cards);
   const strategy = getDeckStrategy(cards);
@@ -87,7 +87,7 @@ function DeckPreview({ deck, title = 'Deck Preview' }) {
         <Stack direction="row" justifyContent="space-between" gap={1} sx={{ alignItems: 'start' }}>
           <Box sx={{ minWidth: 0 }}>
             <Typography color="text.secondary" variant="caption">{title}</Typography>
-            <Typography fontWeight={950} noWrap>{deck.name || 'Battle Deck'}</Typography>
+            <Typography fontWeight={950} noWrap>{deck.name || 'Battle deck'}</Typography>
           </Box>
           <Chip label={deck.visibility || 'shared'} size="small" variant="outlined" />
         </Stack>
@@ -110,7 +110,7 @@ function EmptyAction({ children, to }) {
     <Alert
       action={to ? (
         <Button color="inherit" component={Link} size="small" to={to}>
-          Build Deck
+          Build deck
         </Button>
       ) : null}
       severity="info"
@@ -176,7 +176,7 @@ export default function PvpBattleLobby() {
       setOutgoingChallenges(outgoingResult);
       setActiveMatches(matchesResult);
     } catch (loadError) {
-      setError(loadError.message || 'Unable to load friend battles.');
+      setError(loadError.message || 'Friend battles could not be loaded. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -215,7 +215,7 @@ export default function PvpBattleLobby() {
       }));
     } catch (deckError) {
       setAiDialog((current) => ({ ...current, isLoadingDecks: false }));
-      setSnackbar(deckError.message || 'Unable to load friend-visible decks.');
+      setSnackbar(deckError.message || "Friend-visible decks could not be loaded. Please try again.");
     }
   }
 
@@ -230,7 +230,7 @@ export default function PvpBattleLobby() {
       setSnackbar('Battle challenge sent.');
       await refreshLobby();
     } catch (sendError) {
-      setSnackbar(sendError.message || 'Unable to send battle challenge.');
+      setSnackbar(sendError.message || 'Battle challenge could not be sent. Please try again.');
     } finally {
       setIsBusy(false);
     }
@@ -253,7 +253,7 @@ export default function PvpBattleLobby() {
       });
       navigate(`/battle/pvp/${match.id}`);
     } catch (aiError) {
-      setSnackbar(aiError.message || 'Unable to start AI friend-deck battle.');
+      setSnackbar(aiError.message || 'AI friend-deck battle could not be started. Please try again.');
     } finally {
       setIsBusy(false);
     }
@@ -273,7 +273,7 @@ export default function PvpBattleLobby() {
       await refreshLobby();
       navigate(`/battle/pvp/${result.match.id}`);
     } catch (acceptError) {
-      setSnackbar(acceptError.message || 'Unable to accept battle challenge.');
+      setSnackbar(acceptError.message || 'Battle challenge could not be accepted. Please try again.');
     } finally {
       setIsBusy(false);
     }
@@ -286,7 +286,7 @@ export default function PvpBattleLobby() {
       setSnackbar('Battle challenge declined.');
       await refreshLobby();
     } catch (declineError) {
-      setSnackbar(declineError.message || 'Unable to decline challenge.');
+      setSnackbar(declineError.message || 'Battle challenge could not be declined. Please try again.');
     } finally {
       setIsBusy(false);
     }
@@ -299,13 +299,13 @@ export default function PvpBattleLobby() {
       setSnackbar('Battle challenge cancelled.');
       await refreshLobby();
     } catch (cancelError) {
-      setSnackbar(cancelError.message || 'Unable to cancel challenge.');
+      setSnackbar(cancelError.message || 'That challenge could not be cancelled. Please try again.');
     } finally {
       setIsBusy(false);
     }
   }
 
-  function renderDeckSelect(value, onChange, label = 'My Deck') {
+  function renderDeckSelect(value, onChange, label = 'My deck') {
     return (
       <FormControl fullWidth disabled={!myDecks.length}>
         <InputLabel>{label}</InputLabel>
@@ -324,14 +324,14 @@ export default function PvpBattleLobby() {
   return (
     <Box>
       <Button component={Link} startIcon={<ArrowBackIcon />} to="/battle" variant="outlined" sx={{ mb: 3 }}>
-        Back to Battle
+        Back to battle
       </Button>
-      <PageHeader eyebrow="Binder Battle" title="Friend Battles">
+      <PageHeader eyebrow="Binder Battle" title="Friend battles">
         Challenge friends live or battle an AI using a friend-visible deck.
       </PageHeader>
 
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
-      {isLoading && <Alert severity="info" sx={{ mb: 3 }}>Loading friend battle lobby...</Alert>}
+      {isLoading && <Alert severity="info" sx={{ mb: 3 }}>Loading friend battles...</Alert>}
       {!isLoading && !myDecks.length && (
         <Box sx={{ mb: 3 }}>
           <EmptyAction to="/battle/deck-builder">Build a deck first before sending or accepting battle challenges.</EmptyAction>
@@ -347,7 +347,7 @@ export default function PvpBattleLobby() {
             scrollButtons="auto"
             sx={{ borderBottom: 1, borderColor: 'divider', px: 1 }}
           >
-            <Tab icon={<GroupsIcon />} iconPosition="start" label="My Friends" value="friends" />
+            <Tab icon={<GroupsIcon />} iconPosition="start" label="My friends" value="friends" />
             <Tab icon={<SendIcon />} iconPosition="start" label={`Incoming (${incomingChallenges.length})`} value="incoming" />
             <Tab icon={<CancelIcon />} iconPosition="start" label={`Outgoing (${outgoingChallenges.length})`} value="outgoing" />
             <Tab icon={<SportsEsportsIcon />} iconPosition="start" label={`Active (${activeMatches.length})`} value="matches" />
@@ -379,10 +379,10 @@ export default function PvpBattleLobby() {
                     </Stack>
                     <Stack direction={{ xs: 'column', sm: 'row' }} gap={1}>
                       <Button disabled={!myDecks.length || isBusy} onClick={() => openLiveDialog(friendship)} startIcon={<SendIcon />} variant="contained">
-                        Challenge Live
+                        Challenge live
                       </Button>
                       <Button disabled={!myDecks.length || isBusy} onClick={() => openAIDialog(friendship)} startIcon={<ComputerIcon />} variant="outlined">
-                        Battle AI Deck
+                        Battle AI deck
                       </Button>
                     </Stack>
                     <Chip color="info" label="Battle AI using friend's deck" size="small" variant="outlined" sx={{ justifySelf: 'start' }} />
@@ -406,13 +406,13 @@ export default function PvpBattleLobby() {
                   <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" gap={1.5}>
                     <Box>
                       <Typography fontWeight={950}>{getProfileName(challenger)}</Typography>
-                      <Typography color="text.secondary" variant="body2">{challenge.message || 'No message.'}</Typography>
+                      <Typography color="text.secondary" variant="body2">{challenge.message || 'No message included.'}</Typography>
                     </Box>
-                    <Chip label={challenge.mode === 'ai_friend_deck' ? 'AI Friend Deck' : 'Live PvP'} />
+                    <Chip label={challenge.mode === 'ai_friend_deck' ? "AI using friend's deck" : 'Live PvP'} />
                   </Stack>
                   <Divider />
                   <Stack direction={{ xs: 'column', md: 'row' }} gap={1.25} sx={{ alignItems: { md: 'center' } }}>
-                    {renderDeckSelect(selectedDeckId, (value) => setAcceptDeckByChallenge((current) => ({ ...current, [challenge.id]: value })), 'Deck to Use')}
+                    {renderDeckSelect(selectedDeckId, (value) => setAcceptDeckByChallenge((current) => ({ ...current, [challenge.id]: value })), 'Deck to use')}
                     <Button disabled={!myDecks.length || isBusy} onClick={() => handleAcceptChallenge(challenge)} startIcon={<CheckCircleIcon />} variant="contained">
                       Accept
                     </Button>
@@ -471,7 +471,7 @@ export default function PvpBattleLobby() {
                       </Stack>
                     </Box>
                     <Button component={Link} startIcon={<PlayArrowIcon />} to={`/battle/pvp/${match.id}`} variant="contained">
-                      Resume Match
+                      Resume match
                     </Button>
                   </Stack>
                 </CardContent>
@@ -497,7 +497,7 @@ export default function PvpBattleLobby() {
         <DialogActions>
           <Button onClick={() => setLiveDialog({ friend: null, message: '', myDeckId: '' })}>Cancel</Button>
           <Button disabled={!myDecks.length || !liveDialog.myDeckId || isBusy} onClick={handleSendLiveChallenge} startIcon={<SendIcon />} variant="contained">
-            Send Challenge
+            Send challenge
           </Button>
         </DialogActions>
       </Dialog>
@@ -505,16 +505,16 @@ export default function PvpBattleLobby() {
       <Dialog fullWidth maxWidth="sm" onClose={() => setAiDialog((current) => ({ ...current, friend: null }))} open={Boolean(aiDialog.friend)}>
         <DialogTitle>
           <Stack direction="row" gap={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
-            Battle AI Deck: {getProfileName(getFriendProfile(aiDialog.friend))}
+            Battle AI deck: {getProfileName(getFriendProfile(aiDialog.friend))}
             <Chip color="info" label="Battle AI using friend's deck" size="small" />
           </Stack>
         </DialogTitle>
         <DialogContent sx={{ display: 'grid', gap: 2, pt: 1 }}>
           {renderDeckSelect(aiDialog.myDeckId, (value) => setAiDialog((current) => ({ ...current, myDeckId: value })))}
           <FormControl fullWidth disabled={aiDialog.isLoadingDecks || !aiDialog.friendDecks.length}>
-            <InputLabel>Friend Deck</InputLabel>
+            <InputLabel>Friend deck</InputLabel>
             <Select
-              label="Friend Deck"
+              label="Friend deck"
               onChange={(event) => setAiDialog((current) => ({ ...current, friendDeckId: event.target.value }))}
               value={aiDialog.friendDeckId}
             >
@@ -533,7 +533,7 @@ export default function PvpBattleLobby() {
             </FormHelperText>
           </FormControl>
           <Box>
-            <Typography color="text.secondary" fontWeight={800} sx={{ mb: 1 }} variant="body2">AI Difficulty</Typography>
+            <Typography color="text.secondary" fontWeight={800} sx={{ mb: 1 }} variant="body2">AI difficulty</Typography>
             <Stack direction="row" gap={1} sx={{ flexWrap: 'wrap' }}>
               {['easy', 'normal', 'hard'].map((difficulty) => (
                 <Chip
@@ -546,7 +546,7 @@ export default function PvpBattleLobby() {
               ))}
             </Stack>
           </Box>
-          <DeckPreview deck={selectedFriendDeck} title="Friend Deck Preview" />
+          <DeckPreview deck={selectedFriendDeck} title="Friend deck preview" />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setAiDialog((current) => ({ ...current, friend: null }))}>Cancel</Button>
@@ -556,7 +556,7 @@ export default function PvpBattleLobby() {
             startIcon={<PlayArrowIcon />}
             variant="contained"
           >
-            Start Battle vs AI
+            Start battle vs AI
           </Button>
         </DialogActions>
       </Dialog>

@@ -83,7 +83,7 @@ export default function Collection() {
       setCollectionError('');
       setCollection(user ? await getMyCards() : getCollection());
     } catch (error) {
-      setCollectionError(error.message || 'Unable to load your collection.');
+      setCollectionError(error.message || 'Your collection could not be loaded. Please try again.');
     } finally {
       setIsLoadingCollection(false);
     }
@@ -189,7 +189,7 @@ export default function Collection() {
   function requestRecycle(card) {
     if (isOneOfOneRing(card)) {
       setRecycleSeverity('warning');
-      setRecycleMessage('One-of-One cards are protected and cannot be recycled by default.');
+      setRecycleMessage('One-of-One cards are protected and cannot be recycled here.');
       return;
     }
 
@@ -222,10 +222,10 @@ export default function Collection() {
       setSelectedCard((card) => (card?.collectionId === cardToRecycle.collectionId ? null : card));
       setCardToRecycle(null);
       setRecycleSeverity('success');
-      setRecycleMessage(`Card recycled for ${result.shardsAwarded.toLocaleString()} Pack Shards.`);
+      setRecycleMessage(`${cardToRecycle.name} was recycled for ${result.shardsAwarded.toLocaleString()} Pack Shards.`);
     } catch (error) {
       setRecycleSeverity('error');
-      setRecycleMessage(error.message || 'Unable to recycle that card.');
+      setRecycleMessage(error.message || 'That card could not be recycled. Please try again.');
     } finally {
       setIsRecycling(false);
     }
@@ -248,12 +248,12 @@ export default function Collection() {
       setRecycleSeverity(result.failedCount > 0 ? 'warning' : 'success');
       setRecycleMessage(
         result.failedCount > 0
-          ? `Updated ${result.updatedCount} cards. ${result.failedCount} could not be refreshed.`
+          ? `Updated ${result.updatedCount} card prices. ${result.failedCount} could not be refreshed.`
           : `Updated prices for ${result.updatedCount} cards.`,
       );
     } catch (error) {
       setRecycleSeverity('error');
-      setRecycleMessage(error.message || 'Unable to refresh prices right now.');
+      setRecycleMessage(error.message || 'Prices could not be refreshed right now. Please try again later.');
     } finally {
       setIsRefreshingPrices(false);
     }
@@ -279,7 +279,7 @@ export default function Collection() {
       setRecycleMessage(`Synced ${syncedCollection.length.toLocaleString()} cards from Supabase.`);
     } catch (error) {
       setRecycleSeverity('error');
-      setRecycleMessage(error.message || 'Unable to sync your Supabase collection.');
+      setRecycleMessage(error.message || 'Your Supabase collection could not be synced. Please try again.');
     } finally {
       setIsSyncingCollection(false);
     }
@@ -289,8 +289,8 @@ export default function Collection() {
     <Box>
       <PageHeader eyebrow="Collection" title="Your saved cards">
         {user
-          ? 'Cards are saved to your Supabase cloud collection after a full pack reveal.'
-          : 'Cards are saved locally after a full pack reveal. Duplicate copies are tracked separately.'}
+          ? 'Your revealed cards are saved to your Supabase cloud collection.'
+          : 'Your revealed cards are saved in this browser. Duplicate copies are tracked separately.'}
       </PageHeader>
 
       {collectionError && (
@@ -330,7 +330,7 @@ export default function Collection() {
             startIcon={<RefreshIcon />}
             variant="contained"
           >
-            {isSyncingCollection ? 'Syncing...' : 'Sync Supabase'}
+            {isSyncingCollection ? 'Syncing collection...' : 'Refresh from Supabase'}
           </Button>
         )}
         <Button
@@ -355,7 +355,7 @@ export default function Collection() {
       </Box>
 
       <Alert severity="info" sx={{ mb: 3 }} variant="outlined">
-        Recycle rewards now scale by rarity, foil treatment, and collector-exclusive status.
+        Recycling rewards now scale by rarity, foil treatment, and collector-exclusive status.
       </Alert>
 
       <Box
@@ -479,10 +479,10 @@ export default function Collection() {
           <CardContent>
             <StyleIcon color="warning" sx={{ fontSize: 48, mb: 2 }} />
             <Typography variant="h4" gutterBottom>
-              Your collection is empty
+              No cards yet
             </Typography>
             <Typography color="text.secondary" sx={{ mx: 'auto', mb: 3, maxWidth: 520 }}>
-              Open a pack all the way through and the cards will be saved here automatically.
+              Open a pack to start your collection. Cards save here after the full reveal.
             </Typography>
             <Button component={Link} to="/sets" variant="contained">
               Open Packs
@@ -492,7 +492,7 @@ export default function Collection() {
       )}
 
       {!isLoadingCollection && collection.length > 0 && filteredCollection.length === 0 && (
-        <Alert severity="info">No cards match those filters.</Alert>
+        <Alert severity="info">No cards match those filters. Try clearing a filter or searching another name.</Alert>
       )}
 
       {!isLoadingCollection && filteredCollection.length > 0 && (
@@ -548,7 +548,7 @@ export default function Collection() {
                   {card.rarity} - {card.set?.toUpperCase()} #{card.collector_number}
                 </Typography>
                 <Typography color={getCardPrice(card) ? 'warning.main' : 'text.secondary'} fontWeight={900} sx={{ mt: 0.5 }}>
-                  {getCardPrice(card) ? getCardPriceLabel(card) : 'No price'}
+                  {getCardPrice(card) ? getCardPriceLabel(card) : 'No price available'}
                 </Typography>
                 {card.isFoil && (
                   <Chip

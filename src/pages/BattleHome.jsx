@@ -63,20 +63,20 @@ export default function BattleHome() {
         >
           <Stack direction={{ xs: 'column', sm: 'row' }} gap={1.5}>
             <Button component={Link} startIcon={<StyleIcon />} to="/battle/deck-builder" variant="contained">
-              Build Deck
+              Build deck
             </Button>
             <Button component={Link} disabled={!hasDeck} startIcon={<PlayArrowIcon />} to="/battle/play" variant="outlined">
-              Continue Saved Deck
+              Continue saved deck
             </Button>
             <Button component={Link} startIcon={<GroupsIcon />} to="/battle/pvp" variant="outlined">
-              Friend Battles
+              Friend battles
             </Button>
             <Button onClick={() => setSettingsOpen(true)} startIcon={<SettingsIcon />} variant="outlined">
               Settings
             </Button>
           </Stack>
           <Stack direction="row" gap={1} sx={{ flexWrap: 'wrap' }}>
-            <Chip color="warning" label={hasDeck ? 'Deck ready' : 'No saved deck'} variant="outlined" />
+            <Chip color="warning" label={hasDeck ? 'Deck ready' : 'No deck saved yet'} variant="outlined" />
             <Chip label={`${savedDeck.length}/20 cards saved`} variant="outlined" />
             <Chip label={`${settings.difficulty} difficulty`} variant="outlined" />
             <Chip label={`${settings.animationSpeed} speed`} variant="outlined" />
@@ -104,7 +104,7 @@ export default function BattleHome() {
       </Grid>
 
       <Dialog fullWidth maxWidth="sm" onClose={() => setSettingsOpen(false)} open={settingsOpen}>
-        <DialogTitle>Battle Settings</DialogTitle>
+        <DialogTitle>Battle settings</DialogTitle>
         <DialogContent sx={{ display: 'grid', gap: 2, pt: 1 }}>
           <FormControl fullWidth>
             <InputLabel>Difficulty</InputLabel>
@@ -115,8 +115,8 @@ export default function BattleHome() {
             </Select>
           </FormControl>
           <FormControl fullWidth>
-            <InputLabel>Animation Speed</InputLabel>
-            <Select label="Animation Speed" onChange={(event) => updateSetting('animationSpeed', event.target.value)} value={settings.animationSpeed}>
+            <InputLabel>Animation speed</InputLabel>
+            <Select label="Animation speed" onChange={(event) => updateSetting('animationSpeed', event.target.value)} value={settings.animationSpeed}>
               <MenuItem value="slow">Slow</MenuItem>
               <MenuItem value="normal">Normal</MenuItem>
               <MenuItem value="fast">Fast</MenuItem>
@@ -137,7 +137,7 @@ export default function BattleHome() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setSettingsOpen(false)}>Cancel</Button>
-          <Button onClick={handleSaveSettings} variant="contained">Save Settings</Button>
+          <Button onClick={handleSaveSettings} variant="contained">Save settings</Button>
         </DialogActions>
       </Dialog>
     </Box>

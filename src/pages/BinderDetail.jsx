@@ -170,7 +170,7 @@ export default function BinderDetail() {
         }
       } catch (error) {
         if (isMounted) {
-          setSnackbar({ message: error.message || 'Unable to load binder.', severity: 'error' });
+          setSnackbar({ message: error.message || 'This binder could not be loaded. Please try again.', severity: 'error' });
           setOwnedBinder(null);
         }
       } finally {
@@ -253,7 +253,7 @@ export default function BinderDetail() {
         setOwnedBinder(updatedBinder);
       }
 
-      setSnackbar({ message: `Removed card from ${binder.name}.`, severity: 'success' });
+      setSnackbar({ message: `Removed the card from ${binder.name}. It is still in your collection.`, severity: 'success' });
     } catch (error) {
       setSnackbar({ message: error.message, severity: 'error' });
     }
@@ -282,9 +282,9 @@ export default function BinderDetail() {
       }
 
       setIsCustomizeOpen(false);
-      setSnackbar({ message: 'Binder cosmetics updated.', severity: 'success' });
+      setSnackbar({ message: 'Binder look updated.', severity: 'success' });
     } catch (error) {
-      setSnackbar({ message: error.message || 'Unable to update binder cosmetics.', severity: 'error' });
+      setSnackbar({ message: error.message || 'Binder cosmetics could not be updated. Please try again.', severity: 'error' });
     }
   }
 
@@ -292,7 +292,7 @@ export default function BinderDetail() {
     return (
       <Card>
         <CardContent sx={{ py: 7, textAlign: 'center' }}>
-          <Typography color="text.secondary">Loading binder...</Typography>
+          <Typography color="text.secondary">Opening binder...</Typography>
         </CardContent>
       </Card>
     );
@@ -304,7 +304,7 @@ export default function BinderDetail() {
         <CardContent sx={{ display: 'grid', gap: 2, justifyItems: 'center', py: 7, textAlign: 'center' }}>
           <CollectionsBookmarkIcon color="warning" sx={{ fontSize: 58 }} />
           <Typography variant="h4">Binder not found</Typography>
-          <Typography color="text.secondary">This binder may not exist or may not be owned yet.</Typography>
+          <Typography color="text.secondary">This binder may not exist, or it may not belong to this account.</Typography>
           <Button onClick={() => navigate('/binders')} variant="contained">
             Back to Binders
           </Button>
@@ -377,7 +377,7 @@ export default function BinderDetail() {
       >
         <Box className="binderSleevePocket">
           <CardSleeve sleeveId={sleeveId} size="small" />
-          <Typography sx={{ fontSize: 12, fontWeight: 900 }}>Slot {slotIndex + 1}</Typography>
+          <Typography sx={{ fontSize: 12, fontWeight: 900 }}>Empty slot {slotIndex + 1}</Typography>
         </Box>
       </Box>
     );
@@ -414,10 +414,10 @@ export default function BinderDetail() {
               <Typography color="text.secondary">{binder.description}</Typography>
               <Stack direction={{ xs: 'column', sm: 'row' }} gap={1.5}>
                 <Button disabled={emptySlots <= 0} onClick={() => setIsAddDialogOpen(true)} startIcon={<AddIcon />} variant="contained">
-                  Add Cards
+                  Add cards
                 </Button>
                 <Button onClick={openCustomizeBinder} variant="contained">
-                  Customize Binder
+                  Customize binder
                 </Button>
                 <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/binders')} variant="outlined">
                   Back to Binders
@@ -559,7 +559,7 @@ export default function BinderDetail() {
       />
 
       <Dialog maxWidth="sm" fullWidth onClose={() => setIsCustomizeOpen(false)} open={isCustomizeOpen}>
-        <DialogTitle>Customize Binder</DialogTitle>
+        <DialogTitle>Customize binder</DialogTitle>
         <DialogContent sx={{ display: 'grid', gap: 2, pt: 1 }}>
           {ownedBinderCosmetics.length === 0 && (
             <Alert severity="info" variant="outlined">
@@ -599,7 +599,7 @@ export default function BinderDetail() {
             Cancel
           </Button>
           <Button disabled={!customizingCosmetics} onClick={handleSaveBinderCosmetics} variant="contained">
-            Save Cosmetics
+            Save look
           </Button>
         </DialogActions>
       </Dialog>

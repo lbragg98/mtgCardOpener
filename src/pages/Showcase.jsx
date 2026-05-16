@@ -32,7 +32,7 @@ export default function Showcase() {
       setDisplayCases(cases);
       setCollection(cards);
     } catch (loadError) {
-      setError(loadError.message || 'Unable to load showcase.');
+      setError(loadError.message || 'Your display cases could not be loaded. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -55,9 +55,9 @@ export default function Showcase() {
       await addCardsToDisplayCase(caseToAddCards.displayCaseInstanceId, userCardIds);
       setCaseToAddCards(null);
       await loadShowcase();
-      setSnackbar({ message: `Added ${userCardIds.length} card${userCardIds.length === 1 ? '' : 's'} to display case.`, severity: 'success' });
+      setSnackbar({ message: `Added ${userCardIds.length} card${userCardIds.length === 1 ? '' : 's'} to the display case.`, severity: 'success' });
     } catch (addError) {
-      setSnackbar({ message: addError.message || 'Unable to add cards.', severity: 'error' });
+      setSnackbar({ message: addError.message || 'Those cards could not be added. Please try again.', severity: 'error' });
     }
   }
 
@@ -65,20 +65,20 @@ export default function Showcase() {
     try {
       await removeCardFromDisplayCase(displayCase.displayCaseInstanceId, card.userCardId || card.collectionId);
       await loadShowcase();
-      setSnackbar({ message: 'Card removed from display case. It remains in your collection.', severity: 'success' });
+      setSnackbar({ message: 'Removed the card from the display case. It is still in your collection.', severity: 'success' });
     } catch (removeError) {
-      setSnackbar({ message: removeError.message || 'Unable to remove card.', severity: 'error' });
+      setSnackbar({ message: removeError.message || 'That card could not be removed. Please try again.', severity: 'error' });
     }
   }
 
   return (
     <Box>
       <PageHeader eyebrow="Showcase" title="Display Cases">
-        Place favorite cards from your cloud collection into purchased display cases.
+        Place favorite cards from your cloud collection into display cases you own.
       </PageHeader>
 
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
-      {isLoading && <Alert severity="info">Loading showcase...</Alert>}
+      {isLoading && <Alert severity="info">Loading your showcase...</Alert>}
 
       {!isLoading && displayCases.length === 0 && (
         <Card>
@@ -89,7 +89,7 @@ export default function Showcase() {
               Buy a display case in the Shop, then return here to add your favorite collection cards.
             </Typography>
             <Button onClick={() => navigate('/shop')} startIcon={<StorefrontIcon />} variant="contained">
-              Go to Shop
+              Go to shop
             </Button>
           </CardContent>
         </Card>

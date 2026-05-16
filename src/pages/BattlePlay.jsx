@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import BattleBoard from '../components/battle/BattleBoard.jsx';
 import BattleCardInspectionDialog from '../components/battle/BattleCardInspectionDialog.jsx';
+import FloatingBattleCardAnimation from '../components/battle/FloatingBattleCardAnimation.jsx';
 import TargetPickerDialog from '../components/battle/TargetPickerDialog.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 import {
@@ -97,6 +98,7 @@ export default function BattlePlay() {
   const [isLoadingEnemyDeck, setIsLoadingEnemyDeck] = useState(savedDeck.length === 20);
   const [inspectedCard, setInspectedCard] = useState(null);
   const [animationEvents, setAnimationEvents] = useState([]);
+  const [pendingPlayAnimation, setPendingPlayAnimation] = useState(null);
   const [targetPicker, setTargetPicker] = useState(null);
   const [resultReward, setResultReward] = useState(null);
   const [snackbar, setSnackbar] = useState('');
@@ -134,6 +136,55 @@ export default function BattlePlay() {
       targetId: target?.creatureId || target?.playerId,
       targetZone: target?.playerId === 'enemy' || target?.type === 'player' ? 'enemy' : 'center',
     });
+  }
+
+  function getCardDomId(card) {
+    return card?.instanceId || card?.userCardId || card?.collectionId || card?.battleId;
+  }
+
+  function getFallbackFromRect() {
+    const width = isMobile ? 126 : 150;
+    return {
+      height: width * 1.4,
+      left: window.innerWidth / 2 - width / 2,
+      top: window.innerHeight - width * 1.75,
+      width,
+    };
+  }
+
+  function getPlayTargetRect(card) {
+    const isCreature = card?.type === 'creature';
+    const width = isCreature ? (isMobile ? 104 : 125) : (isMobile ? 150 : 180);
+    return {
+      height: width * 1.4,
+      left: window.innerWidth / 2 - width / 2,
+      top: isCreature ? window.innerHeight * (isMobile ? 0.46 : 0.58) : window.innerHeight * 0.42,
+      width,
+    };
+  }
+
+  function stagePlayCard(card, { fromRect, target, toRect } = {}) {
+    setPendingPlayAnimation({
+      actionType: card?.type === 'creature' ? 'playCreature' : 'castSpell',
+      card,
+      fromRect: fromRect || getFallbackFromRect(),
+      target,
+      toRect: toRect || getPlayTargetRect(card),
+    });
+  }
+
+  function completePendingPlayAnimation() {
+    const pending = pendingPlayAnimation;
+    if (!pending) return;
+
+    setBattleState((currentState) => {
+      if (!currentState || currentState.activePlayer !== 'player' || currentState.status !== 'playing') {
+        return currentState;
+      }
+
+      return playCard(currentState, 'player', pending.card.instanceId, pending.target);
+    });
+    setPendingPlayAnimation(null);
   }
 
   useEffect(() => {
@@ -221,8 +272,8 @@ export default function BattlePlay() {
     };
   }, [battleState, resultReward, savedDeck]);
 
-  function handlePlayCard(card) {
-    if (!battleState || battleState.activePlayer !== 'player' || battleState.status !== 'playing') return;
+  function handlePlayCard(card, event, animationTarget = {}) {
+    if (pendingPlayAnimation || !battleState || battleState.activePlayer !== 'player' || battleState.status !== 'playing') return;
 
     if ((card.cost || 0) > battleState.player.mana) {
       setSnackbar('Not enough mana.');
@@ -232,25 +283,26 @@ export default function BattlePlay() {
     if (needsTarget(card)) {
       const targets = getTargetOptions(battleState, 'player', card, 'play');
       if (!targets.length) {
-        setSnackbar('No valid targets for that card.');
+        setSnackbar('That card has no valid targets right now.');
         return;
       }
 
       setTargetPicker({
         actionLabel: `Choose target for ${card.name}`,
         card,
+        fromRect: event?.currentTarget?.getBoundingClientRect?.(),
         mode: 'play',
+        toRect: animationTarget.toRect,
         targets,
       });
       return;
     }
 
-    enqueueAnimation(createPlayEvent(card));
-    setBattleState((currentState) => playCard(currentState, 'player', card.instanceId));
+    stagePlayCard(card, { fromRect: event?.currentTarget?.getBoundingClientRect?.(), toRect: animationTarget.toRect });
   }
 
   function handleAttackCreature(creature) {
-    if (!battleState || battleState.activePlayer !== 'player' || battleState.status !== 'playing') return;
+    if (pendingPlayAnimation || !battleState || battleState.activePlayer !== 'player' || battleState.status !== 'playing') return;
 
     if (!creature.canAttack || creature.hasAttacked) {
       setSnackbar(`${creature.name} is exhausted.`);
@@ -278,19 +330,23 @@ export default function BattlePlay() {
 
     if (!picker) return;
 
+    if (picker.mode === 'play') {
+      stagePlayCard(picker.card, { fromRect: picker.fromRect, target, toRect: picker.toRect });
+      return;
+    }
+
     setBattleState((currentState) => {
       if (!currentState) return currentState;
       if (picker.mode === 'attack') {
         enqueueAnimation(createAttackEvent(picker.card, target));
         return attackWithCreature(currentState, 'player', picker.card.instanceId, target);
       }
-
-      enqueueAnimation(createPlayEvent(picker.card, { target }));
-      return playCard(currentState, 'player', picker.card.instanceId, target);
+      return currentState;
     });
   }
 
   function handleEndTurn() {
+    if (pendingPlayAnimation) return;
     setTargetPicker(null);
     enqueueAnimation(createBattleAnimationEvent('enemyTurn', {
       amount: 1,
@@ -363,7 +419,7 @@ export default function BattlePlay() {
     return (
       <Box>
         <Button component={Link} startIcon={<ArrowBackIcon />} to="/battle" variant="outlined" sx={{ mb: 3 }}>
-          Back to Battle
+          Back to battle
         </Button>
         <Alert severity={savedDeck.length === 20 && isLoadingEnemyDeck ? 'info' : 'warning'} variant="outlined">
           {savedDeck.length === 20 && isLoadingEnemyDeck
@@ -377,9 +433,9 @@ export default function BattlePlay() {
   return (
     <Box>
       <Button component={Link} startIcon={<ArrowBackIcon />} to="/battle" variant="outlined" sx={{ mb: 3 }}>
-        Back to Battle
+        Back to battle
       </Button>
-      <PageHeader eyebrow="Binder Battle" title="Battle Play">
+      <PageHeader eyebrow="Binder Battle" title="Battle play">
         Play a full simplified battle using your saved 20-card deck.
       </PageHeader>
 
@@ -396,7 +452,7 @@ export default function BattlePlay() {
             <Stack direction="row" gap={1} sx={{ flexWrap: 'wrap' }}>
               <Card variant="outlined" sx={{ flex: '1 1 160px', bgcolor: 'rgba(255,255,255,0.025)' }}>
                 <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-                  <Typography color="text.secondary" variant="caption">Shards Earned</Typography>
+                  <Typography color="text.secondary" variant="caption">Pack Shards earned</Typography>
                   <Typography fontWeight={950} variant="h5">{resultReward?.amount ?? 0}</Typography>
                   {resultReward?.capped && (
                     <Typography color="warning.main" variant="caption">Daily reward cap reached</Typography>
@@ -405,13 +461,13 @@ export default function BattlePlay() {
               </Card>
               <Card variant="outlined" sx={{ flex: '1 1 160px', bgcolor: 'rgba(255,255,255,0.025)' }}>
                 <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-                  <Typography color="text.secondary" variant="caption">Damage Dealt</Typography>
+                  <Typography color="text.secondary" variant="caption">Damage dealt</Typography>
                   <Typography fontWeight={950} variant="h5">{resultReward?.damageDealt ?? 0}</Typography>
                 </CardContent>
               </Card>
               <Card variant="outlined" sx={{ flex: '1 1 160px', bgcolor: 'rgba(255,255,255,0.025)' }}>
                 <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-                  <Typography color="text.secondary" variant="caption">Turns Taken</Typography>
+                  <Typography color="text.secondary" variant="caption">Turns taken</Typography>
                   <Typography fontWeight={950} variant="h5">{resultReward?.turnsTaken ?? battleState.turnNumber}</Typography>
                 </CardContent>
               </Card>
@@ -435,17 +491,17 @@ export default function BattlePlay() {
               </Box>
             )}
             <Typography color="text.secondary" variant="body2">
-              Daily rewards: {resultReward?.dailyStatusAfterReward?.rewardsEarned ?? getBattleRewardStatus().rewardsEarned}/{getBattleRewardStatus().limit}
+              Daily reward battles: {resultReward?.dailyStatusAfterReward?.rewardsEarned ?? getBattleRewardStatus().rewardsEarned}/{getBattleRewardStatus().limit}
             </Typography>
             <Stack direction={{ xs: 'column', sm: 'row' }} gap={1.5}>
               <Button onClick={handleBattleAgain} variant="contained">
-                Battle Again
+                Battle again
               </Button>
               <Button component={Link} to="/battle" variant="outlined">
-                Back to Battle Home
+                Back to battle home
               </Button>
               <Button component={Link} to="/battle/deck-builder" variant="outlined">
-                Edit Deck
+                Edit deck
               </Button>
             </Stack>
           </CardContent>
@@ -457,6 +513,8 @@ export default function BattlePlay() {
         animationEvents={animationEvents}
         animationSpeed={animationSpeed}
         enemy={battleState.enemy}
+        hiddenCardIds={pendingPlayAnimation?.card ? [getCardDomId(pendingPlayAnimation.card)] : []}
+        interactionDisabled={Boolean(pendingPlayAnimation)}
         log={battleState.log}
         onAttackCreature={handleAttackCreature}
         onEndTurn={handleEndTurn}
@@ -469,6 +527,16 @@ export default function BattlePlay() {
         status={battleState.status}
         turnNumber={battleState.turnNumber}
       />
+
+      {pendingPlayAnimation && (
+        <FloatingBattleCardAnimation
+          actionType={pendingPlayAnimation.actionType}
+          card={pendingPlayAnimation.card}
+          fromRect={pendingPlayAnimation.fromRect}
+          onComplete={completePendingPlayAnimation}
+          toRect={pendingPlayAnimation.toRect}
+        />
+      )}
 
       <TargetPickerDialog
         actionLabel={targetPicker?.actionLabel}
@@ -486,7 +554,7 @@ export default function BattlePlay() {
       />
 
       <Dialog fullWidth onClose={closeMobileTips} open={showMobileTips}>
-        <DialogTitle>Mobile Battle Tips</DialogTitle>
+        <DialogTitle>Mobile battle tips</DialogTitle>
         <DialogContent>
           <Stack gap={1}>
             <Typography>Tap a card in your hand to play it.</Typography>

@@ -93,7 +93,7 @@ export default function AddCardsToBinderDialog({
 
   return (
     <Dialog fullWidth maxWidth="lg" onClose={handleClose} open={open}>
-      <DialogTitle>Add Cards to {binder?.name}</DialogTitle>
+      <DialogTitle>Add cards to {binder?.name}</DialogTitle>
       <DialogContent>
         <Stack direction={{ xs: 'column', md: 'row' }} gap={1.5} sx={{ mb: 2, mt: 1 }}>
           <TextField
@@ -203,14 +203,14 @@ export default function AddCardsToBinderDialog({
         {!filteredCards.length && (
           <Box sx={{ py: 6, textAlign: 'center' }}>
             <Typography variant="h5">No cards match those filters</Typography>
-            <Typography color="text.secondary">Try a different search, rarity, or foil treatment.</Typography>
+            <Typography color="text.secondary">Try clearing a filter or searching another card name.</Typography>
           </Box>
         )}
       </DialogContent>
       <DialogActions sx={{ p: 3, pt: 1 }}>
         <Button onClick={handleClose}>Cancel</Button>
         <Button disabled={!selectedIds.length} onClick={handleAddCards} variant="contained">
-          Add Selected
+          Add selected cards
         </Button>
       </DialogActions>
     </Dialog>

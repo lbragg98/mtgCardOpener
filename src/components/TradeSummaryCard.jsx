@@ -14,7 +14,7 @@ function MiniCardList({ items, sleeveId }) {
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <CardSleeve sleeveId={sleeveId} size="small" />
-        <Typography color="text.secondary">No cards</Typography>
+        <Typography color="text.secondary">No cards selected</Typography>
       </Box>
     );
   }
@@ -80,7 +80,7 @@ export default function TradeSummaryCard({ currentUserId, onAccept, onCancel, on
 
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
           <Button component={Link} to={`/trades/${trade.id}`} variant="outlined">
-            View Details
+            View details
           </Button>
           {canAccept && (
             <>
