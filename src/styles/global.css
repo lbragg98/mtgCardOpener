@@ -5913,6 +5913,55 @@ a {
   scroll-snap-align: start;
 }
 
+.battleDeckFilterPanel {
+  background: rgba(255, 255, 255, 0.025) !important;
+}
+
+.battleDeckFilterPanel .MuiAccordion-root {
+  border: 1px solid rgba(120, 200, 255, 0.12);
+  border-radius: 8px !important;
+  background: rgba(5, 8, 16, 0.28);
+}
+
+.battleDeckFilterPanel .MuiAccordion-root::before {
+  display: none;
+}
+
+.battleDeckFilterPanel .MuiAccordionSummary-root {
+  min-height: 44px;
+}
+
+.savedBattleDeckCard {
+  height: 100%;
+  background: rgba(255, 255, 255, 0.025) !important;
+}
+
+.savedDeckPreviewStrip {
+  display: flex;
+  gap: 0.45rem;
+  overflow-x: auto;
+  padding-bottom: 0.15rem;
+  scroll-snap-type: x proximity;
+}
+
+.savedDeckPreviewImage {
+  display: grid;
+  flex: 0 0 52px;
+  width: 52px;
+  aspect-ratio: 5 / 7;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.055);
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 0.62rem;
+  font-weight: 800;
+  object-fit: cover;
+  overflow: hidden;
+  scroll-snap-align: start;
+  text-align: center;
+}
+
 .battleCenterLane {
   position: relative;
   overflow: hidden;

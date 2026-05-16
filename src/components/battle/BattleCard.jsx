@@ -11,24 +11,38 @@ import { getColorBadgeColors } from '../../utils/battleColors.js';
 import { getBattleCardEffectSummary } from '../../utils/battleCardMapper.js';
 
 const TYPE_CHIP_COLORS = {
+  artifactUtility: 'default',
   artifact: 'default',
+  attackerCreature: 'success',
+  auraBuff: 'success',
+  battleSiege: 'warning',
   bounceSpell: 'info',
   buffSpell: 'success',
+  colorFallbackSpell: 'default',
+  controlSpell: 'info',
   creature: 'success',
   damageSpell: 'error',
   debuffSpell: 'secondary',
+  defensiveCreature: 'success',
   discardSpell: 'secondary',
   drainSpell: 'secondary',
   drawSpell: 'info',
   enchantment: 'secondary',
+  enchantmentBuff: 'success',
+  equipmentBuff: 'success',
+  evasiveCreature: 'success',
   genericSpell: 'default',
   healSpell: 'warning',
+  landResource: 'success',
   planeswalker: 'warning',
+  planeswalkerSupport: 'warning',
   rampSpell: 'success',
   reanimateSpell: 'secondary',
   removalSpell: 'secondary',
+  reviveSpell: 'secondary',
   shieldSpell: 'warning',
   tokenSpell: 'success',
+  utilityCreature: 'success',
 };
 
 const CARD_WIDTHS = {
@@ -63,7 +77,7 @@ function getDisplayType(card) {
 }
 
 function getEffectSummary(card, type) {
-  if (type === 'creature' || type === 'Creature') {
+  if ((type === 'creature' || type === 'Creature') && (card?.canAttack !== undefined || card?.summonedThisTurn !== undefined || card?.hasAttacked !== undefined)) {
     return card?.canAttack ? 'Ready' : card?.summonedThisTurn ? 'Summoned' : card?.hasAttacked ? 'Exhausted' : 'Exhausted';
   }
 
@@ -265,7 +279,7 @@ export default function BattleCard({
             ))}
           </Stack>
           <Stack className="battleTypeRow" direction="row" gap={0.5} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
-            <Chip color={TYPE_CHIP_COLORS[card?.type] || 'default'} label={card?.displayType || type} size="small" sx={{ mr: 0.5 }} />
+            <Chip color={TYPE_CHIP_COLORS[card?.role] || TYPE_CHIP_COLORS[card?.type] || 'default'} label={card?.displayType || card?.role || type} size="small" sx={{ mr: 0.5 }} />
             <Typography color="text.secondary" sx={{ fontSize: 12, fontWeight: 800 }}>
               {card?.rarity || 'common'}
             </Typography>
