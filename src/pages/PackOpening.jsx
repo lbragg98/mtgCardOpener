@@ -27,6 +27,9 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import CardImage from "../components/CardImage.jsx";
+import BulkPackHighlights from "../components/BulkPackHighlights.jsx";
+import BulkPackOpening from "../components/BulkPackOpening.jsx";
+import BulkPackSummary from "../components/BulkPackSummary.jsx";
 import EquippedRevealEffect from "../components/EquippedRevealEffect.jsx";
 import FoilAmbientScene from "../components/FoilAmbientScene.jsx";
 import FoilImpactScene from "../components/FoilImpactScene.jsx";
@@ -54,8 +57,7 @@ import {
   normalizeFoilTreatment,
 } from "../utils/foilTypes.js";
 import {
-  generateCollectorBooster,
-  generatePlayBooster,
+  generateMultipleBoosters,
 } from "../utils/packGenerator.js";
 import {
   getFoilAnimationConfig,
@@ -70,7 +72,46 @@ const PHASES = {
   cutPack: "cutPack",
   revealCards: "revealCards",
   summary: "summary",
+  bulkOpening: "bulkOpening",
+  bulkHighlights: "bulkHighlights",
+  bulkSummary: "bulkSummary",
 };
+
+function normalizePackQuantity(value) {
+  return Number(value) === 10 ? 10 : 1;
+}
+
+function isRealSaveableCard(card) {
+  const typeLine = card?.type_line?.toLowerCase() || "";
+
+  return Boolean(
+    card?.id &&
+      card?.name &&
+      (card?.image || card?.imageUrl) &&
+      card?.set &&
+      card?.collector_number &&
+      !typeLine.includes("token") &&
+      !typeLine.includes("art series"),
+  );
+}
+
+function mergeSavedCardFlagsForDisplay(allCards, savedCards = []) {
+  let savedIndex = 0;
+
+  return allCards.map((card) => {
+    if (!isRealSaveableCard(card)) {
+      return card;
+    }
+
+    const savedCard = savedCards[savedIndex];
+    savedIndex += 1;
+
+    return {
+      ...card,
+      isDuplicatePull: Boolean(savedCard?.isDuplicatePull),
+    };
+  });
+}
 
 function PackCuttingScreen({
   artwork,
@@ -82,11 +123,21 @@ function PackCuttingScreen({
   tearEffectId,
   boosterType,
   onCutComplete,
+  onSkipToSummary,
 }) {
   // The cutting phase is visual only; generation already happened so the pack cannot change later.
   const cutterControls = useAnimation();
   const cutterTrackRef = useRef(null);
+  const cutCompleteTimerRef = useRef(null);
   const [isCut, setIsCut] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (cutCompleteTimerRef.current) {
+        window.clearTimeout(cutCompleteTimerRef.current);
+      }
+    };
+  }, []);
 
   async function handleDragEnd(_, info) {
     if (isCut) {
@@ -102,7 +153,7 @@ function PackCuttingScreen({
         scale: 1.08,
         transition: { duration: 0.18 },
       });
-      window.setTimeout(onCutComplete, 900);
+      cutCompleteTimerRef.current = window.setTimeout(onCutComplete, 900);
       return;
     }
 
@@ -259,6 +310,20 @@ function PackCuttingScreen({
           />
         </Box>
       </Box>
+
+      <Button
+        endIcon={<KeyboardArrowRightIcon />}
+        onClick={onSkipToSummary}
+        variant="outlined"
+        sx={{
+          bottom: { xs: 16, sm: 24, md: 32 },
+          position: "absolute",
+          right: { xs: 16, sm: 24, md: 32 },
+          zIndex: 2,
+        }}
+      >
+        Skip to Summary
+      </Button>
     </Box>
   );
 }
@@ -758,7 +823,7 @@ function SummaryGrid({ boosterLabel, pack, saveResult, sceneId, setCode }) {
 
 export default function PackOpening() {
   const { setCode } = useParams();
-  const { state } = useLocation();
+  const { search, state } = useLocation();
   const { user } = useAuth();
   const { getEquippedItem } = useCosmetics();
   const isMobileReveal = useMediaQuery((theme) => theme.breakpoints.down("sm"));
@@ -766,9 +831,14 @@ export default function PackOpening() {
   const boosterType = state?.boosterType === "collector" ? "collector" : "play";
   const boosterLabel =
     boosterType === "collector" ? "Collector Booster" : "Play Booster";
+  const queryQuantity = new URLSearchParams(search).get("quantity");
+  const packQuantity = normalizePackQuantity(state?.packQuantity ?? queryQuantity);
+  const isBulkOpening = packQuantity === 10;
+  const collectorBoosterTotalCost = COLLECTOR_BOOSTER_COST * packQuantity;
   const openingId =
-    state?.openingId || `${normalizedSetCode}-${boosterType}-direct`;
+    state?.openingId || `${normalizedSetCode}-${boosterType}-${packQuantity}-direct`;
   const [pack, setPack] = useState([]);
+  const [bulkOpening, setBulkOpening] = useState(null);
   const [phase, setPhase] = useState(PHASES.cutPack);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [exitX, setExitX] = useState(520);
@@ -795,8 +865,9 @@ export default function PackOpening() {
       try {
         setIsLoading(true);
         setError("");
-        setPhase(PHASES.cutPack);
+        setPhase(isBulkOpening ? PHASES.bulkOpening : PHASES.cutPack);
         setCurrentIndex(0);
+        setBulkOpening(null);
         hasSavedRef.current = false;
         isAnimatingRef.current = false;
         setSavedMessage("");
@@ -811,31 +882,32 @@ export default function PackOpening() {
           );
         }
 
-        const collectorSpentKey = `collector-booster-spent-${openingId}`;
+        const collectorSpentKey = `collector-booster-spent-${openingId}-${packQuantity}`;
         const shouldSpendCollectorShards =
           boosterType === "collector" && !sessionStorage.getItem(collectorSpentKey);
 
         if (shouldSpendCollectorShards) {
           const currentShards = user ? await getCloudPackShards() : getPackShards();
 
-          if (currentShards < COLLECTOR_BOOSTER_COST) {
+          if (currentShards < collectorBoosterTotalCost) {
             throw new Error(
-              "You need 1,000 Pack Shards to open a Collector Booster.",
+              `You need ${collectorBoosterTotalCost.toLocaleString()} Pack Shards to open ${packQuantity} Collector Booster${packQuantity === 1 ? "" : "s"}.`,
             );
           }
         }
 
-        const generatedPack =
-          boosterType === "collector"
-            ? await generateCollectorBooster(normalizedSetCode)
-            : await generatePlayBooster(normalizedSetCode);
+        const generatedOpening = await generateMultipleBoosters({
+          setCode: normalizedSetCode,
+          boosterType,
+          packQuantity,
+        });
 
         if (shouldSpendCollectorShards) {
           if (user) {
-            await spendCloudPackShards(COLLECTOR_BOOSTER_COST);
-          } else if (!spendPackShards(COLLECTOR_BOOSTER_COST)) {
+            await spendCloudPackShards(collectorBoosterTotalCost);
+          } else if (!spendPackShards(collectorBoosterTotalCost)) {
             throw new Error(
-              "You need 1,000 Pack Shards to open a Collector Booster.",
+              `You need ${collectorBoosterTotalCost.toLocaleString()} Pack Shards to open ${packQuantity} Collector Booster${packQuantity === 1 ? "" : "s"}.`,
             );
           }
 
@@ -843,7 +915,8 @@ export default function PackOpening() {
         }
 
         if (isMounted) {
-          setPack(generatedPack);
+          setBulkOpening(generatedOpening);
+          setPack(generatedOpening.allCards);
         }
       } catch (packError) {
         if (isMounted) {
@@ -863,10 +936,16 @@ export default function PackOpening() {
     return () => {
       isMounted = false;
     };
-  }, [boosterType, normalizedSetCode, openingId, user?.id]);
+  }, [boosterType, collectorBoosterTotalCost, isBulkOpening, normalizedSetCode, openingId, packQuantity, user?.id]);
 
-  const revealedPack = pack;
+  const revealedPack = isBulkOpening ? bulkOpening?.allCards || pack : pack;
   const isFinished = currentIndex >= revealedPack.length;
+
+  const skipToSummary = useCallback(() => {
+    isAnimatingRef.current = false;
+    setCurrentIndex(revealedPack.length);
+    setPhase(isBulkOpening ? PHASES.bulkSummary : PHASES.summary);
+  }, [isBulkOpening, revealedPack.length]);
 
   const advanceCard = useCallback(
     (direction = 1) => {
@@ -932,7 +1011,7 @@ export default function PackOpening() {
   useEffect(() => {
     // Saving waits for summary so the user only gets collection updates after the full reveal.
     if (
-      phase === PHASES.summary &&
+      (phase === PHASES.summary || phase === PHASES.bulkSummary) &&
       revealedPack.length > 0 &&
       !hasSavedRef.current
     ) {
@@ -1001,6 +1080,69 @@ export default function PackOpening() {
     );
   }
 
+  if (isBulkOpening && bulkOpening) {
+    if (phase === PHASES.bulkOpening) {
+      const fallbackArtwork =
+        revealedPack.find((card) => card.rarity === "mythic")?.image ||
+        revealedPack.find((card) => card.image)?.image;
+
+      return (
+        <BulkPackOpening
+          boosterType={boosterType}
+          packArt={state?.packArtwork || fallbackArtwork}
+          packQuantity={packQuantity}
+          setCode={normalizedSetCode}
+          setIconUrl={state?.setIconUrl}
+          setName={state?.setName || revealedPack[0]?.set_name || normalizedSetCode.toUpperCase()}
+          onComplete={() => setPhase(PHASES.bulkHighlights)}
+          onSkipToSummary={skipToSummary}
+        />
+      );
+    }
+
+    if (phase === PHASES.bulkHighlights) {
+      return (
+        <BulkPackHighlights
+          allCards={bulkOpening.allCards}
+          boosterType={boosterType}
+          packs={bulkOpening.packs}
+          onContinue={() => setPhase(PHASES.bulkSummary)}
+        />
+      );
+    }
+
+    if (phase === PHASES.bulkSummary) {
+      return (
+        <>
+          <BulkPackSummary
+            allCards={mergeSavedCardFlagsForDisplay(bulkOpening.allCards, saveResult?.savedCards)}
+            boosterType={boosterType}
+            packs={bulkOpening.packs}
+            saveResult={saveResult}
+            sceneId={openingSceneId}
+            setCode={normalizedSetCode}
+            setName={state?.setName || revealedPack[0]?.set_name}
+            totalShardCost={boosterType === "collector" ? collectorBoosterTotalCost : 0}
+          />
+          <Snackbar
+            anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+            autoHideDuration={4200}
+            onClose={() => setSavedMessage("")}
+            open={Boolean(savedMessage)}
+          >
+            <Alert
+              severity={savedMessageSeverity}
+              variant="filled"
+              sx={{ width: "100%" }}
+            >
+              {savedMessage}
+            </Alert>
+          </Snackbar>
+        </>
+      );
+    }
+  }
+
   const shouldShowSummary =
     phase === PHASES.summary ||
     (phase === PHASES.revealCards && revealedPack.length > 0 && isFinished);
@@ -1060,6 +1202,7 @@ export default function PackOpening() {
             setName={packSetName}
             tearEffectId={tearEffectId}
             onCutComplete={() => setPhase(PHASES.revealCards)}
+            onSkipToSummary={skipToSummary}
           />
         </motion.div>
       </AnimatePresence>
@@ -1221,14 +1364,32 @@ export default function PackOpening() {
         </Typography>
       )}
 
-      <Button
-        endIcon={<KeyboardArrowRightIcon />}
-        onClick={advanceCard}
-        variant="contained"
-        sx={{ position: "absolute", zIndex: 2, bottom: { xs: 16, sm: 24, md: 32 } }}
+      <Box
+        sx={{
+          bottom: { xs: 16, sm: 24, md: 32 },
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 1.25,
+          justifyContent: "center",
+          position: "absolute",
+          zIndex: 2,
+        }}
       >
-        Next
-      </Button>
+        <Button
+          endIcon={<KeyboardArrowRightIcon />}
+          onClick={advanceCard}
+          variant="contained"
+        >
+          Next
+        </Button>
+        <Button
+          endIcon={<KeyboardArrowRightIcon />}
+          onClick={skipToSummary}
+          variant="outlined"
+        >
+          Skip to Summary
+        </Button>
+      </Box>
     </Box>
   );
 }
