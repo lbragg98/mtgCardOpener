@@ -70,6 +70,10 @@ function normalizeCollectionCard(card, openedAt) {
     isSpecialSlot: Boolean(card.isSpecialSlot),
     isOneOfOne: Boolean(card.isOneOfOne),
     specialPullType: card.specialPullType || null,
+    packNumber: card.packNumber || null,
+    sourcePackId: card.sourcePackId || null,
+    boosterType: card.boosterType || null,
+    bulkCardIndex: card.bulkCardIndex || null,
     openedAt,
   };
 }
@@ -107,6 +111,10 @@ function normalizeStoredCollectionCard(card) {
     isSpecialSlot: Boolean(card.isSpecialSlot),
     isOneOfOne: Boolean(card.isOneOfOne),
     specialPullType: card.specialPullType || null,
+    packNumber: card.packNumber || null,
+    sourcePackId: card.sourcePackId || null,
+    boosterType: card.boosterType || null,
+    bulkCardIndex: card.bulkCardIndex || null,
   };
 }
 
@@ -178,20 +186,52 @@ export function spendPackShards(amount) {
   return true;
 }
 
-export function calculateDuplicateShardReward(cardsToSave, existingCollection) {
-  const duplicateCount = cardsToSave.reduce((count, card) => {
-    const isDuplicate = existingCollection.some(
-      (existingCard) =>
-        existingCard.id === card.id &&
-        Boolean(existingCard.isFoil) === Boolean(card.isFoil),
-    );
+function getDuplicateCardKey(card) {
+  return `${card.id}-${Boolean(card.isFoil) ? "foil" : "nonfoil"}`;
+}
 
-    return isDuplicate ? count + 1 : count;
-  }, 0);
+export function calculateDuplicateRewardsForBatch(existingCollection, newCards) {
+  const ownedCounts = new Map();
+
+  existingCollection.forEach((card) => {
+    const key = getDuplicateCardKey(card);
+    ownedCounts.set(key, (ownedCounts.get(key) || 0) + 1);
+  });
+
+  let duplicateCount = 0;
+  const cardsWithDuplicateFlags = newCards.map((card) => {
+    const key = getDuplicateCardKey(card);
+    const ownedCount = ownedCounts.get(key) || 0;
+    const isDuplicate = ownedCount > 0;
+
+    ownedCounts.set(key, ownedCount + 1);
+
+    if (isDuplicate) {
+      duplicateCount += 1;
+    }
+
+    return {
+      ...card,
+      isDuplicatePull: isDuplicate,
+    };
+  });
+
+  return {
+    cardsWithDuplicateFlags,
+    duplicateCount,
+    shardsAwarded: duplicateCount * DUPLICATE_SHARD_REWARD,
+  };
+}
+
+export function calculateDuplicateShardReward(cardsToSave, existingCollection) {
+  const { duplicateCount, shardsAwarded } = calculateDuplicateRewardsForBatch(
+    existingCollection,
+    cardsToSave,
+  );
 
   return {
     duplicateCount,
-    shardsAwarded: duplicateCount * DUPLICATE_SHARD_REWARD,
+    shardsAwarded,
   };
 }
 
@@ -201,11 +241,12 @@ export function saveCardsToCollection(cards) {
   const cardsToSave = cards
     .filter(isRealSaveableCard)
     .map((card) => normalizeCollectionCard(card, openedAt));
-  const { duplicateCount, shardsAwarded } = calculateDuplicateShardReward(
-    cardsToSave,
-    currentCollection,
-  );
-  const nextCollection = [...cardsToSave, ...currentCollection];
+  const { cardsWithDuplicateFlags, duplicateCount, shardsAwarded } =
+    calculateDuplicateRewardsForBatch(
+      currentCollection,
+      cardsToSave,
+    );
+  const nextCollection = [...cardsWithDuplicateFlags, ...currentCollection];
 
   localStorage.setItem(COLLECTION_KEY, JSON.stringify(nextCollection));
   notifyCollectionUpdated();
@@ -214,7 +255,7 @@ export function saveCardsToCollection(cards) {
     shardsAwarded > 0 ? addPackShards(shardsAwarded) : getPackShards();
 
   return {
-    savedCards: cardsToSave,
+    savedCards: cardsWithDuplicateFlags,
     duplicateCount,
     shardsAwarded,
     newShardBalance,

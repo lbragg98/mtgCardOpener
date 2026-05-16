@@ -35,6 +35,43 @@ function isRealSaveableCard(card) {
   );
 }
 
+function getDuplicateCardKey(card) {
+  return `${card.id || card.scryfall_id}-${Boolean(card.isFoil ?? card.is_foil) ? 'foil' : 'nonfoil'}`;
+}
+
+export function calculateDuplicateRewardsForBatch(existingCollection, newCards) {
+  const ownedCounts = new Map();
+
+  existingCollection.forEach((card) => {
+    const key = getDuplicateCardKey(card);
+    ownedCounts.set(key, (ownedCounts.get(key) || 0) + 1);
+  });
+
+  let duplicateCount = 0;
+  const cardsWithDuplicateFlags = newCards.map((card) => {
+    const key = getDuplicateCardKey(card);
+    const ownedCount = ownedCounts.get(key) || 0;
+    const isDuplicate = ownedCount > 0;
+
+    ownedCounts.set(key, ownedCount + 1);
+
+    if (isDuplicate) {
+      duplicateCount += 1;
+    }
+
+    return {
+      ...card,
+      isDuplicatePull: isDuplicate,
+    };
+  });
+
+  return {
+    cardsWithDuplicateFlags,
+    duplicateCount,
+    shardsAwarded: duplicateCount * DUPLICATE_SHARD_REWARD,
+  };
+}
+
 async function getCurrentUserId() {
   const { data, error } = await supabase.auth.getUser();
 
@@ -134,8 +171,8 @@ function cardToUserCardRow(card, userId, sourcePackId) {
     opened_at: openedAt,
   };
 
-  if (sourcePackId) {
-    row.source_pack_id = sourcePackId;
+  if (sourcePackId || card.sourcePackId) {
+    row.source_pack_id = sourcePackId || card.sourcePackId;
   }
 
   return row;
@@ -185,15 +222,9 @@ export async function saveOpenedCards(cards, sourcePackId, options = {}) {
   const rowsToSave = cards
     .filter(isRealSaveableCard)
     .map((card) => cardToUserCardRow({ ...card, openedAt: card.openedAt || openedAt }, userId, sourcePackId));
-  const duplicateCount = options.skipDuplicateRewards
-    ? 0
-    : rowsToSave.reduce((count, row) => {
-      const isDuplicate = existingCards.some(
-        (card) => card.id === row.scryfall_id && Boolean(card.isFoil) === Boolean(row.is_foil),
-      );
-
-      return isDuplicate ? count + 1 : count;
-    }, 0);
+  const duplicateRewards = options.skipDuplicateRewards
+    ? { duplicateCount: 0, shardsAwarded: 0, cardsWithDuplicateFlags: rowsToSave }
+    : calculateDuplicateRewardsForBatch(existingCards, rowsToSave);
 
   if (!rowsToSave.length) {
     return {
@@ -204,19 +235,24 @@ export async function saveOpenedCards(cards, sourcePackId, options = {}) {
     };
   }
 
-  const { data, error } = await supabase.from('user_cards').insert(rowsToSave).select('*');
+  const rowsWithDuplicateFlags = duplicateRewards.cardsWithDuplicateFlags;
+  const rowsToInsert = rowsWithDuplicateFlags.map(({ isDuplicatePull, ...row }) => row);
+  const { data, error } = await supabase.from('user_cards').insert(rowsToInsert).select('*');
 
   if (error) {
     throw new Error(error.message || 'Unable to save cards to your cloud collection.');
   }
 
-  const shardsAwarded = duplicateCount * DUPLICATE_SHARD_REWARD;
+  const shardsAwarded = duplicateRewards.shardsAwarded;
   const newShardBalance = shardsAwarded > 0 ? await addCloudPackShards(shardsAwarded) : await getCloudPackShards();
   window.dispatchEvent(new Event('collectionUpdated'));
 
   return {
-    savedCards: (data || []).map(normalizeUserCardRow),
-    duplicateCount,
+    savedCards: (data || []).map((row, index) => ({
+      ...normalizeUserCardRow(row),
+      isDuplicatePull: Boolean(rowsWithDuplicateFlags[index]?.isDuplicatePull),
+    })),
+    duplicateCount: duplicateRewards.duplicateCount,
     shardsAwarded,
     newShardBalance,
   };

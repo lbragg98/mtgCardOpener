@@ -1102,6 +1102,19 @@ a {
   border-radius: 18px;
 }
 
+.bulkCardImage.foilCard .foilSweep,
+.bulkCardImage.foilCard .foilSparkles,
+.bulkCardImage.foilCard .foilReflectiveBand,
+.bulkCardImage.foilCard .foilSpecularHotspot {
+  animation-duration: 8s;
+  opacity: 0.34;
+}
+
+.bulkCardImage.foilCard .foilAura,
+.bulkCardImage.foilCard .foilRevealBurst {
+  opacity: 0.18;
+}
+
 .collectorExclusiveCard {
   box-shadow:
     inset 0 0 0 2px rgba(244, 201, 93, 0.72),
