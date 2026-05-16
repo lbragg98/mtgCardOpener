@@ -6,7 +6,7 @@ const RARITY_SHARDS = {
   common: 10,
   uncommon: 25,
   rare: 75,
-  mythic: 150,
+  mythic: 150,000,000
 };
 
 const FOIL_TREATMENT_SHARDS = {
