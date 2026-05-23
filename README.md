@@ -1,5 +1,5 @@
 # MTG Pack Opener
-
+App Available at https://mtgcardopener.vercel.app
 MTG Pack Opener is a React app for opening simulated Magic: The Gathering packs with real card data from the Scryfall API. Users can choose sets, open Play Boosters or Collector Boosters, reveal cards through an interactive pack-opening flow, save pulls to a collection, inspect foil treatments, recycle duplicates for Pack Shards, buy cosmetics, organize binders, trade with friends, and play a simplified collection-based battle mode.
 
 The project is built as an interactive collecting experience for MTG players, collectors, and fans of digital pack openings. It turns public card data into a polished app with account storage, collection management, visual effects, and lightweight game systems.
