@@ -90,8 +90,11 @@ function filterAndSortCards(cards, { groupMode, rarity, search }) {
 export default function BulkPackSummary({
   allCards = [],
   boosterType,
+  isSaving = false,
+  onSave,
   packs = [],
   saveError = '',
+  saved = false,
   saveResult,
   sceneId,
   setCode,
@@ -131,7 +134,7 @@ export default function BulkPackSummary({
         <Typography color="text.secondary" sx={{ mb: 3 }}>
           {saveResult
             ? `${saveResult.savedCards.length.toLocaleString()} cards saved.`
-            : saveError || 'Saving cards to your collection...'}
+            : saveError || `${allCards.length.toLocaleString()} pulled cards are ready to save.`}
         </Typography>
 
         {saveError && (
@@ -139,6 +142,22 @@ export default function BulkPackSummary({
             {saveError}
           </Alert>
         )}
+
+        <Box sx={{ alignItems: 'center', display: 'flex', flexWrap: 'wrap', gap: 1.5, mb: 3 }}>
+          <Button
+            disabled={isSaving || saved}
+            onClick={onSave}
+            startIcon={<CollectionsBookmarkIcon />}
+            variant="contained"
+          >
+            {isSaving ? 'Saving...' : saved ? 'Saved' : 'Save to Collection'}
+          </Button>
+          <Typography color="text.secondary" sx={{ fontSize: 13, fontWeight: 800 }}>
+            {saved
+              ? `${saveResult?.savedCards?.length || 0} cards saved to your collection.`
+              : 'Save every card from every opened pack.'}
+          </Typography>
+        </Box>
 
         {oneOfOneCard && (
           <Alert severity="warning" sx={{ mb: 3 }} variant="filled">

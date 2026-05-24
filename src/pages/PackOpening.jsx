@@ -648,7 +648,17 @@ function RevealCard({ card, cardNumber, exitX, onAdvance, revealEffectId }) {
   );
 }
 
-function SummaryGrid({ boosterLabel, pack, saveResult, sceneId, setCode }) {
+function SummaryGrid({
+  boosterLabel,
+  isSaving,
+  onSave,
+  pack,
+  saveError,
+  saved,
+  saveResult,
+  sceneId,
+  setCode,
+}) {
   const [visibleCardCount, setVisibleCardCount] = useState(MASS_SUMMARY_PAGE_SIZE);
   const isMassOpening = pack.length > MASS_SUMMARY_PAGE_SIZE;
   const visibleCards = isMassOpening ? pack.slice(0, visibleCardCount) : pack;
@@ -681,6 +691,28 @@ function SummaryGrid({ boosterLabel, pack, saveResult, sceneId, setCode }) {
         >
           Pack summary
         </Typography>
+
+        {saveError && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {saveError}
+          </Alert>
+        )}
+
+        <Box sx={{ alignItems: "center", display: "flex", flexWrap: "wrap", gap: 1.5, mb: 3 }}>
+          <Button
+            disabled={isSaving || saved}
+            onClick={onSave}
+            startIcon={<CollectionsBookmarkIcon />}
+            variant="contained"
+          >
+            {isSaving ? "Saving..." : saved ? "Saved" : "Save to Collection"}
+          </Button>
+          <Typography color="text.secondary" sx={{ fontSize: 13, fontWeight: 800 }}>
+            {saved
+              ? `${saveResult?.savedCards?.length || 0} cards saved to your collection.`
+              : `${pack.length} pulled cards are ready to save.`}
+          </Typography>
+        </Box>
 
         {saveResult && (
           <Box
@@ -726,7 +758,7 @@ function SummaryGrid({ boosterLabel, pack, saveResult, sceneId, setCode }) {
 
         {collectorExclusiveHits.length > 0 && (
           <Alert severity="success" sx={{ mb: 3 }} variant="outlined">
-            Collector-exclusive hit! {bestCollectorExclusiveHit?.name} joined your collection.
+            Collector-exclusive hit! {bestCollectorExclusiveHit?.name} is ready to save.
           </Alert>
         )}
 
@@ -867,10 +899,11 @@ export default function PackOpening() {
   const [savedMessage, setSavedMessage] = useState("");
   const [savedMessageSeverity, setSavedMessageSeverity] = useState("success");
   const [saveResult, setSaveResult] = useState(null);
+  const [isSavingOpening, setIsSavingOpening] = useState(false);
+  const [openingSaved, setOpeningSaved] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const [completedOneOfOneRevealKey, setCompletedOneOfOneRevealKey] = useState("");
-  const hasSavedRef = useRef(false);
   const isAnimatingRef = useRef(false);
-  const bulkOpeningIdRef = useRef(crypto.randomUUID());
   const equippedOpeningScene = getEquippedItem("openingScene");
   const openingSceneId = equippedOpeningScene?.id;
   const equippedTearEffect = getEquippedItem("tearEffect");
@@ -889,13 +922,14 @@ export default function PackOpening() {
         setPhase(isBulkOpening ? PHASES.bulkOpening : PHASES.cutPack);
         setCurrentIndex(0);
         setBulkOpening(null);
-        hasSavedRef.current = false;
         isAnimatingRef.current = false;
         setSavedMessage("");
         setSavedMessageSeverity("success");
         setSaveResult(null);
+        setIsSavingOpening(false);
+        setOpeningSaved(false);
+        setSaveError("");
         setCompletedOneOfOneRevealKey("");
-        bulkOpeningIdRef.current = crypto.randomUUID();
 
         if (isCollectorOnlySet(normalizedSetCode) && boosterType !== "collector") {
           // Direct URL protection: collector-only sets cannot bypass PackSelection.
@@ -1031,64 +1065,81 @@ export default function PackOpening() {
   }, [advanceCard, currentIndex, revealedPack.length, phase]);
 
   useEffect(() => {
-    // Saving waits for summary so the user only gets collection updates after the full reveal.
-    if (
-      (phase === PHASES.summary || phase === PHASES.bulkSummary) &&
-      revealedPack.length > 0 &&
-      !hasSavedRef.current
-    ) {
-      hasSavedRef.current = true;
+    if (phase === PHASES.summary || phase === PHASES.bulkSummary) {
+      isAnimatingRef.current = false;
+    }
+  }, [phase]);
 
-      async function saveRevealedPack() {
-        try {
-          const cardsToSave = isBulkOpening ? bulkOpening?.allCards || revealedPack : revealedPack;
+  const saveRevealedPack = useCallback(async () => {
+    if (isSavingOpening || openingSaved) {
+      return;
+    }
 
-          if (isBulkOpening && packQuantity === 10 && cardsToSave.length < 100) {
-            console.error("Mass opening save received too few cards", cardsToSave);
-          }
+    const cardsToSave = isBulkOpening ? bulkOpening?.allCards || revealedPack : revealedPack;
 
-          const saveResult = user
-            ? await saveOpenedCards(cardsToSave, {
-                boosterType,
-                setCode: normalizedSetCode,
-                setName: state?.setName || cardsToSave[0]?.set_name,
-                packQuantity,
-                bulkOpeningId: isBulkOpening ? bulkOpeningIdRef.current : null,
-              })
-            : saveCardsToCollection(cardsToSave);
-          setSaveResult(saveResult);
-          window.dispatchEvent(new Event("packShardsUpdated"));
+    if (!cardsToSave.length) {
+      const message = "No cards were available to save.";
+      setSaveError(message);
+      setSavedMessageSeverity("error");
+      setSavedMessage(message);
+      return;
+    }
 
-          const messages = [
-            `${saveResult.savedCards.length} cards added to your collection.`,
-          ];
+    try {
+      setIsSavingOpening(true);
+      setSaveError("");
 
-          if (saveResult.insertedCount !== saveResult.attemptedCount) {
-            messages.push(
-              `Saved ${saveResult.insertedCount} of ${saveResult.attemptedCount} cards.`,
-            );
-          }
+      const nextSaveResult = user
+        ? await saveOpenedCards(cardsToSave, {
+            boosterType,
+            setCode: normalizedSetCode,
+            setName: state?.setName || cardsToSave[0]?.set_name,
+            packQuantity,
+          })
+        : saveCardsToCollection(cardsToSave);
+      setSaveResult(nextSaveResult);
+      setOpeningSaved(true);
+      window.dispatchEvent(new Event("packShardsUpdated"));
 
-          if (saveResult.shardsAwarded > 0) {
-            messages.push(
-              `${saveResult.duplicateCount} duplicate ${saveResult.duplicateCount === 1 ? "copy was" : "copies were"} converted into ${saveResult.shardsAwarded} Pack Shards.`,
-            );
-          }
+      const messages = [
+        `Saved ${nextSaveResult.savedCards.length} cards to your collection.`,
+      ];
 
-          setSavedMessageSeverity("success");
-          setSavedMessage(`${messages.join(" ")} ${user ? "Saved to cloud collection." : "Saved locally."}`);
-        } catch (saveError) {
-          console.error("Could not save opened cards", saveError);
-          setSavedMessageSeverity("error");
-          setSavedMessage(
-            "Could not save cards to your collection. Please try again.",
-          );
-        }
+      if (nextSaveResult.insertedCount !== nextSaveResult.attemptedCount) {
+        messages.push(
+          `Saved ${nextSaveResult.insertedCount} of ${nextSaveResult.attemptedCount} cards.`,
+        );
       }
 
-      saveRevealedPack();
+      if (nextSaveResult.shardsAwarded > 0) {
+        messages.push(
+          `${nextSaveResult.duplicateCount} duplicate ${nextSaveResult.duplicateCount === 1 ? "copy was" : "copies were"} converted into ${nextSaveResult.shardsAwarded} Pack Shards.`,
+        );
+      }
+
+      setSavedMessageSeverity("success");
+      setSavedMessage(`${messages.join(" ")} ${user ? "Saved to cloud collection." : "Saved locally."}`);
+    } catch (error) {
+      const message = error.message || "Cards could not be saved. Please try again.";
+      setOpeningSaved(false);
+      setSaveError(message);
+      setSavedMessageSeverity("error");
+      setSavedMessage("Cards could not be saved. Please try again.");
+    } finally {
+      setIsSavingOpening(false);
     }
-  }, [boosterType, bulkOpening?.allCards, isBulkOpening, normalizedSetCode, packQuantity, phase, revealedPack, state?.setName, user]);
+  }, [
+    boosterType,
+    bulkOpening?.allCards,
+    isBulkOpening,
+    isSavingOpening,
+    normalizedSetCode,
+    openingSaved,
+    packQuantity,
+    revealedPack,
+    state?.setName,
+    user,
+  ]);
 
   if (isLoading) {
     return (
@@ -1158,8 +1209,11 @@ export default function PackOpening() {
           <BulkPackSummary
             allCards={mergeSavedCardFlagsForDisplay(bulkOpening.allCards, saveResult?.savedCards)}
             boosterType={boosterType}
+            isSaving={isSavingOpening}
+            onSave={saveRevealedPack}
             packs={bulkOpening.packs}
-            saveError={savedMessageSeverity === "error" ? savedMessage : ""}
+            saveError={saveError}
+            saved={openingSaved}
             saveResult={saveResult}
             sceneId={openingSceneId}
             setCode={normalizedSetCode}
@@ -1194,7 +1248,11 @@ export default function PackOpening() {
       <>
         <SummaryGrid
           boosterLabel={boosterLabel}
+          isSaving={isSavingOpening}
+          onSave={saveRevealedPack}
           pack={revealedPack}
+          saveError={saveError}
+          saved={openingSaved}
           saveResult={saveResult}
           sceneId={openingSceneId}
           setCode={normalizedSetCode}
