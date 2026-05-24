@@ -22,13 +22,13 @@ function getFullScryfallData(card) {
 }
 
 function isRealSaveableCard(card) {
-  const typeLine = card?.type_line?.toLowerCase() || '';
+  const typeLine = (card?.type_line || card?.typeLine || card?.full_scryfall_data?.type_line || '').toLowerCase();
 
   return Boolean(
-    card?.id &&
+    (card?.id || card?.scryfall_id) &&
       card?.name &&
-      (card?.image || card?.imageUrl) &&
-      card?.set &&
+      (card?.image || card?.imageUrl || card?.image_url || card?.image_uris?.normal || card?.image_uris?.large) &&
+      (card?.set || card?.set_code) &&
       card?.collector_number &&
       !typeLine.includes('token') &&
       !typeLine.includes('art series'),
@@ -116,6 +116,10 @@ export function normalizeUserCardRow(row) {
     isCollectorExclusive: Boolean(row.is_collector_exclusive),
     isOneOfOne: Boolean(row.is_one_of_one),
     specialPullType: row.special_pull_type || null,
+    boosterType: row.booster_type || null,
+    packNumber: row.pack_number || null,
+    bulkOpeningId: row.bulk_opening_id || null,
+    sourcePackId: row.source_pack_id || null,
     type_line: row.type_line || fullScryfallData.type_line || '',
     oracle_text: row.oracle_text || fullScryfallData.oracle_text || '',
     mana_cost: row.mana_cost || fullScryfallData.mana_cost || '',
@@ -135,25 +139,58 @@ export function normalizeUserCardRow(row) {
   };
 }
 
-function cardToUserCardRow(card, userId, sourcePackId) {
+function getCardImageUrl(card, fullScryfallData = {}) {
+  return (
+    card.imageUrl ||
+    card.image_url ||
+    card.image ||
+    card.image_uris?.normal ||
+    card.image_uris?.large ||
+    fullScryfallData.image_uris?.normal ||
+    fullScryfallData.image_uris?.large ||
+    null
+  );
+}
+
+function isUuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value || '');
+}
+
+function parseSaveOpenedCardsArguments(sourcePackIdOrOptions, maybeOptions) {
+  if (
+    sourcePackIdOrOptions &&
+    typeof sourcePackIdOrOptions === 'object' &&
+    !Array.isArray(sourcePackIdOrOptions)
+  ) {
+    return { sourcePackId: sourcePackIdOrOptions.sourcePackId || null, options: sourcePackIdOrOptions };
+  }
+
+  return {
+    sourcePackId: sourcePackIdOrOptions || maybeOptions?.sourcePackId || null,
+    options: maybeOptions || {},
+  };
+}
+
+export function normalizeCardForUserCardsInsert(card, userId, options = {}) {
   // Saving keeps battle-relevant Scryfall fields so old cards do not collapse into generic data later.
-  const openedAt = card.openedAt || new Date().toISOString();
-  const prices = card.prices || {};
+  const openedAt = card.openedAt || card.opened_at || new Date().toISOString();
+  const prices = objectValue(card.prices);
   const fullScryfallData = getFullScryfallData(card);
+  const sourcePackId = card.sourcePackId || card.source_pack_id || options.sourcePackId || null;
   const row = {
     user_id: userId,
-    scryfall_id: card.id,
+    scryfall_id: card.id || card.scryfall_id,
     name: card.name,
-    set_code: card.set,
-    set_name: card.set_name,
+    set_code: card.set || card.set_code || options.setCode || null,
+    set_name: card.set_name || card.setName || options.setName || null,
     collector_number: card.collector_number,
     rarity: card.rarity,
-    image_url: card.imageUrl || card.image,
-    is_foil: Boolean(card.isFoil),
-    foil_treatment: normalizeFoilTreatment(card),
-    is_collector_exclusive: Boolean(card.isCollectorExclusive),
-    is_one_of_one: Boolean(card.isOneOfOne),
-    special_pull_type: card.specialPullType || null,
+    image_url: getCardImageUrl(card, fullScryfallData),
+    is_foil: Boolean(card.isFoil ?? card.is_foil),
+    foil_treatment: card.foilTreatment || card.foil_treatment || normalizeFoilTreatment(card) || 'none',
+    is_collector_exclusive: Boolean(card.isCollectorExclusive ?? card.is_collector_exclusive),
+    is_one_of_one: Boolean(card.isOneOfOne ?? card.is_one_of_one),
+    special_pull_type: card.specialPullType || card.special_pull_type || null,
     prices,
     type_line: card.type_line || card.typeLine || fullScryfallData.type_line || null,
     oracle_text: card.oracle_text || card.oracleText || fullScryfallData.oracle_text || null,
@@ -169,10 +206,13 @@ function cardToUserCardRow(card, userId, sourcePackId) {
     layout: card.layout || fullScryfallData.layout || null,
     full_scryfall_data: fullScryfallData,
     opened_at: openedAt,
+    booster_type: options.boosterType || card.boosterType || card.booster_type || null,
+    pack_number: card.packNumber || card.pack_number || options.packNumber || null,
+    bulk_opening_id: options.bulkOpeningId || card.bulkOpeningId || card.bulk_opening_id || null,
   };
 
-  if (sourcePackId || card.sourcePackId) {
-    row.source_pack_id = sourcePackId || card.sourcePackId;
+  if (isUuid(sourcePackId)) {
+    row.source_pack_id = sourcePackId;
   }
 
   return row;
@@ -214,25 +254,36 @@ export async function getUserCardsForUser(userId) {
   return rows.map(normalizeUserCardRow);
 }
 
-export async function saveOpenedCards(cards, sourcePackId, options = {}) {
+export async function saveOpenedCards(cards, sourcePackIdOrOptions, maybeOptions = {}) {
   // Duplicate rewards are calculated before insert so every opened copy is still saved.
+  const { sourcePackId, options } = parseSaveOpenedCardsArguments(sourcePackIdOrOptions, maybeOptions);
   const userId = await getCurrentUserId();
   const existingCards = options.skipDuplicateRewards ? [] : await getMyCards();
   const openedAt = new Date().toISOString();
-  const rowsToSave = cards
-    .filter(isRealSaveableCard)
-    .map((card) => cardToUserCardRow({ ...card, openedAt: card.openedAt || openedAt }, userId, sourcePackId));
+  const skippedCards = [];
+  const rowsToSave = cards.reduce((rows, card) => {
+    if (!isRealSaveableCard(card)) {
+      skippedCards.push(card);
+      return rows;
+    }
+
+    rows.push(normalizeCardForUserCardsInsert(
+      { ...card, openedAt: card.openedAt || card.opened_at || openedAt },
+      userId,
+      { ...options, sourcePackId },
+    ));
+    return rows;
+  }, []);
   const duplicateRewards = options.skipDuplicateRewards
-<<<<<<< HEAD
     ? { cardsWithDuplicateFlags: rowsToSave, duplicateCount: 0, shardsAwarded: 0 }
-=======
-    ? { duplicateCount: 0, shardsAwarded: 0, cardsWithDuplicateFlags: rowsToSave }
->>>>>>> cdad45f983029698b55070c669a2729f1e01b718
     : calculateDuplicateRewardsForBatch(existingCards, rowsToSave);
 
   if (!rowsToSave.length) {
     return {
       savedCards: [],
+      skippedCards,
+      attemptedCount: 0,
+      insertedCount: 0,
       duplicateCount: 0,
       shardsAwarded: 0,
       newShardBalance: await getCloudPackShards(),
@@ -244,22 +295,26 @@ export async function saveOpenedCards(cards, sourcePackId, options = {}) {
   const { data, error } = await supabase.from('user_cards').insert(rowsToInsert).select('*');
 
   if (error) {
+    console.error('Supabase user_cards insert failed', error, {
+      attemptedCount: rowsToInsert.length,
+      skippedCards,
+    });
     throw new Error(error.message || 'Unable to save cards to your cloud collection.');
   }
 
   const shardsAwarded = duplicateRewards.shardsAwarded;
-<<<<<<< HEAD
-  const newShardBalance = shardsAwarded > 0 ? addPackShards(shardsAwarded) : getPackShards();
-=======
   const newShardBalance = shardsAwarded > 0 ? await addCloudPackShards(shardsAwarded) : await getCloudPackShards();
->>>>>>> cdad45f983029698b55070c669a2729f1e01b718
   window.dispatchEvent(new Event('collectionUpdated'));
+  const insertedRows = data || [];
 
   return {
-    savedCards: (data || []).map((row, index) => ({
+    savedCards: insertedRows.map((row, index) => ({
       ...normalizeUserCardRow(row),
       isDuplicatePull: Boolean(rowsWithDuplicateFlags[index]?.isDuplicatePull),
     })),
+    skippedCards,
+    attemptedCount: rowsToInsert.length,
+    insertedCount: insertedRows.length,
     duplicateCount: duplicateRewards.duplicateCount,
     shardsAwarded,
     newShardBalance,

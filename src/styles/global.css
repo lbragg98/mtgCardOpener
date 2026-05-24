@@ -1102,7 +1102,6 @@ a {
   border-radius: 18px;
 }
 
-<<<<<<< HEAD
 .massSummaryCardImage,
 .foilCardStatic {
   background:
@@ -1126,7 +1125,8 @@ a {
   background: linear-gradient(120deg, transparent 12%, rgba(255, 255, 255, 0.12) 46%, transparent 76%);
   opacity: 0.42;
   pointer-events: none;
-=======
+}
+
 .bulkCardImage.foilCard .foilSweep,
 .bulkCardImage.foilCard .foilSparkles,
 .bulkCardImage.foilCard .foilReflectiveBand,
@@ -1138,7 +1138,6 @@ a {
 .bulkCardImage.foilCard .foilAura,
 .bulkCardImage.foilCard .foilRevealBurst {
   opacity: 0.18;
->>>>>>> cdad45f983029698b55070c669a2729f1e01b718
 }
 
 .collectorExclusiveCard {

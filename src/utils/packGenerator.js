@@ -882,15 +882,12 @@ export async function generateMultipleBoosters({
   boosterType = "play",
   packQuantity = 1,
 } = {}) {
-<<<<<<< HEAD
   const normalizedQuantity = Number(packQuantity) === 10 ? 10 : 1;
-=======
-  const normalizedQuantity = packQuantity === 10 ? 10 : 1;
->>>>>>> cdad45f983029698b55070c669a2729f1e01b718
   const packs = [];
 
   for (let index = 0; index < normalizedQuantity; index += 1) {
     const cards = await generateBoosterPack({ setCode, boosterType });
+    const sourcePackId = crypto.randomUUID();
     packs.push({
       packNumber: index + 1,
       boosterType,
@@ -899,10 +896,7 @@ export async function generateMultipleBoosters({
         ...card,
         boosterType,
         packNumber: index + 1,
-<<<<<<< HEAD
-=======
-        sourcePackId: `${setCode}-${boosterType}-${Date.now()}-${index + 1}`,
->>>>>>> cdad45f983029698b55070c669a2729f1e01b718
+        sourcePackId,
         bulkCardIndex: index * PACK_SIZE + cardIndex + 1,
       })),
     });

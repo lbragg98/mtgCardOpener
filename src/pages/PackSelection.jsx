@@ -354,12 +354,8 @@ export default function PackSelection() {
   const swipeThreshold = isMobile ? 28 : 60;
   const wheelRadius = isMobile ? 190 : 360;
   const collectorBoosterTotalCost = COLLECTOR_BOOSTER_COST * packQuantity;
-<<<<<<< HEAD
-  const canAffordCollectorBooster = packShards >= collectorBoosterTotalCost;
-=======
   const canAffordSelectedCollectorBoosters = packShards >= collectorBoosterTotalCost;
   const isCollectorOnly = isCollectorOnlySet(normalizedSetCode);
->>>>>>> cdad45f983029698b55070c669a2729f1e01b718
   const missingCollectorShards = Math.max(collectorBoosterTotalCost - packShards, 0);
 
   useEffect(() => {
@@ -405,10 +401,7 @@ export default function PackSelection() {
   function handlePackQuantityChange(_, nextQuantity) {
     if (PACK_QUANTITY_OPTIONS.includes(nextQuantity)) {
       setPackQuantity(nextQuantity);
-<<<<<<< HEAD
-=======
       setActionError('');
->>>>>>> cdad45f983029698b55070c669a2729f1e01b718
     }
   }
 
@@ -426,12 +419,6 @@ export default function PackSelection() {
     const centeredIndex = wrapIndex(liveActiveIndexRef.current, packOptions.length);
     const selectedPack = pack || packOptions[centeredIndex] || activePack;
 
-<<<<<<< HEAD
-    if (!selectedPack || (boosterType === 'collector' && packShards < collectorBoosterTotalCost)) {
-      return;
-    }
-
-=======
     if (!selectedPack) {
       return;
     }
@@ -448,7 +435,6 @@ export default function PackSelection() {
       return;
     }
 
->>>>>>> cdad45f983029698b55070c669a2729f1e01b718
     navigate(`/open/${normalizedSetCode}?quantity=${packQuantity}`, {
       state: {
         packArtwork: selectedPack.artwork,
@@ -584,9 +570,6 @@ export default function PackSelection() {
               variant="outlined"
             />
             <Box sx={{ display: 'grid', justifyItems: 'center', mt: 1.5 }}>
-<<<<<<< HEAD
-              <ToggleButtonGroup exclusive onChange={handlePackQuantityChange} size="small" value={packQuantity}>
-=======
               <ToggleButtonGroup
                 exclusive
                 onChange={handlePackQuantityChange}
@@ -599,16 +582,10 @@ export default function PackSelection() {
                   p: 0.35,
                 }}
               >
->>>>>>> cdad45f983029698b55070c669a2729f1e01b718
                 <ToggleButton value={1}>1x</ToggleButton>
                 <ToggleButton value={10}>10x</ToggleButton>
               </ToggleButtonGroup>
               <Typography color="text.secondary" sx={{ fontSize: 12, fontWeight: 800, mt: 0.75 }}>
-<<<<<<< HEAD
-                {packQuantity === 10 ? 'Open 10 packs and save every card.' : 'Open one pack.'}
-              </Typography>
-            </Box>
-=======
                 {packQuantity === 10 ? 'Open 10 packs in one bulk reveal.' : 'Open one pack with the classic reveal.'}
               </Typography>
             </Box>
@@ -621,7 +598,6 @@ export default function PackSelection() {
                 variant="filled"
               />
             )}
->>>>>>> cdad45f983029698b55070c669a2729f1e01b718
           </Box>
 
           {isCollectorOnly && (
@@ -788,28 +764,6 @@ export default function PackSelection() {
               maxWidth: 760,
             }}
           >
-<<<<<<< HEAD
-            <Card sx={{ borderColor: 'rgba(244, 201, 93, 0.5)' }}>
-              <CardContent sx={{ display: 'grid', gap: 1.25 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
-                  <Typography variant="h5">Play Booster</Typography>
-                  <Chip color="success" label="Free" size="small" />
-                </Box>
-                <Typography color="text.secondary">
-                  A standard 15-card pack using the current set and the existing Play Booster generator.
-                </Typography>
-                <Button
-                  disabled={!activePack}
-                  onClick={() => openPack(undefined, 'play')}
-                  size="large"
-                  startIcon={<AutoAwesomeIcon />}
-                  variant="contained"
-                >
-                  {getOpenButtonLabel('play')}
-                </Button>
-              </CardContent>
-            </Card>
-=======
             {!isCollectorOnly && (
               <Card sx={{ borderColor: 'rgba(244, 201, 93, 0.5)' }}>
                 <CardContent sx={{ display: 'grid', gap: 1.25 }}>
@@ -832,7 +786,6 @@ export default function PackSelection() {
                 </CardContent>
               </Card>
             )}
->>>>>>> cdad45f983029698b55070c669a2729f1e01b718
 
             <Card
               sx={{
@@ -848,13 +801,8 @@ export default function PackSelection() {
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
                   <Typography variant="h5">Collector Booster</Typography>
                   <Chip
-<<<<<<< HEAD
-                    color={canAffordCollectorBooster ? 'warning' : 'default'}
-                    icon={canAffordCollectorBooster ? undefined : <LockIcon />}
-=======
                     color={canAffordSelectedCollectorBoosters ? 'warning' : 'default'}
                     icon={canAffordSelectedCollectorBoosters ? undefined : <LockIcon />}
->>>>>>> cdad45f983029698b55070c669a2729f1e01b718
                     label={`${collectorBoosterTotalCost.toLocaleString()} shards`}
                     size="small"
                     variant="outlined"
@@ -869,11 +817,7 @@ export default function PackSelection() {
                 <Typography color="text.secondary" sx={{ fontSize: 13 }}>
                   Cost: {COLLECTOR_BOOSTER_COST.toLocaleString()} each · {packQuantity}x total: {collectorBoosterTotalCost.toLocaleString()} shards
                 </Typography>
-<<<<<<< HEAD
-                {!canAffordCollectorBooster && (
-=======
                 {!canAffordSelectedCollectorBoosters && (
->>>>>>> cdad45f983029698b55070c669a2729f1e01b718
                   <Alert severity="info" variant="outlined">
                     Need {missingCollectorShards.toLocaleString()} more Pack Shards.
                   </Alert>
@@ -885,11 +829,7 @@ export default function PackSelection() {
                   startIcon={canAffordSelectedCollectorBoosters ? <AutoAwesomeIcon /> : <LockIcon />}
                   variant={canAffordSelectedCollectorBoosters ? 'contained' : 'outlined'}
                 >
-<<<<<<< HEAD
-                  {canAffordCollectorBooster ? getOpenButtonLabel('collector') : `Need ${missingCollectorShards.toLocaleString()} more shards`}
-=======
                   {canAffordSelectedCollectorBoosters ? getOpenButtonLabel('collector') : `Need ${missingCollectorShards.toLocaleString()} more shards`}
->>>>>>> cdad45f983029698b55070c669a2729f1e01b718
                 </Button>
               </CardContent>
             </Card>
@@ -911,15 +851,6 @@ export default function PackSelection() {
             <DialogTitle sx={{ pb: 0.5 }}>Open {activePack?.name || 'Pack'}</DialogTitle>
             <DialogContent sx={{ display: 'grid', gap: 1.25, pt: 1 }}>
               <Typography color="text.secondary">
-<<<<<<< HEAD
-                {setInfo.name} is ready as a free Play Booster. Collector Booster costs{' '}
-                {COLLECTOR_BOOSTER_COST.toLocaleString()} shards each.
-              </Typography>
-              <ToggleButtonGroup exclusive onChange={handlePackQuantityChange} size="small" value={packQuantity}>
-                <ToggleButton value={1}>1x</ToggleButton>
-                <ToggleButton value={10}>10x</ToggleButton>
-              </ToggleButtonGroup>
-=======
                 {isCollectorOnly
                   ? `${setInfo.name} is collector-only and requires a Collector Booster.`
                   : `${setInfo.name} is ready as a free Play Booster.`}{' '}
@@ -934,7 +865,6 @@ export default function PackSelection() {
                   <ToggleButton value={10}>10x</ToggleButton>
                 </ToggleButtonGroup>
               </Box>
->>>>>>> cdad45f983029698b55070c669a2729f1e01b718
               <Chip
                 color="warning"
                 label={`${packShards.toLocaleString()} Pack Shards`}
@@ -964,32 +894,14 @@ export default function PackSelection() {
                 </Button>
               )}
               <Button
-<<<<<<< HEAD
-                autoFocus
-                disabled={!activePack}
-                onClick={() => openSelectedPack('play')}
-                size="large"
-                startIcon={<AutoAwesomeIcon />}
-                variant="contained"
-              >
-                {getOpenButtonLabel('play')}
-              </Button>
-              <Button
-                disabled={!activePack || !canAffordCollectorBooster}
-=======
                 autoFocus={isCollectorOnly || state?.preferredBoosterType === 'collector'}
                 disabled={!activePack || !canAffordSelectedCollectorBoosters}
->>>>>>> cdad45f983029698b55070c669a2729f1e01b718
                 onClick={() => openSelectedPack('collector')}
                 size="large"
                 startIcon={canAffordSelectedCollectorBoosters ? <AutoAwesomeIcon /> : <LockIcon />}
                 variant="outlined"
               >
-<<<<<<< HEAD
-                {canAffordCollectorBooster ? getOpenButtonLabel('collector') : `Need ${missingCollectorShards.toLocaleString()} more shards`}
-=======
                 {canAffordSelectedCollectorBoosters ? getOpenButtonLabel('collector') : `Need ${missingCollectorShards.toLocaleString()} more shards`}
->>>>>>> cdad45f983029698b55070c669a2729f1e01b718
               </Button>
             </DialogActions>
           </Dialog>

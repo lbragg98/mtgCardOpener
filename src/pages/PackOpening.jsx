@@ -82,8 +82,6 @@ function normalizePackQuantity(value) {
   return Number(value) === 10 ? 10 : 1;
 }
 
-<<<<<<< HEAD
-=======
 function isRealSaveableCard(card) {
   const typeLine = card?.type_line?.toLowerCase() || "";
 
@@ -116,7 +114,6 @@ function mergeSavedCardFlagsForDisplay(allCards, savedCards = []) {
   });
 }
 
->>>>>>> cdad45f983029698b55070c669a2729f1e01b718
 function PackCuttingScreen({
   artwork,
   boosterLabel,
@@ -856,12 +853,8 @@ export default function PackOpening() {
     boosterType === "collector" ? "Collector Booster" : "Play Booster";
   const queryQuantity = new URLSearchParams(search).get("quantity");
   const packQuantity = normalizePackQuantity(state?.packQuantity ?? queryQuantity);
-<<<<<<< HEAD
-  const totalCollectorCost = COLLECTOR_BOOSTER_COST * packQuantity;
-=======
   const isBulkOpening = packQuantity === 10;
   const collectorBoosterTotalCost = COLLECTOR_BOOSTER_COST * packQuantity;
->>>>>>> cdad45f983029698b55070c669a2729f1e01b718
   const openingId =
     state?.openingId || `${normalizedSetCode}-${boosterType}-${packQuantity}-direct`;
   const [pack, setPack] = useState([]);
@@ -877,6 +870,7 @@ export default function PackOpening() {
   const [completedOneOfOneRevealKey, setCompletedOneOfOneRevealKey] = useState("");
   const hasSavedRef = useRef(false);
   const isAnimatingRef = useRef(false);
+  const bulkOpeningIdRef = useRef(crypto.randomUUID());
   const equippedOpeningScene = getEquippedItem("openingScene");
   const openingSceneId = equippedOpeningScene?.id;
   const equippedTearEffect = getEquippedItem("tearEffect");
@@ -901,26 +895,7 @@ export default function PackOpening() {
         setSavedMessageSeverity("success");
         setSaveResult(null);
         setCompletedOneOfOneRevealKey("");
-<<<<<<< HEAD
-        const generatedOpening = await generateMultipleBoosters({
-          setCode: normalizedSetCode,
-          boosterType,
-          packQuantity,
-        });
-
-        if (boosterType === "collector") {
-          const spentKey = `collector-booster-spent-${openingId}-${packQuantity}`;
-
-          if (!sessionStorage.getItem(spentKey)) {
-            if (
-              getPackShards() < totalCollectorCost ||
-              !spendPackShards(totalCollectorCost)
-            ) {
-              throw new Error(
-                `You need ${totalCollectorCost.toLocaleString()} pack shards to open ${packQuantity} Collector Booster${packQuantity === 1 ? "" : "s"}.`,
-              );
-            }
-=======
+        bulkOpeningIdRef.current = crypto.randomUUID();
 
         if (isCollectorOnlySet(normalizedSetCode) && boosterType !== "collector") {
           // Direct URL protection: collector-only sets cannot bypass PackSelection.
@@ -932,7 +907,6 @@ export default function PackOpening() {
         const collectorSpentKey = `collector-booster-spent-${openingId}-${packQuantity}`;
         const shouldSpendCollectorShards =
           boosterType === "collector" && !sessionStorage.getItem(collectorSpentKey);
->>>>>>> cdad45f983029698b55070c669a2729f1e01b718
 
         if (shouldSpendCollectorShards) {
           const currentShards = user ? await getCloudPackShards() : getPackShards();
@@ -963,10 +937,7 @@ export default function PackOpening() {
         }
 
         if (isMounted) {
-<<<<<<< HEAD
-=======
           setBulkOpening(generatedOpening);
->>>>>>> cdad45f983029698b55070c669a2729f1e01b718
           setPack(generatedOpening.allCards);
         }
       } catch (packError) {
@@ -987,11 +958,7 @@ export default function PackOpening() {
     return () => {
       isMounted = false;
     };
-<<<<<<< HEAD
-  }, [boosterType, normalizedSetCode, openingId, packQuantity, totalCollectorCost]);
-=======
   }, [boosterType, collectorBoosterTotalCost, isBulkOpening, normalizedSetCode, openingId, packQuantity, user?.id]);
->>>>>>> cdad45f983029698b55070c669a2729f1e01b718
 
   const revealedPack = isBulkOpening ? bulkOpening?.allCards || pack : pack;
   const isFinished = currentIndex >= revealedPack.length;
@@ -1074,15 +1041,33 @@ export default function PackOpening() {
 
       async function saveRevealedPack() {
         try {
+          const cardsToSave = isBulkOpening ? bulkOpening?.allCards || revealedPack : revealedPack;
+
+          if (isBulkOpening && packQuantity === 10 && cardsToSave.length < 100) {
+            console.error("Mass opening save received too few cards", cardsToSave);
+          }
+
           const saveResult = user
-            ? await saveOpenedCards(revealedPack)
-            : saveCardsToCollection(revealedPack);
+            ? await saveOpenedCards(cardsToSave, {
+                boosterType,
+                setCode: normalizedSetCode,
+                setName: state?.setName || cardsToSave[0]?.set_name,
+                packQuantity,
+                bulkOpeningId: isBulkOpening ? bulkOpeningIdRef.current : null,
+              })
+            : saveCardsToCollection(cardsToSave);
           setSaveResult(saveResult);
           window.dispatchEvent(new Event("packShardsUpdated"));
 
           const messages = [
             `${saveResult.savedCards.length} cards added to your collection.`,
           ];
+
+          if (saveResult.insertedCount !== saveResult.attemptedCount) {
+            messages.push(
+              `Saved ${saveResult.insertedCount} of ${saveResult.attemptedCount} cards.`,
+            );
+          }
 
           if (saveResult.shardsAwarded > 0) {
             messages.push(
@@ -1092,17 +1077,18 @@ export default function PackOpening() {
 
           setSavedMessageSeverity("success");
           setSavedMessage(`${messages.join(" ")} ${user ? "Saved to cloud collection." : "Saved locally."}`);
-        } catch {
+        } catch (saveError) {
+          console.error("Could not save opened cards", saveError);
           setSavedMessageSeverity("error");
           setSavedMessage(
-            "Pack summary is ready, but the cards could not be saved. Please try refreshing your collection.",
+            "Could not save cards to your collection. Please try again.",
           );
         }
       }
 
       saveRevealedPack();
     }
-  }, [revealedPack, phase, user]);
+  }, [boosterType, bulkOpening?.allCards, isBulkOpening, normalizedSetCode, packQuantity, phase, revealedPack, state?.setName, user]);
 
   if (isLoading) {
     return (
@@ -1173,6 +1159,7 @@ export default function PackOpening() {
             allCards={mergeSavedCardFlagsForDisplay(bulkOpening.allCards, saveResult?.savedCards)}
             boosterType={boosterType}
             packs={bulkOpening.packs}
+            saveError={savedMessageSeverity === "error" ? savedMessage : ""}
             saveResult={saveResult}
             sceneId={openingSceneId}
             setCode={normalizedSetCode}

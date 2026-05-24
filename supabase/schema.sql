@@ -42,8 +42,16 @@ create table if not exists public.user_cards (
   prices jsonb default '{}'::jsonb,
   opened_at timestamptz default now(),
   source_pack_id uuid null,
+  booster_type text null,
+  pack_number integer null,
+  bulk_opening_id uuid null,
   created_at timestamptz default now()
 );
+
+alter table public.user_cards
+  add column if not exists booster_type text null,
+  add column if not exists pack_number integer null,
+  add column if not exists bulk_opening_id uuid null;
 
 -- Stores purchased binders for authenticated users.
 create table if not exists public.owned_binders (

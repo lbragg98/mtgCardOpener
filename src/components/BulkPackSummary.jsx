@@ -91,6 +91,7 @@ export default function BulkPackSummary({
   allCards = [],
   boosterType,
   packs = [],
+  saveError = '',
   saveResult,
   sceneId,
   setCode,
@@ -128,8 +129,16 @@ export default function BulkPackSummary({
           {packs.length} packs from {setName || setCode?.toUpperCase()}
         </Typography>
         <Typography color="text.secondary" sx={{ mb: 3 }}>
-          {saveResult ? `${saveResult.savedCards.length.toLocaleString()} cards saved.` : 'Saving cards to your collection...'}
+          {saveResult
+            ? `${saveResult.savedCards.length.toLocaleString()} cards saved.`
+            : saveError || 'Saving cards to your collection...'}
         </Typography>
+
+        {saveError && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {saveError}
+          </Alert>
+        )}
 
         {oneOfOneCard && (
           <Alert severity="warning" sx={{ mb: 3 }} variant="filled">

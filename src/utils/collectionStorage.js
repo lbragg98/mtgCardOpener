@@ -186,8 +186,6 @@ export function spendPackShards(amount) {
   return true;
 }
 
-<<<<<<< HEAD
-=======
 function getDuplicateCardKey(card) {
   return `${card.id}-${Boolean(card.isFoil) ? "foil" : "nonfoil"}`;
 }
@@ -225,7 +223,6 @@ export function calculateDuplicateRewardsForBatch(existingCollection, newCards) 
   };
 }
 
->>>>>>> cdad45f983029698b55070c669a2729f1e01b718
 export function calculateDuplicateShardReward(cardsToSave, existingCollection) {
   const { duplicateCount, shardsAwarded } = calculateDuplicateRewardsForBatch(
     existingCollection,
@@ -235,46 +232,6 @@ export function calculateDuplicateShardReward(cardsToSave, existingCollection) {
   return {
     duplicateCount,
     shardsAwarded,
-<<<<<<< HEAD
-  };
-}
-
-function getDuplicateCardKey(card) {
-  return `${card.id}-${Boolean(card.isFoil) ? "foil" : "nonfoil"}`;
-}
-
-export function calculateDuplicateRewardsForBatch(existingCollection, newCards) {
-  const ownedCounts = new Map();
-
-  existingCollection.forEach((card) => {
-    const key = getDuplicateCardKey(card);
-    ownedCounts.set(key, (ownedCounts.get(key) || 0) + 1);
-  });
-
-  let duplicateCount = 0;
-  const cardsWithDuplicateFlags = newCards.map((card) => {
-    const key = getDuplicateCardKey(card);
-    const ownedCount = ownedCounts.get(key) || 0;
-    const isDuplicate = ownedCount > 0;
-
-    ownedCounts.set(key, ownedCount + 1);
-
-    if (isDuplicate) {
-      duplicateCount += 1;
-    }
-
-    return {
-      ...card,
-      isDuplicatePull: isDuplicate,
-    };
-  });
-
-  return {
-    cardsWithDuplicateFlags,
-    duplicateCount,
-    shardsAwarded: duplicateCount * DUPLICATE_SHARD_REWARD,
-=======
->>>>>>> cdad45f983029698b55070c669a2729f1e01b718
   };
 }
 
@@ -286,15 +243,9 @@ export function saveCardsToCollection(cards) {
     .map((card) => normalizeCollectionCard(card, openedAt));
   const { cardsWithDuplicateFlags, duplicateCount, shardsAwarded } =
     calculateDuplicateRewardsForBatch(
-<<<<<<< HEAD
-    currentCollection,
-    cardsToSave,
-  );
-=======
       currentCollection,
       cardsToSave,
     );
->>>>>>> cdad45f983029698b55070c669a2729f1e01b718
   const nextCollection = [...cardsWithDuplicateFlags, ...currentCollection];
 
   localStorage.setItem(COLLECTION_KEY, JSON.stringify(nextCollection));
