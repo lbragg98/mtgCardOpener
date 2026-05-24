@@ -860,3 +860,41 @@ export async function generateCollectorBooster(setCode) {
 
   return sortPackForReveal(finalPack.slice(0, PACK_SIZE), "collector");
 }
+
+export async function generateBoosterPack({ setCode, boosterType = "play" }) {
+  return boosterType === "collector"
+    ? generateCollectorBooster(setCode)
+    : generatePlayBooster(setCode);
+}
+
+export async function generateMultipleBoosters({
+  setCode,
+  boosterType = "play",
+  packQuantity = 1,
+} = {}) {
+  const normalizedQuantity = Number(packQuantity) === 10 ? 10 : 1;
+  const packs = [];
+
+  for (let index = 0; index < normalizedQuantity; index += 1) {
+    const cards = await generateBoosterPack({ setCode, boosterType });
+    packs.push({
+      packNumber: index + 1,
+      boosterType,
+      setCode,
+      cards: cards.map((card, cardIndex) => ({
+        ...card,
+        boosterType,
+        packNumber: index + 1,
+        bulkCardIndex: index * PACK_SIZE + cardIndex + 1,
+      })),
+    });
+  }
+
+  return {
+    packs,
+    allCards: packs.flatMap((pack) => pack.cards),
+    packQuantity: normalizedQuantity,
+    boosterType,
+    setCode,
+  };
+}

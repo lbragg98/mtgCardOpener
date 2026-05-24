@@ -17,6 +17,8 @@ import {
   IconButton,
   Skeleton,
   Typography,
+  ToggleButton,
+  ToggleButtonGroup,
   useMediaQuery,
 } from '@mui/material';
 import { animate, motion, useMotionValue, useTransform } from 'framer-motion';
@@ -30,6 +32,7 @@ import { getPackArtForSet } from '../utils/packArt.js';
 
 const PACK_COUNT = 7;
 const COLLECTOR_BOOSTER_COST = 1000;
+const PACK_QUANTITY_OPTIONS = [1, 10];
 const DESKTOP_DRAG_SENSITIVITY = 0.045;
 const MOBILE_DRAG_SENSITIVITY = 0.075;
 const DESKTOP_VELOCITY_PROJECTION = 0.018;
@@ -260,6 +263,7 @@ export default function PackSelection() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isBoosterDialogOpen, setIsBoosterDialogOpen] = useState(false);
   const [packShards, setPackShards] = useState(() => getPackShards());
+  const [packQuantity, setPackQuantity] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState('');
@@ -345,7 +349,9 @@ export default function PackSelection() {
   const springConfig = isMobile ? MOBILE_SPRING_CONFIG : DESKTOP_SPRING_CONFIG;
   const swipeThreshold = isMobile ? 28 : 60;
   const wheelRadius = isMobile ? 190 : 360;
-  const canAffordCollectorBooster = packShards >= COLLECTOR_BOOSTER_COST;
+  const collectorBoosterTotalCost = COLLECTOR_BOOSTER_COST * packQuantity;
+  const canAffordCollectorBooster = packShards >= collectorBoosterTotalCost;
+  const missingCollectorShards = Math.max(collectorBoosterTotalCost - packShards, 0);
 
   useEffect(() => {
     activeIndexRef.current = activeIndex;
@@ -387,15 +393,29 @@ export default function PackSelection() {
     animateToCenteredPack(centeredIndex, nextRotation);
   }, [packOptions.length, rotation]);
 
+  function handlePackQuantityChange(_, nextQuantity) {
+    if (PACK_QUANTITY_OPTIONS.includes(nextQuantity)) {
+      setPackQuantity(nextQuantity);
+    }
+  }
+
+  function getOpenButtonLabel(boosterType) {
+    const quantityText = packQuantity === 10 ? '10 ' : '';
+
+    return boosterType === 'collector'
+      ? `Open ${quantityText}Collector Booster${packQuantity === 10 ? 's' : ''}`
+      : `Open ${quantityText}Play Booster${packQuantity === 10 ? 's' : ''}`;
+  }
+
   function openPack(pack, boosterType = 'play') {
     const centeredIndex = wrapIndex(liveActiveIndexRef.current, packOptions.length);
     const selectedPack = pack || packOptions[centeredIndex] || activePack;
 
-    if (!selectedPack || (boosterType === 'collector' && packShards < COLLECTOR_BOOSTER_COST)) {
+    if (!selectedPack || (boosterType === 'collector' && packShards < collectorBoosterTotalCost)) {
       return;
     }
 
-    navigate(`/open/${normalizedSetCode}`, {
+    navigate(`/open/${normalizedSetCode}?quantity=${packQuantity}`, {
       state: {
         packArtwork: selectedPack.artwork,
         packArtworkCardName: selectedPack.artworkCardName,
@@ -403,6 +423,7 @@ export default function PackSelection() {
         setIconUrl: setInfo.iconUrl,
         setName: setInfo.name,
         boosterType,
+        packQuantity,
         openingId: `${normalizedSetCode}-${boosterType}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       },
     });
@@ -524,6 +545,15 @@ export default function PackSelection() {
               sx={{ mt: 1.5, fontWeight: 900 }}
               variant="outlined"
             />
+            <Box sx={{ display: 'grid', justifyItems: 'center', mt: 1.5 }}>
+              <ToggleButtonGroup exclusive onChange={handlePackQuantityChange} size="small" value={packQuantity}>
+                <ToggleButton value={1}>1x</ToggleButton>
+                <ToggleButton value={10}>10x</ToggleButton>
+              </ToggleButtonGroup>
+              <Typography color="text.secondary" sx={{ fontSize: 12, fontWeight: 800, mt: 0.75 }}>
+                {packQuantity === 10 ? 'Open 10 packs and save every card.' : 'Open one pack.'}
+              </Typography>
+            </Box>
           </Box>
 
           <Box
@@ -694,7 +724,7 @@ export default function PackSelection() {
                   startIcon={<AutoAwesomeIcon />}
                   variant="contained"
                 >
-                  Open Play Booster
+                  {getOpenButtonLabel('play')}
                 </Button>
               </CardContent>
             </Card>
@@ -715,7 +745,7 @@ export default function PackSelection() {
                   <Chip
                     color={canAffordCollectorBooster ? 'warning' : 'default'}
                     icon={canAffordCollectorBooster ? undefined : <LockIcon />}
-                    label={`${COLLECTOR_BOOSTER_COST.toLocaleString()} shards`}
+                    label={`${collectorBoosterTotalCost.toLocaleString()} shards`}
                     size="small"
                     variant="outlined"
                   />
@@ -726,9 +756,12 @@ export default function PackSelection() {
                 <Typography color="text.secondary" sx={{ fontSize: 13 }}>
                   Balance: {packShards.toLocaleString()} shards
                 </Typography>
+                <Typography color="text.secondary" sx={{ fontSize: 13 }}>
+                  Cost: {COLLECTOR_BOOSTER_COST.toLocaleString()} each · {packQuantity}x total: {collectorBoosterTotalCost.toLocaleString()} shards
+                </Typography>
                 {!canAffordCollectorBooster && (
                   <Alert severity="info" variant="outlined">
-                    Earn shards from duplicate cards.
+                    Need {missingCollectorShards.toLocaleString()} more Pack Shards.
                   </Alert>
                 )}
                 <Button
@@ -738,7 +771,7 @@ export default function PackSelection() {
                   startIcon={canAffordCollectorBooster ? <AutoAwesomeIcon /> : <LockIcon />}
                   variant={canAffordCollectorBooster ? 'contained' : 'outlined'}
                 >
-                  {canAffordCollectorBooster ? 'Open Collector Booster' : 'Locked'}
+                  {canAffordCollectorBooster ? getOpenButtonLabel('collector') : `Need ${missingCollectorShards.toLocaleString()} more shards`}
                 </Button>
               </CardContent>
             </Card>
@@ -761,8 +794,12 @@ export default function PackSelection() {
             <DialogContent sx={{ display: 'grid', gap: 1.25, pt: 1 }}>
               <Typography color="text.secondary">
                 {setInfo.name} is ready as a free Play Booster. Collector Booster costs{' '}
-                {COLLECTOR_BOOSTER_COST.toLocaleString()} shards.
+                {COLLECTOR_BOOSTER_COST.toLocaleString()} shards each.
               </Typography>
+              <ToggleButtonGroup exclusive onChange={handlePackQuantityChange} size="small" value={packQuantity}>
+                <ToggleButton value={1}>1x</ToggleButton>
+                <ToggleButton value={10}>10x</ToggleButton>
+              </ToggleButtonGroup>
               <Chip
                 color="warning"
                 label={`${packShards.toLocaleString()} Pack Shards`}
@@ -771,7 +808,7 @@ export default function PackSelection() {
               />
               {!canAffordCollectorBooster && (
                 <Alert severity="info" variant="outlined">
-                  Earn shards from duplicate cards to unlock Collector Boosters.
+                  Need {missingCollectorShards.toLocaleString()} more Pack Shards.
                 </Alert>
               )}
             </DialogContent>
@@ -784,7 +821,7 @@ export default function PackSelection() {
                 startIcon={<AutoAwesomeIcon />}
                 variant="contained"
               >
-                Open Play Booster
+                {getOpenButtonLabel('play')}
               </Button>
               <Button
                 disabled={!activePack || !canAffordCollectorBooster}
@@ -793,7 +830,7 @@ export default function PackSelection() {
                 startIcon={canAffordCollectorBooster ? <AutoAwesomeIcon /> : <LockIcon />}
                 variant="outlined"
               >
-                {canAffordCollectorBooster ? 'Open Collector Booster' : 'Collector Booster Locked'}
+                {canAffordCollectorBooster ? getOpenButtonLabel('collector') : `Need ${missingCollectorShards.toLocaleString()} more shards`}
               </Button>
             </DialogActions>
           </Dialog>

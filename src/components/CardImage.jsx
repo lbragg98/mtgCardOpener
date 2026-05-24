@@ -53,6 +53,7 @@ function getFoilLabel(card) {
 export default function CardImage({
   card,
   className = '',
+  disableFoilEffects = false,
   foilStyle,
   interactiveFoil = false,
   large = false,
@@ -63,7 +64,8 @@ export default function CardImage({
 }) {
   const imageUrl = card?.imageUrl || card?.image;
   const variantClass = `variant${variant.charAt(0).toUpperCase()}${variant.slice(1)}`;
-  const foilClass = getFoilClass(card);
+  const shouldRenderFoilEffects = Boolean(card?.isFoil && !disableFoilEffects);
+  const foilClass = shouldRenderFoilEffects ? getFoilClass(card) : '';
   const foilLabel = getFoilLabel(card);
   const foilIntensity = getFoilIntensity(card);
   const rarityClass = ['rare', 'mythic'].includes(card?.rarity) ? `foilRarity-${card.rarity}` : '';
@@ -75,12 +77,13 @@ export default function CardImage({
         'cardImageWrapper',
         isOneOfOne ? 'oneOfOneCardFrame' : '',
         card?.isCollectorExclusive ? 'collectorExclusiveCard' : '',
-        card?.isFoil ? 'foilCard' : '',
-        card?.isFoil ? `foilVariant-${variant}` : '',
-        card?.isFoil ? variantClass : '',
-        card?.isFoil && interactiveFoil ? 'interactiveFoil' : '',
-        card?.isFoil ? `foilIntensity-${foilIntensity}` : '',
-        card?.isFoil && mobileFoilMode ? 'mobileFoilInspect mobileFoilMode' : '',
+        shouldRenderFoilEffects ? 'foilCard' : '',
+        card?.isFoil && disableFoilEffects ? 'foilCardStatic' : '',
+        shouldRenderFoilEffects ? `foilVariant-${variant}` : '',
+        shouldRenderFoilEffects ? variantClass : '',
+        shouldRenderFoilEffects && interactiveFoil ? 'interactiveFoil' : '',
+        shouldRenderFoilEffects ? `foilIntensity-${foilIntensity}` : '',
+        shouldRenderFoilEffects && mobileFoilMode ? 'mobileFoilInspect mobileFoilMode' : '',
         rarityClass,
         foilClass,
         large ? 'cardImageLarge' : '',
@@ -91,7 +94,7 @@ export default function CardImage({
       onClick={onClick}
       sx={{ ...foilStyle, ...sx }}
     >
-      {card?.isFoil && <Box className="foilAura" />}
+      {shouldRenderFoilEffects && <Box className="foilAura" />}
       {card?.isCollectorExclusive && (
         <Chip
           className="collectorExclusiveLabel"
@@ -106,7 +109,9 @@ export default function CardImage({
           alt={card?.name || 'Magic card'}
           className="cardImage"
           component="img"
+          decoding="async"
           draggable={false}
+          loading={variant === 'grid' ? 'lazy' : 'eager'}
           src={imageUrl}
         />
       ) : (
@@ -127,7 +132,7 @@ export default function CardImage({
         </Box>
       )}
 
-      {card?.isFoil && (
+      {shouldRenderFoilEffects && (
         <>
         <Box className="foilRevealBurst" />
           <Box className="foilColorLayer" />

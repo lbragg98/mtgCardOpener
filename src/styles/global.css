@@ -1102,6 +1102,31 @@ a {
   border-radius: 18px;
 }
 
+.massSummaryCardImage,
+.foilCardStatic {
+  background:
+    linear-gradient(145deg, rgba(244, 201, 93, 0.08), transparent 34%),
+    rgba(0, 0, 0, 0.32);
+  contain: layout paint;
+}
+
+.massSummaryCardImage .cardImage {
+  min-height: 0;
+  transform: translateZ(0);
+}
+
+.foilCardStatic::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  border: 1px solid rgba(244, 201, 93, 0.24);
+  background: linear-gradient(120deg, transparent 12%, rgba(255, 255, 255, 0.12) 46%, transparent 76%);
+  opacity: 0.42;
+  pointer-events: none;
+}
+
 .collectorExclusiveCard {
   box-shadow:
     inset 0 0 0 2px rgba(244, 201, 93, 0.72),

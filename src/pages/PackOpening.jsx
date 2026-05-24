@@ -51,8 +51,7 @@ import {
   normalizeFoilTreatment,
 } from "../utils/foilTypes.js";
 import {
-  generateCollectorBooster,
-  generatePlayBooster,
+  generateMultipleBoosters,
 } from "../utils/packGenerator.js";
 import {
   getFoilAnimationConfig,
@@ -63,11 +62,16 @@ const SWIPE_THRESHOLD = 120;
 const CUT_THRESHOLD = 170;
 const COLLECTOR_BOOSTER_COST = 1000;
 const REVEAL_CARD_WIDTH = { xs: "min(76vw, 42vh)", sm: 360, md: 420 };
+const MASS_SUMMARY_PAGE_SIZE = 50;
 const PHASES = {
   cutPack: "cutPack",
   revealCards: "revealCards",
   summary: "summary",
 };
+
+function normalizePackQuantity(value) {
+  return Number(value) === 10 ? 10 : 1;
+}
 
 function PackCuttingScreen({
   artwork,
@@ -578,6 +582,9 @@ function RevealCard({ card, cardNumber, exitX, onAdvance, revealEffectId }) {
 }
 
 function SummaryGrid({ boosterLabel, pack, saveResult, sceneId, setCode }) {
+  const [visibleCardCount, setVisibleCardCount] = useState(MASS_SUMMARY_PAGE_SIZE);
+  const isMassOpening = pack.length > MASS_SUMMARY_PAGE_SIZE;
+  const visibleCards = isMassOpening ? pack.slice(0, visibleCardCount) : pack;
   const collectorExclusiveHits = pack.filter((card) => card.isCollectorExclusive);
   const oneOfOneRing = pack.find(isOneOfOneRing);
   const bestCollectorExclusiveHit = collectorExclusiveHits
@@ -674,18 +681,23 @@ function SummaryGrid({ boosterLabel, pack, saveResult, sceneId, setCode }) {
             mb: 4,
           }}
         >
-          {pack.map((card) => (
+          {visibleCards.map((card, index) => (
             <Card
-              key={`${card.id}-${card.packSlot}`}
+              key={`${card.id}-${card.packNumber || 1}-${card.bulkCardIndex || card.packSlot || index}`}
               sx={{ position: "relative", overflow: "hidden", minWidth: 0 }}
             >
-              <CardImage card={card} variant="grid" />
+              <CardImage
+                card={card}
+                className={isMassOpening ? "massSummaryCardImage" : ""}
+                disableFoilEffects={isMassOpening}
+                variant="grid"
+              />
               <CardContent sx={{ p: 1 }}>
                 <Typography variant="body2" fontWeight={800} noWrap>
                   {card.name}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  {card.rarity}
+                  {card.packNumber ? `Pack ${card.packNumber} · ` : ""}{card.rarity}
                 </Typography>
                 {card.isFoil && (
                   <Chip
@@ -720,6 +732,17 @@ function SummaryGrid({ boosterLabel, pack, saveResult, sceneId, setCode }) {
           ))}
         </Box>
 
+        {isMassOpening && visibleCardCount < pack.length && (
+          <Box sx={{ display: "flex", justifyContent: "center", mb: 4 }}>
+            <Button
+              onClick={() => setVisibleCardCount((count) => Math.min(count + MASS_SUMMARY_PAGE_SIZE, pack.length))}
+              variant="outlined"
+            >
+              Show More Cards
+            </Button>
+          </Box>
+        )}
+
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
           <Button
             component={Link}
@@ -753,7 +776,7 @@ function SummaryGrid({ boosterLabel, pack, saveResult, sceneId, setCode }) {
 
 export default function PackOpening() {
   const { setCode } = useParams();
-  const { state } = useLocation();
+  const { search, state } = useLocation();
   const { user } = useAuth();
   const { getEquippedItem } = useCosmetics();
   const isMobileReveal = useMediaQuery((theme) => theme.breakpoints.down("sm"));
@@ -761,8 +784,11 @@ export default function PackOpening() {
   const boosterType = state?.boosterType === "collector" ? "collector" : "play";
   const boosterLabel =
     boosterType === "collector" ? "Collector Booster" : "Play Booster";
+  const queryQuantity = new URLSearchParams(search).get("quantity");
+  const packQuantity = normalizePackQuantity(state?.packQuantity ?? queryQuantity);
+  const totalCollectorCost = COLLECTOR_BOOSTER_COST * packQuantity;
   const openingId =
-    state?.openingId || `${normalizedSetCode}-${boosterType}-direct`;
+    state?.openingId || `${normalizedSetCode}-${boosterType}-${packQuantity}-direct`;
   const [pack, setPack] = useState([]);
   const [phase, setPhase] = useState(PHASES.cutPack);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -797,21 +823,22 @@ export default function PackOpening() {
         setSavedMessageSeverity("success");
         setSaveResult(null);
         setCompletedOneOfOneRevealKey("");
-        const generatedPack =
-          boosterType === "collector"
-            ? await generateCollectorBooster(normalizedSetCode)
-            : await generatePlayBooster(normalizedSetCode);
+        const generatedOpening = await generateMultipleBoosters({
+          setCode: normalizedSetCode,
+          boosterType,
+          packQuantity,
+        });
 
         if (boosterType === "collector") {
-          const spentKey = `collector-booster-spent-${openingId}`;
+          const spentKey = `collector-booster-spent-${openingId}-${packQuantity}`;
 
           if (!sessionStorage.getItem(spentKey)) {
             if (
-              getPackShards() < COLLECTOR_BOOSTER_COST ||
-              !spendPackShards(COLLECTOR_BOOSTER_COST)
+              getPackShards() < totalCollectorCost ||
+              !spendPackShards(totalCollectorCost)
             ) {
               throw new Error(
-                "You need 1,000 pack shards to open a Collector Booster.",
+                `You need ${totalCollectorCost.toLocaleString()} pack shards to open ${packQuantity} Collector Booster${packQuantity === 1 ? "" : "s"}.`,
               );
             }
 
@@ -820,7 +847,7 @@ export default function PackOpening() {
         }
 
         if (isMounted) {
-          setPack(generatedPack);
+          setPack(generatedOpening.allCards);
         }
       } catch (packError) {
         if (isMounted) {
@@ -840,7 +867,7 @@ export default function PackOpening() {
     return () => {
       isMounted = false;
     };
-  }, [boosterType, normalizedSetCode, openingId]);
+  }, [boosterType, normalizedSetCode, openingId, packQuantity, totalCollectorCost]);
 
   const revealedPack = pack;
   const isFinished = currentIndex >= revealedPack.length;

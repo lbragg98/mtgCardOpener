@@ -150,17 +150,49 @@ export function spendPackShards(amount) {
 }
 
 export function calculateDuplicateShardReward(cardsToSave, existingCollection) {
-  const duplicateCount = cardsToSave.reduce((count, card) => {
-    const isDuplicate = existingCollection.some(
-      (existingCard) =>
-        existingCard.id === card.id &&
-        Boolean(existingCard.isFoil) === Boolean(card.isFoil),
-    );
-
-    return isDuplicate ? count + 1 : count;
-  }, 0);
+  const { duplicateCount, shardsAwarded } = calculateDuplicateRewardsForBatch(
+    existingCollection,
+    cardsToSave,
+  );
 
   return {
+    duplicateCount,
+    shardsAwarded,
+  };
+}
+
+function getDuplicateCardKey(card) {
+  return `${card.id}-${Boolean(card.isFoil) ? "foil" : "nonfoil"}`;
+}
+
+export function calculateDuplicateRewardsForBatch(existingCollection, newCards) {
+  const ownedCounts = new Map();
+
+  existingCollection.forEach((card) => {
+    const key = getDuplicateCardKey(card);
+    ownedCounts.set(key, (ownedCounts.get(key) || 0) + 1);
+  });
+
+  let duplicateCount = 0;
+  const cardsWithDuplicateFlags = newCards.map((card) => {
+    const key = getDuplicateCardKey(card);
+    const ownedCount = ownedCounts.get(key) || 0;
+    const isDuplicate = ownedCount > 0;
+
+    ownedCounts.set(key, ownedCount + 1);
+
+    if (isDuplicate) {
+      duplicateCount += 1;
+    }
+
+    return {
+      ...card,
+      isDuplicatePull: isDuplicate,
+    };
+  });
+
+  return {
+    cardsWithDuplicateFlags,
     duplicateCount,
     shardsAwarded: duplicateCount * DUPLICATE_SHARD_REWARD,
   };
@@ -172,11 +204,12 @@ export function saveCardsToCollection(cards) {
   const cardsToSave = cards
     .filter(isRealSaveableCard)
     .map((card) => normalizeCollectionCard(card, openedAt));
-  const { duplicateCount, shardsAwarded } = calculateDuplicateShardReward(
-    cardsToSave,
+  const { cardsWithDuplicateFlags, duplicateCount, shardsAwarded } =
+    calculateDuplicateRewardsForBatch(
     currentCollection,
+    cardsToSave,
   );
-  const nextCollection = [...cardsToSave, ...currentCollection];
+  const nextCollection = [...cardsWithDuplicateFlags, ...currentCollection];
 
   localStorage.setItem(COLLECTION_KEY, JSON.stringify(nextCollection));
   notifyCollectionUpdated();
@@ -185,7 +218,7 @@ export function saveCardsToCollection(cards) {
     shardsAwarded > 0 ? addPackShards(shardsAwarded) : getPackShards();
 
   return {
-    savedCards: cardsToSave,
+    savedCards: cardsWithDuplicateFlags,
     duplicateCount,
     shardsAwarded,
     newShardBalance,
