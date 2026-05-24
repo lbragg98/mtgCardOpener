@@ -1,3 +1,4 @@
+// Trades page lists active trade offers between accepted friends.
 import AddIcon from '@mui/icons-material/Add';
 import {
   Alert,
@@ -43,7 +44,7 @@ export default function Trades() {
       setError('');
       setTrades(await getMyTrades());
     } catch (loadError) {
-      setError(loadError.message || 'Unable to load trades.');
+      setError(loadError.message || 'Your trades could not be loaded. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -69,20 +70,20 @@ export default function Trades() {
       await loadTrades();
       setSnackbar({ message, severity: 'success' });
     } catch (actionError) {
-      setSnackbar({ message: actionError.message || 'Unable to update trade.', severity: 'error' });
+      setSnackbar({ message: actionError.message || 'That trade could not be updated. Please try again.', severity: 'error' });
     }
   }
 
   return (
     <TradeSkinSurface>
       <PageHeader eyebrow="Trading" title="Trades">
-        Review incoming offers, manage outgoing trades, and keep a record of completed or cancelled deals.
+        Review incoming offers, manage outgoing trades, and keep a record of completed deals.
       </PageHeader>
 
       <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, mb: 3, flexWrap: 'wrap' }}>
         <Typography color="text.secondary">Trade only with accepted friends.</Typography>
         <Button component={Link} startIcon={<AddIcon />} to="/friends" variant="contained">
-          Start from Friends
+          Find friends to trade
         </Button>
       </Box>
 
@@ -100,9 +101,9 @@ export default function Trades() {
       </Tabs>
 
       {isLoading ? (
-        <Alert severity="info">Loading trades...</Alert>
+        <Alert severity="info">Loading your trades...</Alert>
       ) : visibleTrades.length === 0 ? (
-        <EmptyState>No trades in this section.</EmptyState>
+        <EmptyState>No trades here yet.</EmptyState>
       ) : (
         <Box sx={{ display: 'grid', gap: 2 }}>
           {visibleTrades.map((trade) => (
@@ -135,7 +136,7 @@ export default function Trades() {
             }}
             variant="contained"
           >
-            Accept Trade
+            Accept trade
           </Button>
         </DialogActions>
       </Dialog>

@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabaseClient.js';
-import { addPackShards, getPackShards, spendPackShards } from '../utils/collectionStorage.js';
 import { getShopItemById, SHOP_CATEGORIES } from '../utils/shopCatalog.js';
+import { addCloudPackShards, getCloudPackShards, spendCloudPackShards } from './packShards.js';
 import { normalizeUserCardRow } from './userCards.js';
 
 async function getCurrentUserId() {
@@ -114,15 +114,13 @@ export async function purchaseDisplayCase(displayCaseId) {
     throw new Error('Display case not found.');
   }
 
-  const currentShards = getPackShards();
+  const currentShards = await getCloudPackShards();
 
   if (currentShards < catalogItem.price) {
     throw new Error(`Need ${(catalogItem.price - currentShards).toLocaleString()} more Pack Shards.`);
   }
 
-  if (!spendPackShards(catalogItem.price)) {
-    throw new Error('Not enough Pack Shards.');
-  }
+  const newShardBalance = await spendCloudPackShards(catalogItem.price);
 
   const { data, error } = await supabase
     .from('display_cases')
@@ -134,7 +132,7 @@ export async function purchaseDisplayCase(displayCaseId) {
     .single();
 
   if (error) {
-    addPackShards(catalogItem.price);
+    await addCloudPackShards(catalogItem.price);
     throw new Error(error.message || 'Unable to purchase display case.');
   }
 
@@ -144,7 +142,7 @@ export async function purchaseDisplayCase(displayCaseId) {
   return {
     displayCase: normalizeDisplayCase(data),
     catalogItem,
-    newShardBalance: getPackShards(),
+    newShardBalance,
   };
 }
 

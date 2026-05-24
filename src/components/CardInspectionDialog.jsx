@@ -1,3 +1,4 @@
+// Calm card inspection dialog used by collection/binders, separate from pack-opening reveal motion.
 import DeleteIcon from '@mui/icons-material/Delete';
 import {
   Box,
@@ -45,7 +46,7 @@ export default function CardInspectionDialog({
   }
 
   function formatCardPrice(value) {
-    return value ? formatPrice(value) : 'No price';
+    return value ? formatPrice(value) : 'No price available';
   }
 
   return (

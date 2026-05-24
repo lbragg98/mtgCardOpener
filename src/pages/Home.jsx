@@ -196,9 +196,9 @@ function HomeWidgetPanel({ collection, ownedBinders, packShards, stats, widgetId
     'home-widget-favorite-card': {
       icon: <StyleIcon />,
       label: 'Favorite Card',
-      title: 'Favorite card pinning coming soon',
-      helper: bestPull ? `For now: ${bestPull.name}` : 'No card available yet',
-      body: bestPull ? `Using your best available pull as a placeholder: ${formatPrice(getCardPrice(bestPull))}.` : 'Once favorites exist, your pinned card will live here.',
+      title: bestPull?.name || 'No favorite card yet',
+      helper: bestPull ? 'Showing your best available pull' : 'Open packs to find a standout card',
+      body: bestPull ? `Estimated value: ${formatPrice(getCardPrice(bestPull))}.` : 'Your highlighted card will appear here once your collection has cards.',
     },
     'home-widget-binder-progress': {
       icon: <ViewCarouselIcon />,
@@ -213,16 +213,16 @@ function HomeWidgetPanel({ collection, ownedBinders, packShards, stats, widgetId
       label: 'Shard Balance',
       title: `${packShards.toLocaleString()} Pack Shards`,
       helper: `${Math.round(collectorProgress * 100)}% to Collector Booster`,
-      body: packShards >= COLLECTOR_BOOSTER_COST ? 'Collector Booster ready.' : `${(COLLECTOR_BOOSTER_COST - packShards).toLocaleString()} more shards needed.`,
+      body: packShards >= COLLECTOR_BOOSTER_COST ? 'Collector Booster ready.' : `Need ${(COLLECTOR_BOOSTER_COST - packShards).toLocaleString()} more Pack Shards.`,
       progress: collectorProgress,
       tone: 'warning',
     },
     'home-widget-daily-reward': {
       icon: <WhatshotIcon />,
       label: 'Daily Reward',
-      title: 'Daily rewards coming soon',
-      helper: 'Widget slot reserved',
-      body: 'When daily rewards are available, this widget will show streaks and claim status.',
+      title: 'Daily Battle Rewards',
+      helper: 'Earn Pack Shards in Binder Battle',
+      body: 'Battle rewards reset daily and can be earned from completed matches.',
     },
     'home-widget-best-pull': {
       icon: <AutoAwesomeIcon />,
@@ -564,19 +564,19 @@ export default function Home() {
     },
     {
       title: 'Build collection',
-      body: 'Save pulls locally, then search, filter, and inspect your cards.',
+      body: user ? 'Save pulls to your cloud collection, then search, filter, and inspect your cards.' : 'Save pulls locally, then search, filter, and inspect your cards.',
       actionLabel: 'View Collection',
       icon: <CollectionsBookmarkIcon fontSize="large" />,
       onClick: () => navigate('/collection'),
       extra: stats.totalCards
         ? `${stats.totalCards.toLocaleString()} saved, ${stats.foilCards.toLocaleString()} foils, ${stats.duplicateCards.toLocaleString()} duplicates`
-        : 'No cards saved yet.',
+        : 'No cards yet. Open a pack to start your collection.',
     },
     {
       title: 'Earn Pack Shards',
       body: hasCollectorBooster
-        ? 'Collector Booster Ready. Spend shards on a mostly foil opening.'
-        : 'Duplicates grant 100 Pack Shards. Spend 1000 shards on Collector Boosters.',
+        ? 'You have enough Pack Shards for a Collector Booster.'
+        : 'Recycle duplicates to earn Pack Shards for Collector Boosters.',
       actionLabel: hasCollectorBooster ? 'Open Collector Booster' : 'Earn Shards',
       icon: <LocalAtmIcon fontSize="large" />,
       onClick: () => navigate(hasCollectorBooster ? '/sets' : stats.totalCards ? '/collection' : '/sets'),
@@ -586,11 +586,11 @@ export default function Home() {
   ];
 
   const flowSteps = [
-    { label: 'Choose Set', text: 'Start from real set data.', icon: <StyleIcon />, onClick: () => navigate('/sets') },
-    { label: 'Select Booster', text: 'Spin the pack carousel.', icon: <ViewCarouselIcon />, onClick: () => navigate('/sets') },
-    { label: 'Tear Pack', text: 'Cut the wrapper open.', icon: <WhatshotIcon />, onClick: () => navigate('/sets') },
-    { label: 'Reveal Cards', text: 'Flip through every pull.', icon: <AutoAwesomeIcon />, onClick: () => navigate('/sets') },
-    { label: 'Save Pulls', text: 'Build your collection.', icon: <SaveAltIcon />, onClick: () => navigate('/collection') },
+    { label: 'Choose a Set', text: 'Start from real Scryfall set data.', icon: <StyleIcon />, onClick: () => navigate('/sets') },
+    { label: 'Pick a Booster', text: 'Browse sealed pack art.', icon: <ViewCarouselIcon />, onClick: () => navigate('/sets') },
+    { label: 'Open the Pack', text: 'Cut the wrapper and begin.', icon: <WhatshotIcon />, onClick: () => navigate('/sets') },
+    { label: 'Reveal Cards', text: 'Move through every pull.', icon: <AutoAwesomeIcon />, onClick: () => navigate('/sets') },
+    { label: 'Save Pulls', text: 'Keep the cards you opened.', icon: <SaveAltIcon />, onClick: () => navigate('/collection') },
   ];
 
   return (
@@ -618,7 +618,7 @@ export default function Home() {
             Open Magic packs. Build your collection.
           </Typography>
           <Typography color="text.secondary" sx={{ maxWidth: 680, fontSize: { xs: 17, md: 20 }, mb: 3 }}>
-            Choose real MTG sets, spin through sealed boosters, tear packs open, reveal foils, and save your pulls locally.
+            Choose real MTG sets, browse sealed boosters, reveal foils, and save every pull to your collection.
           </Typography>
           <Stack direction={{ xs: 'column', sm: 'row' }} gap={2} sx={{ flexWrap: 'wrap', width: { xs: '100%', sm: 'auto' } }}>
             <Button component={Link} to="/sets" size="large" variant="contained" startIcon={<AutoAwesomeIcon />} sx={{ width: { xs: '100%', sm: 'auto' } }}>
@@ -725,7 +725,7 @@ export default function Home() {
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, maxWidth: '100%', overflow: 'hidden' }}>
                     <Chip
                       color={hasCollectorBooster ? 'success' : 'warning'}
-                      label={hasCollectorBooster ? 'Collector Booster Ready' : 'Collector Booster unlocks at 1,000'}
+                      label={hasCollectorBooster ? 'Collector Booster ready' : 'Collector Booster unlocks at 1,000 Pack Shards'}
                       size="small"
                       sx={{
                         maxWidth: '100%',

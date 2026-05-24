@@ -1,7 +1,8 @@
+// Supabase binder API: owned binders are catalog items, and binder cards reference user_cards rows.
 import { supabase } from '../lib/supabaseClient.js';
 import { BINDER_CATALOG, getCatalogBinderById } from '../utils/binderCatalog.js';
 import { getCardPrice } from '../utils/cardPricing.js';
-import { addPackShards, getPackShards, spendPackShards } from '../utils/collectionStorage.js';
+import { addCloudPackShards, getCloudPackShards, spendCloudPackShards } from './packShards.js';
 import { normalizeUserCardRow } from './userCards.js';
 
 async function getCurrentUserId() {
@@ -15,6 +16,7 @@ async function getCurrentUserId() {
 }
 
 function normalizeOwnedBinder(row, cards = []) {
+  // Catalog data supplies capacity/art, while the owned row stores per-user cosmetics and ownership.
   const catalogBinder = getCatalogBinderById(row.binder_id);
 
   return {
@@ -72,6 +74,7 @@ async function getUserCardsByIds(userCardIds, userId) {
 }
 
 export async function getBinderCards(ownedBinderId) {
+  // Binder cards are references, so removing from a binder never deletes from the collection.
   const userId = await getCurrentUserId();
   const binderRows = await getBinderCardRows(ownedBinderId, userId);
   const userCards = await getUserCardsByIds(
@@ -131,6 +134,7 @@ export async function getOwnedBinderById(ownedBinderId) {
 }
 
 export async function purchaseBinder(binderId) {
+  // Spend shards first, then refund if the insert fails so balances stay consistent.
   const userId = await getCurrentUserId();
   const catalogBinder = getCatalogBinderById(binderId);
 
@@ -153,15 +157,13 @@ export async function purchaseBinder(binderId) {
     throw new Error('You already own this binder.');
   }
 
-  const currentShards = getPackShards();
+  const currentShards = await getCloudPackShards();
 
   if (currentShards < catalogBinder.price) {
     throw new Error(`Need ${(catalogBinder.price - currentShards).toLocaleString()} more Pack Shards.`);
   }
 
-  if (!spendPackShards(catalogBinder.price)) {
-    throw new Error('Not enough Pack Shards.');
-  }
+  const newShardBalance = await spendCloudPackShards(catalogBinder.price);
 
   const { data, error } = await supabase
     .from('owned_binders')
@@ -173,7 +175,7 @@ export async function purchaseBinder(binderId) {
     .single();
 
   if (error) {
-    addPackShards(catalogBinder.price);
+    await addCloudPackShards(catalogBinder.price);
     throw new Error(error.message || 'Unable to purchase binder.');
   }
 
@@ -184,11 +186,12 @@ export async function purchaseBinder(binderId) {
   return {
     binder,
     catalogBinder,
-    newShardBalance: getPackShards(),
+    newShardBalance,
   };
 }
 
 export async function addCardsToBinder(ownedBinderId, userCardIds) {
+  // Capacity is enforced before inserting references into binder_cards.
   const userId = await getCurrentUserId();
   const ownedBinder = await getOwnedBinderById(ownedBinderId);
 
@@ -269,6 +272,7 @@ export async function getBinderValue(ownedBinderId) {
 }
 
 export async function updateBinderCosmetics(ownedBinderId, cosmetics = {}) {
+  // Binder cosmetics are stored per owned binder and only affect presentation.
   const userId = await getCurrentUserId();
   const { data, error } = await supabase
     .from('owned_binders')

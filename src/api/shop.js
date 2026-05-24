@@ -1,6 +1,7 @@
+// Supabase cosmetic shop API: ownership and equipped slots are stored separately from catalog data.
 import { supabase } from '../lib/supabaseClient.js';
-import { addPackShards, getPackShards, spendPackShards } from '../utils/collectionStorage.js';
 import { getShopItemById } from '../utils/shopCatalog.js';
+import { addCloudPackShards, getCloudPackShards, spendCloudPackShards } from './packShards.js';
 
 async function getCurrentUserId() {
   const { data, error } = await supabase.auth.getUser();
@@ -89,6 +90,7 @@ export async function userOwnsItem(itemId) {
 }
 
 export async function purchaseShopItem(itemId) {
+  // Cosmetics spend Pack Shards but never affect pack odds or card generation.
   const userId = await getCurrentUserId();
   const item = getShopItemById(itemId);
 
@@ -100,15 +102,13 @@ export async function purchaseShopItem(itemId) {
     throw new Error('You already own this cosmetic.');
   }
 
-  const currentShards = getPackShards();
+  const currentShards = await getCloudPackShards();
 
   if (currentShards < item.price) {
     throw new Error(`Need ${(item.price - currentShards).toLocaleString()} more Pack Shards.`);
   }
 
-  if (!spendPackShards(item.price)) {
-    throw new Error('Not enough Pack Shards.');
-  }
+  const newShardBalance = await spendCloudPackShards(item.price);
 
   const { error } = await supabase.from('user_shop_items').insert({
     user_id: userId,
@@ -116,7 +116,7 @@ export async function purchaseShopItem(itemId) {
   });
 
   if (error) {
-    addPackShards(item.price);
+    await addCloudPackShards(item.price);
     throw new Error(error.message || 'Unable to purchase cosmetic.');
   }
 
@@ -125,11 +125,12 @@ export async function purchaseShopItem(itemId) {
 
   return {
     ownedItems: await getOwnedShopItems(),
-    newShardBalance: getPackShards(),
+    newShardBalance,
   };
 }
 
 export async function equipShopItem(itemId) {
+  // Equipping is an upsert by slot so each slot has at most one active cosmetic.
   const userId = await getCurrentUserId();
   const item = getShopItemById(itemId);
 

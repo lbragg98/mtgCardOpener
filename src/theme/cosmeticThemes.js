@@ -1,3 +1,4 @@
+// Theme cosmetics are applied as CSS variables so the MUI theme can stay stable.
 const DEFAULT_THEME_VARIABLES = {
   '--app-bg': '#050711',
   '--panel-bg': 'linear-gradient(145deg, rgba(16,20,38,0.98), rgba(10,13,28,0.98))',

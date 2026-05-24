@@ -1,3 +1,4 @@
+// PackOpening owns the full open flow: cut pack, reveal stable generated cards, save summary.
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import CollectionsBookmarkIcon from "@mui/icons-material/CollectionsBookmark";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
@@ -26,6 +27,9 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import CardImage from "../components/CardImage.jsx";
+import BulkPackHighlights from "../components/BulkPackHighlights.jsx";
+import BulkPackOpening from "../components/BulkPackOpening.jsx";
+import BulkPackSummary from "../components/BulkPackSummary.jsx";
 import EquippedRevealEffect from "../components/EquippedRevealEffect.jsx";
 import FoilAmbientScene from "../components/FoilAmbientScene.jsx";
 import FoilImpactScene from "../components/FoilImpactScene.jsx";
@@ -38,6 +42,7 @@ import TearEffect from "../components/TearEffect.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useCosmetics } from "../context/CosmeticsContext.jsx";
 import { getCardPriceLabel } from "../utils/cardPricing.js";
+import { getCloudPackShards, spendCloudPackShards } from "../api/packShards.js";
 import { saveOpenedCards } from "../api/userCards.js";
 import { isOneOfOneRing } from "../utils/collectorExclusiveCards.js";
 import {
@@ -45,6 +50,7 @@ import {
   saveCardsToCollection,
   spendPackShards,
 } from "../utils/collectionStorage.js";
+import { isCollectorOnlySet } from "../utils/collectorOnlySets.js";
 import {
   FOIL_LABELS,
   FOIL_TREATMENTS,
@@ -67,12 +73,50 @@ const PHASES = {
   cutPack: "cutPack",
   revealCards: "revealCards",
   summary: "summary",
+  bulkOpening: "bulkOpening",
+  bulkHighlights: "bulkHighlights",
+  bulkSummary: "bulkSummary",
 };
 
 function normalizePackQuantity(value) {
   return Number(value) === 10 ? 10 : 1;
 }
 
+<<<<<<< HEAD
+=======
+function isRealSaveableCard(card) {
+  const typeLine = card?.type_line?.toLowerCase() || "";
+
+  return Boolean(
+    card?.id &&
+      card?.name &&
+      (card?.image || card?.imageUrl) &&
+      card?.set &&
+      card?.collector_number &&
+      !typeLine.includes("token") &&
+      !typeLine.includes("art series"),
+  );
+}
+
+function mergeSavedCardFlagsForDisplay(allCards, savedCards = []) {
+  let savedIndex = 0;
+
+  return allCards.map((card) => {
+    if (!isRealSaveableCard(card)) {
+      return card;
+    }
+
+    const savedCard = savedCards[savedIndex];
+    savedIndex += 1;
+
+    return {
+      ...card,
+      isDuplicatePull: Boolean(savedCard?.isDuplicatePull),
+    };
+  });
+}
+
+>>>>>>> cdad45f983029698b55070c669a2729f1e01b718
 function PackCuttingScreen({
   artwork,
   boosterLabel,
@@ -83,10 +127,21 @@ function PackCuttingScreen({
   tearEffectId,
   boosterType,
   onCutComplete,
+  onSkipToSummary,
 }) {
+  // The cutting phase is visual only; generation already happened so the pack cannot change later.
   const cutterControls = useAnimation();
   const cutterTrackRef = useRef(null);
+  const cutCompleteTimerRef = useRef(null);
   const [isCut, setIsCut] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (cutCompleteTimerRef.current) {
+        window.clearTimeout(cutCompleteTimerRef.current);
+      }
+    };
+  }, []);
 
   async function handleDragEnd(_, info) {
     if (isCut) {
@@ -102,7 +157,7 @@ function PackCuttingScreen({
         scale: 1.08,
         transition: { duration: 0.18 },
       });
-      window.setTimeout(onCutComplete, 900);
+      cutCompleteTimerRef.current = window.setTimeout(onCutComplete, 900);
       return;
     }
 
@@ -142,7 +197,7 @@ function PackCuttingScreen({
           {setCode.toUpperCase()} {boosterLabel}
         </Typography>
         <Typography color="text.secondary">
-          Swipe across the top seal to open
+          Swipe across the top seal to open the pack.
         </Typography>
       </Box>
 
@@ -259,11 +314,26 @@ function PackCuttingScreen({
           />
         </Box>
       </Box>
+
+      <Button
+        endIcon={<KeyboardArrowRightIcon />}
+        onClick={onSkipToSummary}
+        variant="outlined"
+        sx={{
+          bottom: { xs: 16, sm: 24, md: 32 },
+          position: "absolute",
+          right: { xs: 16, sm: 24, md: 32 },
+          zIndex: 2,
+        }}
+      >
+        Skip to Summary
+      </Button>
     </Box>
   );
 }
 
 function RevealCard({ card, cardNumber, exitX, onAdvance, revealEffectId }) {
+  // Mobile foil reveals use a simpler path so touch inspection and swiping stay smooth.
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down("sm"));
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-260, 260], [-13, 13]);
@@ -565,7 +635,7 @@ function RevealCard({ card, cardNumber, exitX, onAdvance, revealEffectId }) {
             color="text.secondary"
             sx={{ mt: 1, fontSize: 13, fontWeight: 800 }}
           >
-            Drag to inspect the foil shine
+            Drag gently to inspect the foil shine.
           </Typography>
         )}
         {isFinale && !card.isFoil && (
@@ -612,7 +682,7 @@ function SummaryGrid({ boosterLabel, pack, saveResult, sceneId, setCode }) {
           component="h1"
           sx={{ mb: 3, fontSize: { xs: 32, md: 40 } }}
         >
-          Pack Summary
+          Pack summary
         </Typography>
 
         {saveResult && (
@@ -786,10 +856,16 @@ export default function PackOpening() {
     boosterType === "collector" ? "Collector Booster" : "Play Booster";
   const queryQuantity = new URLSearchParams(search).get("quantity");
   const packQuantity = normalizePackQuantity(state?.packQuantity ?? queryQuantity);
+<<<<<<< HEAD
   const totalCollectorCost = COLLECTOR_BOOSTER_COST * packQuantity;
+=======
+  const isBulkOpening = packQuantity === 10;
+  const collectorBoosterTotalCost = COLLECTOR_BOOSTER_COST * packQuantity;
+>>>>>>> cdad45f983029698b55070c669a2729f1e01b718
   const openingId =
     state?.openingId || `${normalizedSetCode}-${boosterType}-${packQuantity}-direct`;
   const [pack, setPack] = useState([]);
+  const [bulkOpening, setBulkOpening] = useState(null);
   const [phase, setPhase] = useState(PHASES.cutPack);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [exitX, setExitX] = useState(520);
@@ -809,20 +885,23 @@ export default function PackOpening() {
   const revealEffectId = equippedRevealEffect?.id;
 
   useEffect(() => {
+    // Generate once per opening id; preview, reveal, summary, and saving all reuse this same pack.
     let isMounted = true;
 
     async function loadPack() {
       try {
         setIsLoading(true);
         setError("");
-        setPhase(PHASES.cutPack);
+        setPhase(isBulkOpening ? PHASES.bulkOpening : PHASES.cutPack);
         setCurrentIndex(0);
+        setBulkOpening(null);
         hasSavedRef.current = false;
         isAnimatingRef.current = false;
         setSavedMessage("");
         setSavedMessageSeverity("success");
         setSaveResult(null);
         setCompletedOneOfOneRevealKey("");
+<<<<<<< HEAD
         const generatedOpening = await generateMultipleBoosters({
           setCode: normalizedSetCode,
           boosterType,
@@ -841,17 +920,58 @@ export default function PackOpening() {
                 `You need ${totalCollectorCost.toLocaleString()} pack shards to open ${packQuantity} Collector Booster${packQuantity === 1 ? "" : "s"}.`,
               );
             }
+=======
 
-            sessionStorage.setItem(spentKey, "true");
+        if (isCollectorOnlySet(normalizedSetCode) && boosterType !== "collector") {
+          // Direct URL protection: collector-only sets cannot bypass PackSelection.
+          throw new Error(
+            "This set is collector-only and cannot be opened as a Play Booster.",
+          );
+        }
+
+        const collectorSpentKey = `collector-booster-spent-${openingId}-${packQuantity}`;
+        const shouldSpendCollectorShards =
+          boosterType === "collector" && !sessionStorage.getItem(collectorSpentKey);
+>>>>>>> cdad45f983029698b55070c669a2729f1e01b718
+
+        if (shouldSpendCollectorShards) {
+          const currentShards = user ? await getCloudPackShards() : getPackShards();
+
+          if (currentShards < collectorBoosterTotalCost) {
+            throw new Error(
+              `You need ${collectorBoosterTotalCost.toLocaleString()} Pack Shards to open ${packQuantity} Collector Booster${packQuantity === 1 ? "" : "s"}.`,
+            );
           }
         }
 
+        const generatedOpening = await generateMultipleBoosters({
+          setCode: normalizedSetCode,
+          boosterType,
+          packQuantity,
+        });
+
+        if (shouldSpendCollectorShards) {
+          if (user) {
+            await spendCloudPackShards(collectorBoosterTotalCost);
+          } else if (!spendPackShards(collectorBoosterTotalCost)) {
+            throw new Error(
+              `You need ${collectorBoosterTotalCost.toLocaleString()} Pack Shards to open ${packQuantity} Collector Booster${packQuantity === 1 ? "" : "s"}.`,
+            );
+          }
+
+          sessionStorage.setItem(collectorSpentKey, "true");
+        }
+
         if (isMounted) {
+<<<<<<< HEAD
+=======
+          setBulkOpening(generatedOpening);
+>>>>>>> cdad45f983029698b55070c669a2729f1e01b718
           setPack(generatedOpening.allCards);
         }
       } catch (packError) {
         if (isMounted) {
-          setError(packError.message || "Unable to generate this pack.");
+          setError(packError.message || "Something went wrong while building this pack. Try again or choose another set.");
         }
       } finally {
         if (isMounted) {
@@ -867,13 +987,24 @@ export default function PackOpening() {
     return () => {
       isMounted = false;
     };
+<<<<<<< HEAD
   }, [boosterType, normalizedSetCode, openingId, packQuantity, totalCollectorCost]);
+=======
+  }, [boosterType, collectorBoosterTotalCost, isBulkOpening, normalizedSetCode, openingId, packQuantity, user?.id]);
+>>>>>>> cdad45f983029698b55070c669a2729f1e01b718
 
-  const revealedPack = pack;
+  const revealedPack = isBulkOpening ? bulkOpening?.allCards || pack : pack;
   const isFinished = currentIndex >= revealedPack.length;
+
+  const skipToSummary = useCallback(() => {
+    isAnimatingRef.current = false;
+    setCurrentIndex(revealedPack.length);
+    setPhase(isBulkOpening ? PHASES.bulkSummary : PHASES.summary);
+  }, [isBulkOpening, revealedPack.length]);
 
   const advanceCard = useCallback(
     (direction = 1) => {
+      // Swipe/click advances the index only; the generated pack array stays stable.
       if (isAnimatingRef.current) {
         return;
       }
@@ -933,8 +1064,9 @@ export default function PackOpening() {
   }, [advanceCard, currentIndex, revealedPack.length, phase]);
 
   useEffect(() => {
+    // Saving waits for summary so the user only gets collection updates after the full reveal.
     if (
-      phase === PHASES.summary &&
+      (phase === PHASES.summary || phase === PHASES.bulkSummary) &&
       revealedPack.length > 0 &&
       !hasSavedRef.current
     ) {
@@ -954,7 +1086,7 @@ export default function PackOpening() {
 
           if (saveResult.shardsAwarded > 0) {
             messages.push(
-              `${saveResult.duplicateCount} duplicates converted into ${saveResult.shardsAwarded} pack shards.`,
+              `${saveResult.duplicateCount} duplicate ${saveResult.duplicateCount === 1 ? "copy was" : "copies were"} converted into ${saveResult.shardsAwarded} Pack Shards.`,
             );
           }
 
@@ -963,7 +1095,7 @@ export default function PackOpening() {
         } catch {
           setSavedMessageSeverity("error");
           setSavedMessage(
-            "Pack summary is ready, but the collection could not be saved.",
+            "Pack summary is ready, but the cards could not be saved. Please try refreshing your collection.",
           );
         }
       }
@@ -986,7 +1118,7 @@ export default function PackOpening() {
         <Box sx={{ textAlign: "center" }}>
           <CircularProgress color="warning" sx={{ mb: 3 }} />
           <Typography color="text.secondary">
-            Generating {boosterLabel}...
+            Preparing your {boosterLabel}...
           </Typography>
         </Box>
       </Box>
@@ -1001,6 +1133,69 @@ export default function PackOpening() {
         </Alert>
       </Box>
     );
+  }
+
+  if (isBulkOpening && bulkOpening) {
+    if (phase === PHASES.bulkOpening) {
+      const fallbackArtwork =
+        revealedPack.find((card) => card.rarity === "mythic")?.image ||
+        revealedPack.find((card) => card.image)?.image;
+
+      return (
+        <BulkPackOpening
+          boosterType={boosterType}
+          packArt={state?.packArtwork || fallbackArtwork}
+          packQuantity={packQuantity}
+          setCode={normalizedSetCode}
+          setIconUrl={state?.setIconUrl}
+          setName={state?.setName || revealedPack[0]?.set_name || normalizedSetCode.toUpperCase()}
+          onComplete={() => setPhase(PHASES.bulkHighlights)}
+          onSkipToSummary={skipToSummary}
+        />
+      );
+    }
+
+    if (phase === PHASES.bulkHighlights) {
+      return (
+        <BulkPackHighlights
+          allCards={bulkOpening.allCards}
+          boosterType={boosterType}
+          packs={bulkOpening.packs}
+          onContinue={() => setPhase(PHASES.bulkSummary)}
+        />
+      );
+    }
+
+    if (phase === PHASES.bulkSummary) {
+      return (
+        <>
+          <BulkPackSummary
+            allCards={mergeSavedCardFlagsForDisplay(bulkOpening.allCards, saveResult?.savedCards)}
+            boosterType={boosterType}
+            packs={bulkOpening.packs}
+            saveResult={saveResult}
+            sceneId={openingSceneId}
+            setCode={normalizedSetCode}
+            setName={state?.setName || revealedPack[0]?.set_name}
+            totalShardCost={boosterType === "collector" ? collectorBoosterTotalCost : 0}
+          />
+          <Snackbar
+            anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+            autoHideDuration={4200}
+            onClose={() => setSavedMessage("")}
+            open={Boolean(savedMessage)}
+          >
+            <Alert
+              severity={savedMessageSeverity}
+              variant="filled"
+              sx={{ width: "100%" }}
+            >
+              {savedMessage}
+            </Alert>
+          </Snackbar>
+        </>
+      );
+    }
   }
 
   const shouldShowSummary =
@@ -1036,6 +1231,7 @@ export default function PackOpening() {
   }
 
   if (phase === PHASES.cutPack) {
+    // The sealed pack art can come from route state, otherwise it falls back to a card in the pack.
     const fallbackArtwork =
       pack.find((card) => card.rarity === "mythic")?.image ||
       pack.find((card) => card.image)?.image;
@@ -1061,6 +1257,7 @@ export default function PackOpening() {
             setName={packSetName}
             tearEffectId={tearEffectId}
             onCutComplete={() => setPhase(PHASES.revealCards)}
+            onSkipToSummary={skipToSummary}
           />
         </motion.div>
       </AnimatePresence>
@@ -1111,6 +1308,7 @@ export default function PackOpening() {
     `${activeCard.name}-${currentIndex}`;
   const isFinalStretch = currentIndex >= revealedPack.length - 3;
   const activeCardIsOneOfOneRing = isOneOfOneRing(activeCard);
+  // The special Ring animation wraps the actual active card from the pack sequence.
   const isOneOfOneAnimating =
     activeCardIsOneOfOneRing && completedOneOfOneRevealKey !== activeCardKey;
 
@@ -1184,7 +1382,7 @@ export default function PackOpening() {
             <Chip color="warning" label="1 of 1" size="small" sx={{ mr: 1, mt: 1, fontWeight: 900 }} />
             <Chip color="warning" label="Collector Booster Exclusive" size="small" sx={{ mt: 1, fontWeight: 900 }} variant="outlined" />
             <Typography color="text.secondary" sx={{ mt: 1, fontSize: 13, fontWeight: 800 }}>
-              Drag to inspect the ringlight
+              Drag gently to inspect the ringlight.
             </Typography>
           </Box>
         </>
@@ -1221,14 +1419,32 @@ export default function PackOpening() {
         </Typography>
       )}
 
-      <Button
-        endIcon={<KeyboardArrowRightIcon />}
-        onClick={advanceCard}
-        variant="contained"
-        sx={{ position: "absolute", zIndex: 2, bottom: { xs: 16, sm: 24, md: 32 } }}
+      <Box
+        sx={{
+          bottom: { xs: 16, sm: 24, md: 32 },
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 1.25,
+          justifyContent: "center",
+          position: "absolute",
+          zIndex: 2,
+        }}
       >
-        Next
-      </Button>
+        <Button
+          endIcon={<KeyboardArrowRightIcon />}
+          onClick={advanceCard}
+          variant="contained"
+        >
+          Next
+        </Button>
+        <Button
+          endIcon={<KeyboardArrowRightIcon />}
+          onClick={skipToSummary}
+          variant="outlined"
+        >
+          Skip to Summary
+        </Button>
+      </Box>
     </Box>
   );
 }

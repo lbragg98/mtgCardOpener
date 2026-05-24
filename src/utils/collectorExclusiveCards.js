@@ -1,3 +1,4 @@
+// Collector-exclusive metadata helpers for special variants and the serialized One Ring.
 export const COLLECTOR_EXCLUSIVE_BY_SET = {
   // Set-code specific overrides can be added here.
   // Use lower-case Scryfall set codes.
@@ -19,6 +20,7 @@ function normalize(value) {
 }
 
 export function isOneOfOneRing(card) {
+  // The one-of-one flag can come from app metadata or the local serialized Ring fallback.
   if (
     card?.isOneOfOne === true ||
     card?.collectorExclusiveReason === 'one-of-one' ||

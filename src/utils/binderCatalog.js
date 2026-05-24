@@ -1,3 +1,4 @@
+// Static binder catalog: purchase data, capacity, and default visual identity.
 export const BINDER_CATALOG = [
   {
     id: 'starter-sleeve',

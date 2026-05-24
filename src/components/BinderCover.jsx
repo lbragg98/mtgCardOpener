@@ -1,3 +1,4 @@
+// Binder cover presentation combines catalog art with owned cosmetic choices.
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import LockIcon from '@mui/icons-material/Lock';
 import MenuBookIcon from '@mui/icons-material/MenuBook';

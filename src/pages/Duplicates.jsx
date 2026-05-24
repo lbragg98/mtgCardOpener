@@ -1,3 +1,4 @@
+// Duplicate Manager helps recycle extra copies in bulk while protecting one-of-one cards.
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import DeleteIcon from '@mui/icons-material/Delete';
 import {
@@ -61,7 +62,7 @@ export default function Duplicates() {
       setIsLoading(true);
       setCollection(user ? await getMyCards() : getCollection());
     } catch (error) {
-      setSnackbar({ message: error.message || 'Unable to load duplicates.', severity: 'error' });
+      setSnackbar({ message: error.message || 'Duplicate cards could not be loaded. Please try again.', severity: 'error' });
     } finally {
       setIsLoading(false);
     }
@@ -73,6 +74,7 @@ export default function Duplicates() {
 
   const duplicateGroups = useMemo(() => getDuplicateGroups(collection), [collection]);
   const selectableExtras = useMemo(
+    // Auto-selection never includes protected one-of-one cards.
     () => duplicateGroups.flatMap((group) => group.extras).filter((card) => !isOneOfOneRing(card)),
     [duplicateGroups],
   );
@@ -125,11 +127,11 @@ export default function Duplicates() {
       setSelectedIds([]);
       setConfirmOpen(false);
       setSnackbar({
-        message: `Recycled ${(result.recycledCount || result.recycledCards.length).toLocaleString()} cards for ${result.shardsAwarded.toLocaleString()} Pack Shards.`,
+        message: `Recycled ${(result.recycledCount || result.recycledCards.length).toLocaleString()} duplicate cards for ${result.shardsAwarded.toLocaleString()} Pack Shards.`,
         severity: 'success',
       });
     } catch (error) {
-      setSnackbar({ message: error.message || 'Unable to recycle selected cards.', severity: 'error' });
+      setSnackbar({ message: error.message || 'Selected duplicates could not be recycled. Please try again.', severity: 'error' });
     } finally {
       setIsRecycling(false);
     }
@@ -146,8 +148,8 @@ export default function Duplicates() {
           <Stack direction="row" gap={1} sx={{ flexWrap: 'wrap' }}>
             <Chip color="warning" label={`${duplicateGroups.length} duplicate groups`} variant="outlined" />
             <Chip color="secondary" label={`${extraCount} extra cards`} variant="outlined" />
-            <Chip label={`${totalPossibleShards.toLocaleString()} possible shards`} variant="outlined" />
-            <Chip label={`${getPackShards().toLocaleString()} current shards`} variant="outlined" />
+            <Chip label={`${totalPossibleShards.toLocaleString()} possible Pack Shards`} variant="outlined" />
+            <Chip label={`${getPackShards().toLocaleString()} current Pack Shards`} variant="outlined" />
           </Stack>
           <Stack direction="row" gap={1} sx={{ flexWrap: 'wrap' }}>
             <Button disabled={!extraCount} onClick={() => setSelectedExtras(selectableExtras)} variant="contained">
@@ -185,14 +187,14 @@ export default function Duplicates() {
         </CardContent>
       </Card>
 
-      {isLoading && <Alert severity="info">Loading duplicates...</Alert>}
+      {isLoading && <Alert severity="info">Finding duplicate cards...</Alert>}
 
       {!isLoading && !duplicateGroups.length && (
         <Card>
           <CardContent sx={{ display: 'grid', gap: 2, justifyItems: 'center', py: 7, textAlign: 'center' }}>
             <AutoAwesomeIcon color="warning" sx={{ fontSize: 54 }} />
-            <Typography variant="h4">No duplicates found</Typography>
-            <Typography color="text.secondary">Foils, non-foils, and foil treatments are grouped separately.</Typography>
+            <Typography variant="h4">No duplicate extras found</Typography>
+            <Typography color="text.secondary">You are already keeping one copy of each card variant.</Typography>
           </CardContent>
         </Card>
       )}
@@ -200,22 +202,22 @@ export default function Duplicates() {
       {duplicateGroups.map((group) => {
         const groupSelectableIds = group.extras.filter((card) => !isOneOfOneRing(card)).map(getCardDuplicateId);
         const allGroupSelected = groupSelectableIds.length > 0 && groupSelectableIds.every((id) => selectedIds.includes(id));
-        const sampleCard = group.keepCard;
+        const representativeCard = group.keepCard;
 
         return (
           <Accordion key={group.key} sx={{ mb: 1.5 }}>
             <AccordionSummary>
               <Stack direction="row" gap={1.5} sx={{ alignItems: 'center', minWidth: 0, width: '100%' }}>
                 <Box sx={{ width: 58, flexShrink: 0 }}>
-                  <CardImage card={sampleCard} variant="grid" />
+                  <CardImage card={representativeCard} variant="grid" />
                 </Box>
                 <Box sx={{ minWidth: 0, flexGrow: 1 }}>
-                  <Typography fontWeight={950} noWrap>{sampleCard.name}</Typography>
+                  <Typography fontWeight={950} noWrap>{representativeCard.name}</Typography>
                   <Typography color="text.secondary" sx={{ fontSize: 13 }}>
-                    {sampleCard.rarity} - {FOIL_LABELS[normalizeFoilTreatment(sampleCard)] || 'Non-foil'} - {group.cards.length} owned
+                    {representativeCard.rarity} - {FOIL_LABELS[normalizeFoilTreatment(representativeCard)] || 'Non-foil'} - {group.cards.length} owned
                   </Typography>
                   <Typography color="warning.main" sx={{ fontSize: 13, fontWeight: 900 }}>
-                    {group.extras.length} extras - {group.totalRecycleValue.toLocaleString()} shards
+                    {group.extras.length} extras - {group.totalRecycleValue.toLocaleString()} Pack Shards
                   </Typography>
                 </Box>
                 <Checkbox
@@ -231,7 +233,7 @@ export default function Duplicates() {
             <AccordionDetails>
               <Stack spacing={1}>
                 <Alert severity="info" variant="outlined">
-                  Keeping oldest copy from {sampleCard.openedAt ? new Date(sampleCard.openedAt).toLocaleDateString() : 'unknown date'}.
+                  Keeping the oldest copy from {representativeCard.openedAt ? new Date(representativeCard.openedAt).toLocaleDateString() : 'an unknown date'}.
                 </Alert>
                 {group.cards.map((card) => {
                   const id = getCardDuplicateId(card);
@@ -261,7 +263,7 @@ export default function Duplicates() {
                       </Box>
                       <Chip
                         color={protectedCard ? 'warning' : 'default'}
-                        label={protectedCard ? 'One-of-One protected' : `${getRecycleShardValue(card).toLocaleString()} shards`}
+                        label={protectedCard ? 'One-of-One protected' : `${getRecycleShardValue(card).toLocaleString()} Pack Shards`}
                         variant="outlined"
                       />
                     </Stack>
@@ -277,7 +279,7 @@ export default function Duplicates() {
         <DialogTitle>Recycle selected duplicates?</DialogTitle>
         <DialogContent>
           <Typography color="text.secondary" sx={{ mb: 2 }}>
-            This removes selected card copies from your collection. One copy from each group remains unless you selected copies manually.
+            This removes only the selected card copies from your collection. One copy from each duplicate group is kept by default.
           </Typography>
           <Typography fontWeight={950}>
             Recycle {selectedCards.length.toLocaleString()} cards for {selectedShardTotal.toLocaleString()} Pack Shards?

@@ -1,3 +1,4 @@
+// Pack generation builds simplified Play and Collector Boosters from real Scryfall set data.
 import {
   getCardsBySet,
   getCollectorExclusiveCandidates,
@@ -20,7 +21,6 @@ const SERIALIZED_ONE_RING_ODDS = {
   collector: 1 / 3000000,
 };
 const SERIALIZED_ONE_RING_SET_CODE = "ltr";
-const ONE_RING_TEST_MODE = SERIALIZED_ONE_RING_ODDS.collector >= 1;
 const STANDALONE_VARIANT_SET_CODES = new Set([
   // Final Fantasy: Through the Ages is a standalone masterpiece sheet.
   // Every card looks like a collector-style variant, so treating those
@@ -114,7 +114,6 @@ async function getOneOfOneRingCard(setCode, sourceCards = []) {
   }
 
   if (
-    !ONE_RING_TEST_MODE &&
     String(setCode || "")
       .trim()
       .toLowerCase() !== SERIALIZED_ONE_RING_SET_CODE
@@ -155,10 +154,7 @@ function shouldPullOneOfOneRing(boosterType) {
     return false;
   }
 
-  if (
-    !ONE_RING_TEST_MODE &&
-    (ownsSerializedOneRing() || wasSerializedOneRingPulled())
-  ) {
+  if (ownsSerializedOneRing() || wasSerializedOneRingPulled()) {
     return false;
   }
 
@@ -194,6 +190,7 @@ function dedupeCards(cards) {
 }
 
 function filterCollectorExclusiveCards(cards) {
+  // Play Boosters should avoid special collector-only variants unless a set is explicitly variant-only.
   return cards.filter(
     (card) => !card.isCollectorExclusive && !isManualCollectorExclusive(card),
   );
@@ -255,6 +252,7 @@ function pickDuplicateFallbackCards(pool, count) {
 }
 
 function pickSlot(pool, fallbackPool, count, usedIds) {
+  // Prefer unique cards for each slot, then gracefully fall back if a small set lacks enough cards.
   const pickedCards = pickCards(pool, count, usedIds);
 
   if (pickedCards.length >= count) {
@@ -369,6 +367,7 @@ function normalizePackCard(
     slot,
   } = {},
 ) {
+  // All pack cards keep Scryfall fields so later collection saving and Binder Battle mapping still work.
   let resolvedTreatment = isFoil
     ? normalizeFoilTreatment({
         isFoil: true,
@@ -392,6 +391,21 @@ function normalizePackCard(
 
   return {
     ...card,
+    full_scryfall_data: card.full_scryfall_data || card.raw || card,
+    type_line: card.type_line || card.full_scryfall_data?.type_line || "",
+    oracle_text: card.oracle_text || card.full_scryfall_data?.oracle_text || "",
+    mana_cost: card.mana_cost || card.full_scryfall_data?.mana_cost || "",
+    cmc: card.cmc ?? card.mana_value ?? card.full_scryfall_data?.cmc ?? 0,
+    mana_value: card.mana_value ?? card.cmc ?? card.full_scryfall_data?.mana_value ?? 0,
+    power: card.power || card.full_scryfall_data?.power || null,
+    toughness: card.toughness || card.full_scryfall_data?.toughness || null,
+    colors: card.colors || card.full_scryfall_data?.colors || [],
+    color_identity:
+      card.color_identity || card.colorIdentity || card.full_scryfall_data?.color_identity || [],
+    keywords: card.keywords || card.full_scryfall_data?.keywords || [],
+    card_faces: card.card_faces || card.cardFaces || card.full_scryfall_data?.card_faces || [],
+    legalities: card.legalities || card.full_scryfall_data?.legalities || {},
+    layout: card.layout || card.full_scryfall_data?.layout || null,
     packSlot: slot,
     isFoil: resolvedTreatment !== FOIL_TREATMENTS.NONE,
     foilTreatment: resolvedTreatment,
@@ -431,6 +445,7 @@ function withCollectorExclusiveMeta(
   cards,
   slot = "Collector Booster Exclusive",
 ) {
+  // Collector-exclusive slots are marked so reveal UI, summary, and recycling can treat them specially.
   return cards.map((card) => {
     const supportsNonFoil = card.finishes?.includes("nonfoil") || card.nonfoil;
     const isFoil = !supportsNonFoil || Math.random() < 0.85;
@@ -499,11 +514,11 @@ function findLeastImportantCollectorBoosterSlot(pack) {
 }
 
 async function maybeInsertOneOfOneRing(pack, setCode, sourceCards = []) {
+  // The one-of-one Ring is inserted into the real 15-card pack, never shown as a separate fake banner.
   if (
     String(setCode || "")
       .trim()
-      .toLowerCase() !== SERIALIZED_ONE_RING_SET_CODE &&
-    !ONE_RING_TEST_MODE
+      .toLowerCase() !== SERIALIZED_ONE_RING_SET_CODE
   ) {
     return pack;
   }
@@ -515,7 +530,6 @@ async function maybeInsertOneOfOneRing(pack, setCode, sourceCards = []) {
   const oneRingCard = await getOneOfOneRingCard(setCode, sourceCards);
 
   if (!oneRingCard) {
-    console.warn("One-of-One Ring was selected but no card object was found.");
     return pack;
   }
 
@@ -565,13 +579,6 @@ async function maybeInsertOneOfOneRing(pack, setCode, sourceCards = []) {
 
   markSerializedOneRingPulled();
 
-  if (ONE_RING_TEST_MODE && !finalPack.some(isOneOfOneRing)) {
-    console.error(
-      "One Ring test mode failed: finalPack does not contain One Ring",
-      finalPack,
-    );
-  }
-
   return finalPack;
 }
 
@@ -604,6 +611,7 @@ export async function getCollectorExclusivePool(setCode, normalCards = []) {
 }
 
 export function revealExcitementScore(card, boosterType = "play") {
+  // Higher scores reveal later so the opening builds toward foils, rares, and special pulls.
   if (isOneOfOneRing(card)) {
     return 999;
   }
@@ -665,6 +673,7 @@ export function sortPackForReveal(cards, boosterType = "play") {
 }
 
 export async function generatePlayBooster(setCode) {
+  // Play Boosters use a mostly normal rarity spread with a wildcard and a rare/mythic slot.
   const allCards = await getCardsBySet(setCode);
   const collectorExclusiveIds = new Set(
     (await getCollectorExclusivePool(setCode, allCards)).map((card) => card.id),
@@ -730,6 +739,7 @@ export async function generatePlayBooster(setCode) {
 }
 
 export async function generateCollectorBooster(setCode) {
+  // Collector Boosters lean foil-heavy and include a premium collector-exclusive-style slot.
   const allCards = await getCardsBySet(setCode);
   const collectorExclusivePool = await getCollectorExclusivePool(
     setCode,
@@ -872,7 +882,11 @@ export async function generateMultipleBoosters({
   boosterType = "play",
   packQuantity = 1,
 } = {}) {
+<<<<<<< HEAD
   const normalizedQuantity = Number(packQuantity) === 10 ? 10 : 1;
+=======
+  const normalizedQuantity = packQuantity === 10 ? 10 : 1;
+>>>>>>> cdad45f983029698b55070c669a2729f1e01b718
   const packs = [];
 
   for (let index = 0; index < normalizedQuantity; index += 1) {
@@ -885,6 +899,10 @@ export async function generateMultipleBoosters({
         ...card,
         boosterType,
         packNumber: index + 1,
+<<<<<<< HEAD
+=======
+        sourcePackId: `${setCode}-${boosterType}-${Date.now()}-${index + 1}`,
+>>>>>>> cdad45f983029698b55070c669a2729f1e01b718
         bulkCardIndex: index * PACK_SIZE + cardIndex + 1,
       })),
     });

@@ -1,3 +1,4 @@
+// Card sleeves render only card backs or empty/hidden states, never revealed card faces.
 import { Box } from '@mui/material';
 
 const SIZE_STYLES = {

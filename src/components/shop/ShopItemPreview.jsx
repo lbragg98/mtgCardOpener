@@ -1,3 +1,4 @@
+// CSS-only previews show what cosmetics feel like before they are equipped.
 import { Box, Typography } from '@mui/material';
 import CardSleeve from '../CardSleeve.jsx';
 import ProfileCosmeticsPreview from '../ProfileCosmeticsPreview.jsx';

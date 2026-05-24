@@ -1,3 +1,4 @@
+// Binders page lists owned Supabase binders and links into each binder detail view.
 import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
 import CollectionsBookmarkIcon from '@mui/icons-material/CollectionsBookmark';
 import Inventory2Icon from '@mui/icons-material/Inventory2';
@@ -65,7 +66,7 @@ export default function Binders() {
         }
       } catch (loadError) {
         if (isMounted) {
-          setError(loadError.message || 'Unable to load binders.');
+          setError(loadError.message || 'Your binders could not be loaded. Please try again.');
           setOwnedBinders([]);
         }
       }
@@ -90,14 +91,14 @@ export default function Binders() {
         <Box>
           <Chip color="warning" icon={<Inventory2Icon />} label={`${ownedBinders.length} owned`} sx={{ mb: 2, fontWeight: 900 }} variant="outlined" />
           <Typography variant="h2" sx={{ fontSize: { xs: 36, md: 52 }, lineHeight: 1 }}>
-            My Binders
+            My binders
           </Typography>
           <Typography color="text.secondary" sx={{ maxWidth: 720, mt: 1 }}>
-            Open your owned binders and, soon, place favorite collection cards into themed pages.
+            Open your owned binders and organize favorite pulls into themed pages.
           </Typography>
         </Box>
         <Button startIcon={<AddShoppingCartIcon />} onClick={() => navigate('/shop')} variant="contained">
-          Binder Shop
+          Shop binders
         </Button>
       </Stack>
 
@@ -115,10 +116,10 @@ export default function Binders() {
             <CollectionsBookmarkIcon color="warning" sx={{ fontSize: 58 }} />
             <Typography variant="h4">No binders yet</Typography>
             <Typography color="text.secondary" sx={{ maxWidth: 520 }}>
-              Buy your first binder with Pack Shards, then use it to organize favorite pulls from your collection.
+              Buy your first binder with Pack Shards, then add cards from your collection.
             </Typography>
             <Button startIcon={<AddShoppingCartIcon />} onClick={() => navigate('/shop')} variant="contained">
-              Go to Binder Shop
+              Browse binder shop
             </Button>
           </CardContent>
         </Card>
@@ -168,7 +169,7 @@ export default function Binders() {
                     </Box>
                     <Box>
                       <Typography color="text.secondary" sx={{ fontSize: 13, fontWeight: 800 }}>
-                        Estimated Value
+                        Estimated value
                       </Typography>
                       <Typography fontWeight={950} sx={{ color: 'var(--text-accent)', fontSize: 22 }}>
                         {formatPrice(binderValue)}

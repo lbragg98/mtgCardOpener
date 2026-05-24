@@ -1,10 +1,25 @@
+// Supabase collection API: logged-in users store one row per owned physical card copy.
 import { supabase } from '../lib/supabaseClient.js';
-import { addPackShards, getPackShards } from '../utils/collectionStorage.js';
 import { normalizeFoilTreatment } from '../utils/foilTypes.js';
 import { assertCanRecycleCard, getRecycleShardValue } from '../utils/recycleValue.js';
+import { addCloudPackShards, getCloudPackShards } from './packShards.js';
 
 const DUPLICATE_SHARD_REWARD = 100;
 const USER_CARDS_PAGE_SIZE = 1000;
+
+function arrayValue(value, fallback = []) {
+  return Array.isArray(value) ? value : fallback;
+}
+
+function objectValue(value, fallback = {}) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : fallback;
+}
+
+function getFullScryfallData(card) {
+  if (card?.full_scryfall_data && typeof card.full_scryfall_data === 'object') return card.full_scryfall_data;
+  if (card?.raw && typeof card.raw === 'object') return card.raw;
+  return objectValue(card);
+}
 
 function isRealSaveableCard(card) {
   const typeLine = card?.type_line?.toLowerCase() || '';
@@ -68,15 +83,19 @@ async function getCurrentUserId() {
 }
 
 export function normalizeUserCardRow(row) {
+  // Rows are expanded back into the same shape pack opening, collection, and battle expect.
   const prices = row.prices || {};
   const isFoil = Boolean(row.is_foil);
+  const fullScryfallData = objectValue(row.full_scryfall_data);
 
   return {
+    ...row,
     collectionId: row.id,
     userCardId: row.id,
     user_id: row.user_id,
     userId: row.user_id,
     id: row.scryfall_id,
+    scryfallId: row.scryfall_id,
     name: row.name,
     set: row.set_code,
     set_name: row.set_name,
@@ -84,6 +103,7 @@ export function normalizeUserCardRow(row) {
     rarity: row.rarity,
     imageUrl: row.image_url,
     image: row.image_url,
+    image_uris: fullScryfallData.image_uris || null,
     prices,
     usd: prices.usd ?? null,
     usd_foil: prices.usd_foil ?? null,
@@ -96,14 +116,30 @@ export function normalizeUserCardRow(row) {
     isCollectorExclusive: Boolean(row.is_collector_exclusive),
     isOneOfOne: Boolean(row.is_one_of_one),
     specialPullType: row.special_pull_type || null,
+    type_line: row.type_line || fullScryfallData.type_line || '',
+    oracle_text: row.oracle_text || fullScryfallData.oracle_text || '',
+    mana_cost: row.mana_cost || fullScryfallData.mana_cost || '',
+    cmc: Number(row.cmc ?? fullScryfallData.cmc ?? fullScryfallData.mana_value ?? 0),
+    mana_value: Number(row.cmc ?? fullScryfallData.mana_value ?? fullScryfallData.cmc ?? 0),
+    power: row.power || fullScryfallData.power || null,
+    toughness: row.toughness || fullScryfallData.toughness || null,
+    colors: arrayValue(row.colors, arrayValue(fullScryfallData.colors)),
+    color_identity: arrayValue(row.color_identity, arrayValue(fullScryfallData.color_identity)),
+    keywords: arrayValue(row.keywords, arrayValue(fullScryfallData.keywords)),
+    card_faces: arrayValue(row.card_faces, arrayValue(fullScryfallData.card_faces)),
+    legalities: objectValue(row.legalities, objectValue(fullScryfallData.legalities)),
+    layout: row.layout || fullScryfallData.layout || null,
+    full_scryfall_data: fullScryfallData,
     openedAt: row.opened_at || row.created_at,
     createdAt: row.created_at,
   };
 }
 
 function cardToUserCardRow(card, userId, sourcePackId) {
+  // Saving keeps battle-relevant Scryfall fields so old cards do not collapse into generic data later.
   const openedAt = card.openedAt || new Date().toISOString();
   const prices = card.prices || {};
+  const fullScryfallData = getFullScryfallData(card);
   const row = {
     user_id: userId,
     scryfall_id: card.id,
@@ -119,11 +155,24 @@ function cardToUserCardRow(card, userId, sourcePackId) {
     is_one_of_one: Boolean(card.isOneOfOne),
     special_pull_type: card.specialPullType || null,
     prices,
+    type_line: card.type_line || card.typeLine || fullScryfallData.type_line || null,
+    oracle_text: card.oracle_text || card.oracleText || fullScryfallData.oracle_text || null,
+    mana_cost: card.mana_cost || card.manaCost || fullScryfallData.mana_cost || null,
+    cmc: Number(card.cmc ?? card.mana_value ?? fullScryfallData.cmc ?? fullScryfallData.mana_value ?? 0),
+    power: card.power || fullScryfallData.power || null,
+    toughness: card.toughness || fullScryfallData.toughness || null,
+    colors: arrayValue(card.colors, arrayValue(fullScryfallData.colors)),
+    color_identity: arrayValue(card.color_identity || card.colorIdentity, arrayValue(fullScryfallData.color_identity)),
+    keywords: arrayValue(card.keywords, arrayValue(fullScryfallData.keywords)),
+    card_faces: arrayValue(card.card_faces || card.cardFaces, arrayValue(fullScryfallData.card_faces)),
+    legalities: objectValue(card.legalities, objectValue(fullScryfallData.legalities)),
+    layout: card.layout || fullScryfallData.layout || null,
+    full_scryfall_data: fullScryfallData,
     opened_at: openedAt,
   };
 
-  if (sourcePackId) {
-    row.source_pack_id = sourcePackId;
+  if (sourcePackId || card.sourcePackId) {
+    row.source_pack_id = sourcePackId || card.sourcePackId;
   }
 
   return row;
@@ -136,6 +185,7 @@ export async function getMyCards() {
 }
 
 export async function getUserCardsForUser(userId) {
+  // Supabase range queries avoid the default 1,000-row ceiling for large collections.
   const rows = [];
   let from = 0;
 
@@ -165,6 +215,7 @@ export async function getUserCardsForUser(userId) {
 }
 
 export async function saveOpenedCards(cards, sourcePackId, options = {}) {
+  // Duplicate rewards are calculated before insert so every opened copy is still saved.
   const userId = await getCurrentUserId();
   const existingCards = options.skipDuplicateRewards ? [] : await getMyCards();
   const openedAt = new Date().toISOString();
@@ -172,7 +223,11 @@ export async function saveOpenedCards(cards, sourcePackId, options = {}) {
     .filter(isRealSaveableCard)
     .map((card) => cardToUserCardRow({ ...card, openedAt: card.openedAt || openedAt }, userId, sourcePackId));
   const duplicateRewards = options.skipDuplicateRewards
+<<<<<<< HEAD
     ? { cardsWithDuplicateFlags: rowsToSave, duplicateCount: 0, shardsAwarded: 0 }
+=======
+    ? { duplicateCount: 0, shardsAwarded: 0, cardsWithDuplicateFlags: rowsToSave }
+>>>>>>> cdad45f983029698b55070c669a2729f1e01b718
     : calculateDuplicateRewardsForBatch(existingCards, rowsToSave);
 
   if (!rowsToSave.length) {
@@ -180,7 +235,7 @@ export async function saveOpenedCards(cards, sourcePackId, options = {}) {
       savedCards: [],
       duplicateCount: 0,
       shardsAwarded: 0,
-      newShardBalance: getPackShards(),
+      newShardBalance: await getCloudPackShards(),
     };
   }
 
@@ -193,7 +248,11 @@ export async function saveOpenedCards(cards, sourcePackId, options = {}) {
   }
 
   const shardsAwarded = duplicateRewards.shardsAwarded;
+<<<<<<< HEAD
   const newShardBalance = shardsAwarded > 0 ? addPackShards(shardsAwarded) : getPackShards();
+=======
+  const newShardBalance = shardsAwarded > 0 ? await addCloudPackShards(shardsAwarded) : await getCloudPackShards();
+>>>>>>> cdad45f983029698b55070c669a2729f1e01b718
   window.dispatchEvent(new Event('collectionUpdated'));
 
   return {
@@ -249,6 +308,7 @@ export async function getCardByUserCardId(userCardId) {
 }
 
 export async function recycleUserCards(userCardIds) {
+  // Recycling deletes only the selected collection copies, then awards dynamic Pack Shards.
   const userId = await getCurrentUserId();
   const uniqueUserCardIds = [...new Set(userCardIds)].filter(Boolean);
 
@@ -288,7 +348,7 @@ export async function recycleUserCards(userCardIds) {
     throw new Error(deleteError.message || 'Unable to recycle selected cards.');
   }
 
-  const newShardBalance = addPackShards(shardsAwarded);
+  const newShardBalance = await addCloudPackShards(shardsAwarded);
   window.dispatchEvent(new Event('packShardsUpdated'));
   window.dispatchEvent(new Event('collectionUpdated'));
 

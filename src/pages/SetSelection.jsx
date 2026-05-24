@@ -1,6 +1,8 @@
+// Set selection shows Scryfall sets while marking app-level collector-only locks.
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import LockIcon from '@mui/icons-material/Lock';
 import SearchIcon from '@mui/icons-material/Search';
 import {
   Alert,
@@ -8,6 +10,7 @@ import {
   Button,
   Card,
   CardContent,
+  Chip,
   IconButton,
   InputAdornment,
   Skeleton,
@@ -19,6 +22,10 @@ import { motion } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getSets } from '../api/scryfall.js';
+import { getPackShards } from '../utils/collectionStorage.js';
+import { getCollectorOnlySetReason, isCollectorOnlySet } from '../utils/collectorOnlySets.js';
+
+const COLLECTOR_BOOSTER_COST = 1000;
 
 const VISIBLE_SET_SLOTS = [-2, -1, 0, 1, 2];
 const DESKTOP_SLOT_STYLES = {
@@ -132,6 +139,7 @@ function SetIcon({ set, size = 54 }) {
 function SetCarouselCard({ isMobile, onChoose, onFocus, relativePosition, set }) {
   const isActive = relativePosition === 0;
   const slotStyle = isMobile ? MOBILE_SLOT_STYLES[relativePosition] : DESKTOP_SLOT_STYLES[relativePosition];
+  const isCollectorOnly = isCollectorOnlySet(set);
 
   return (
     <Card
@@ -174,9 +182,15 @@ function SetCarouselCard({ isMobile, onChoose, onFocus, relativePosition, set })
         cursor: 'pointer',
         overflow: 'hidden',
         borderRadius: 4,
-        borderColor: isActive ? 'rgba(244, 201, 93, 0.76)' : 'rgba(76, 201, 240, 0.22)',
+        borderColor: isCollectorOnly
+          ? 'rgba(244, 201, 93, 0.86)'
+          : isActive
+            ? 'rgba(244, 201, 93, 0.76)'
+            : 'rgba(76, 201, 240, 0.22)',
         boxShadow: isActive
-          ? '0 0 58px rgba(244, 201, 93, 0.32), 0 0 120px rgba(143, 124, 255, 0.16), 0 24px 70px rgba(0, 0, 0, 0.5)'
+          ? isCollectorOnly
+            ? '0 0 62px rgba(244, 201, 93, 0.38), 0 0 130px rgba(76, 201, 240, 0.16), 0 24px 70px rgba(0, 0, 0, 0.5)'
+            : '0 0 58px rgba(244, 201, 93, 0.32), 0 0 120px rgba(143, 124, 255, 0.16), 0 24px 70px rgba(0, 0, 0, 0.5)'
           : '0 18px 46px rgba(0, 0, 0, 0.36)',
         '&::after': {
           content: '""',
@@ -198,12 +212,27 @@ function SetCarouselCard({ isMobile, onChoose, onFocus, relativePosition, set })
           <Typography variant={isActive ? 'h4' : 'h5'} sx={{ mt: 0.5, lineHeight: 1.08 }}>
             {set.name}
           </Typography>
+          {isCollectorOnly && (
+            <Chip
+              color="warning"
+              icon={<LockIcon />}
+              label="Collector Only"
+              size="small"
+              sx={{ mt: 1.5, fontWeight: 900 }}
+              variant="outlined"
+            />
+          )}
         </Box>
 
         <Box sx={{ display: 'grid', gap: 1.2, mt: 3, alignSelf: 'end' }}>
           <Typography color="text.secondary">Released: {formatReleaseDate(set.released_at)}</Typography>
           <Typography color="text.secondary">Cards: {set.card_count.toLocaleString()}</Typography>
           <Typography color="text.secondary">Type: {set.set_type}</Typography>
+          {isCollectorOnly && (
+            <Typography color="warning.main" fontWeight={800}>
+              Collector Booster required
+            </Typography>
+          )}
         </Box>
       </CardContent>
     </Card>
@@ -217,8 +246,23 @@ export default function SetSelection() {
   const [sets, setSets] = useState([]);
   const [search, setSearch] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
+  const [packShards, setPackShards] = useState(() => getPackShards());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    function refreshPackShards() {
+      setPackShards(getPackShards());
+    }
+
+    window.addEventListener('packShardsUpdated', refreshPackShards);
+    window.addEventListener('storage', refreshPackShards);
+
+    return () => {
+      window.removeEventListener('packShardsUpdated', refreshPackShards);
+      window.removeEventListener('storage', refreshPackShards);
+    };
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -234,7 +278,7 @@ export default function SetSelection() {
         }
       } catch (loadError) {
         if (isMounted) {
-          setError(loadError.message || 'Unable to load Magic sets from Scryfall.');
+          setError(loadError.message || 'Magic sets could not be loaded from Scryfall.');
         }
       } finally {
         if (isMounted) {
@@ -296,7 +340,9 @@ export default function SetSelection() {
 
   function chooseSet() {
     if (activeSet?.code) {
-      navigate(`/packs/${activeSet.code}`);
+      navigate(`/packs/${activeSet.code}`, {
+        state: isCollectorOnlySet(activeSet) ? { preferredBoosterType: 'collector' } : undefined,
+      });
     }
   }
 
@@ -321,10 +367,10 @@ export default function SetSelection() {
           Open Packs
         </Typography>
         <Typography variant="h2" component="h1" sx={{ fontSize: { xs: 38, md: 58 }, mb: 1 }}>
-          Choose a Set
+          Choose a set
         </Typography>
         <Typography color="text.secondary" sx={{ mx: 'auto', maxWidth: 700, fontSize: 18, lineHeight: 1.65 }}>
-          Select a Magic set to generate a booster pack from real Scryfall data.
+          Pick a Magic set from Scryfall, then choose how you want to open it.
         </Typography>
 
         <Box
@@ -370,7 +416,7 @@ export default function SetSelection() {
 
       {!isLoading && error && (
         <Alert severity="error" sx={{ position: 'relative', zIndex: 1, mt: 4 }}>
-          {error}
+          {error} Try refreshing the page or searching again in a moment.
         </Alert>
       )}
 
@@ -381,7 +427,7 @@ export default function SetSelection() {
               No sets found
             </Typography>
             <Typography color="text.secondary">
-              Try searching by a set name like Dominaria or a code like DMU.
+              Try a set name like Dominaria or a short code like DMU.
             </Typography>
           </CardContent>
         </Card>
@@ -509,10 +555,24 @@ export default function SetSelection() {
           {activeSet && (
             <Box sx={{ display: 'grid', justifyItems: 'center', gap: 1.5, textAlign: 'center' }}>
               <Typography color="text.secondary">
-                Selected: {activeSet.name} ({activeSet.code.toUpperCase()})
+                Selected set: {activeSet.name} ({activeSet.code.toUpperCase()})
               </Typography>
-              <Button endIcon={<ArrowForwardIcon />} onClick={chooseSet} size="large" variant="contained">
-                Choose This Set
+              {isCollectorOnlySet(activeSet) && (
+                <Alert severity="warning" sx={{ maxWidth: 560, textAlign: 'left' }} variant="outlined">
+                  {getCollectorOnlySetReason(activeSet)}{' '}
+                  {packShards >= COLLECTOR_BOOSTER_COST
+                    ? 'Collector Booster is available.'
+                    : `Need ${(COLLECTOR_BOOSTER_COST - packShards).toLocaleString()} more Pack Shards.`}
+                </Alert>
+              )}
+              <Button
+                endIcon={<ArrowForwardIcon />}
+                onClick={chooseSet}
+                size="large"
+                startIcon={isCollectorOnlySet(activeSet) ? <LockIcon /> : undefined}
+                variant="contained"
+              >
+                {isCollectorOnlySet(activeSet) ? 'Continue to Collector Booster' : 'Continue'}
               </Button>
             </Box>
           )}

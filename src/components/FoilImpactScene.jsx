@@ -1,3 +1,4 @@
+// Desktop foil impact layer for the big reveal moment; mobile uses lighter effects elsewhere.
 import { Box } from '@mui/material';
 import { getFoilAnimationConfig } from '../utils/foilAnimations.js';
 

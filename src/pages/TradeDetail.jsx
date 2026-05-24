@@ -1,3 +1,4 @@
+// Trade detail shows one offer and lets the receiver accept, decline, or sender cancel.
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Snackbar, Typography } from '@mui/material';
 import { useEffect, useState } from 'react';
@@ -23,7 +24,7 @@ export default function TradeDetail() {
       setError('');
       setTrade(await getTradeById(tradeId));
     } catch (loadError) {
-      setError(loadError.message || 'Unable to load trade.');
+      setError(loadError.message || 'This trade could not be loaded. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -39,21 +40,21 @@ export default function TradeDetail() {
       await loadTrade();
       setSnackbar({ message, severity: 'success' });
     } catch (actionError) {
-      setSnackbar({ message: actionError.message || 'Unable to update trade.', severity: 'error' });
+      setSnackbar({ message: actionError.message || 'That trade could not be updated. Please try again.', severity: 'error' });
     }
   }
 
   return (
     <TradeSkinSurface>
       <Button component={Link} startIcon={<ArrowBackIcon />} to="/trades" variant="outlined" sx={{ mb: 3 }}>
-        Back to Trades
+        Back to trades
       </Button>
-      <PageHeader eyebrow="Trade Detail" title="Trade Offer">
+      <PageHeader eyebrow="Trade detail" title="Trade offer">
         Review both sides before accepting. Cards move owners only when an incoming trade is accepted.
       </PageHeader>
 
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
-      {isLoading && <Alert severity="info">Loading trade...</Alert>}
+      {isLoading && <Alert severity="info">Loading trade offer...</Alert>}
       {!isLoading && trade && (
         <TradeSummaryCard
           currentUserId={user.id}
@@ -80,7 +81,7 @@ export default function TradeDetail() {
             }}
             variant="contained"
           >
-            Accept Trade
+            Accept trade
           </Button>
         </DialogActions>
       </Dialog>

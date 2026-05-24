@@ -1,3 +1,4 @@
+// Pack selection chooses wrapper art and enforces Play vs Collector Booster access.
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
@@ -23,11 +24,12 @@ import {
 } from '@mui/material';
 import { animate, motion, useMotionValue, useTransform } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { getArtCardsBySet, getCardsBySet, getSets } from '../api/scryfall.js';
 import PageHeader from '../components/PageHeader.jsx';
 import PackCard from '../components/PackCard.jsx';
 import { getPackShards } from '../utils/collectionStorage.js';
+import { getCollectorOnlySetReason, isCollectorOnlySet } from '../utils/collectorOnlySets.js';
 import { getPackArtForSet } from '../utils/packArt.js';
 
 const PACK_COUNT = 7;
@@ -254,6 +256,7 @@ function WheelPack({ index, isActive, isDragging, isMobile, onCenterPack, pack, 
 
 export default function PackSelection() {
   const { setCode } = useParams();
+  const { state } = useLocation();
   const navigate = useNavigate();
   const isMobile = useMediaQuery((theme) => theme.breakpoints.down('sm'));
   const normalizedSetCode = setCode?.trim().toLowerCase() || '';
@@ -267,6 +270,7 @@ export default function PackSelection() {
   const [isLoading, setIsLoading] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState('');
+  const [actionError, setActionError] = useState('');
   const rotation = useMotionValue(0);
   const activeIndexRef = useRef(0);
   const liveActiveIndexRef = useRef(0);
@@ -308,7 +312,7 @@ export default function PackSelection() {
         }
       } catch (loadError) {
         if (isMounted) {
-          setError(loadError.message || 'Unable to load cards for this set.');
+          setError(loadError.message || 'Cards for this set could not be loaded.');
         }
       } finally {
         if (isMounted) {
@@ -350,7 +354,12 @@ export default function PackSelection() {
   const swipeThreshold = isMobile ? 28 : 60;
   const wheelRadius = isMobile ? 190 : 360;
   const collectorBoosterTotalCost = COLLECTOR_BOOSTER_COST * packQuantity;
+<<<<<<< HEAD
   const canAffordCollectorBooster = packShards >= collectorBoosterTotalCost;
+=======
+  const canAffordSelectedCollectorBoosters = packShards >= collectorBoosterTotalCost;
+  const isCollectorOnly = isCollectorOnlySet(normalizedSetCode);
+>>>>>>> cdad45f983029698b55070c669a2729f1e01b718
   const missingCollectorShards = Math.max(collectorBoosterTotalCost - packShards, 0);
 
   useEffect(() => {
@@ -396,6 +405,10 @@ export default function PackSelection() {
   function handlePackQuantityChange(_, nextQuantity) {
     if (PACK_QUANTITY_OPTIONS.includes(nextQuantity)) {
       setPackQuantity(nextQuantity);
+<<<<<<< HEAD
+=======
+      setActionError('');
+>>>>>>> cdad45f983029698b55070c669a2729f1e01b718
     }
   }
 
@@ -408,13 +421,34 @@ export default function PackSelection() {
   }
 
   function openPack(pack, boosterType = 'play') {
+    // UI guard mirrors PackOpening's hard guard so route navigation cannot bypass locks.
+    setActionError('');
     const centeredIndex = wrapIndex(liveActiveIndexRef.current, packOptions.length);
     const selectedPack = pack || packOptions[centeredIndex] || activePack;
 
+<<<<<<< HEAD
     if (!selectedPack || (boosterType === 'collector' && packShards < collectorBoosterTotalCost)) {
       return;
     }
 
+=======
+    if (!selectedPack) {
+      return;
+    }
+
+    if (isCollectorOnly && boosterType !== 'collector') {
+      setActionError('This set is collector-only and cannot be opened as a Play Booster.');
+      return;
+    }
+
+    if (boosterType === 'collector' && packShards < collectorBoosterTotalCost) {
+      setActionError(
+        `You need ${missingCollectorShards.toLocaleString()} more Pack Shards to open ${packQuantity} Collector Booster${packQuantity === 1 ? '' : 's'}.`,
+      );
+      return;
+    }
+
+>>>>>>> cdad45f983029698b55070c669a2729f1e01b718
     navigate(`/open/${normalizedSetCode}?quantity=${packQuantity}`, {
       state: {
         packArtwork: selectedPack.artwork,
@@ -431,6 +465,7 @@ export default function PackSelection() {
 
   function openBoosterDialog() {
     if (activePack) {
+      setActionError('');
       setIsBoosterDialogOpen(true);
     }
   }
@@ -486,8 +521,9 @@ export default function PackSelection() {
   return (
     <Box sx={{ minHeight: 'calc(100vh - 96px)' }}>
       <PageHeader eyebrow={normalizedSetCode.toUpperCase()} title="Choose your pack">
-        Pick a wrapper for {setName}, then open it as a free Play Booster or spend shards on a
-        mostly foil Collector Booster.
+        {isCollectorOnly
+          ? `${setName} is collector-edition only. It can be opened with a Collector Booster when you have enough Pack Shards.`
+          : `Pick a wrapper for ${setName}, then open a free Play Booster or spend Pack Shards on a mostly foil Collector Booster.`}
       </PageHeader>
 
       <Button component={Link} startIcon={<ArrowBackIcon />} to="/sets" variant="outlined" sx={{ mb: 4 }}>
@@ -498,13 +534,13 @@ export default function PackSelection() {
 
       {!isLoading && error && (
         <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
+          {error} Try changing sets or refreshing this page.
         </Alert>
       )}
 
       {!isLoading && !error && packOptions.length === 0 && (
         <Alert severity="warning" sx={{ mb: 3 }}>
-          No usable card artwork was found for this set.
+          No usable pack artwork was found for this set. Try another set.
         </Alert>
       )}
 
@@ -538,7 +574,9 @@ export default function PackSelection() {
             <Typography variant="h4" component="h2" sx={{ fontSize: { xs: 30, md: 38 }, mb: 0.5 }}>
               Choose Your Pack
             </Typography>
-            <Typography color="text.secondary">Sealed boosters circle through the dark.</Typography>
+            <Typography color="text.secondary">
+              {isCollectorOnly ? 'Collector-only set. Requires a Collector Booster.' : 'Browse the sealed wrappers, then choose a booster type.'}
+            </Typography>
             <Chip
               color="warning"
               label={`${packShards.toLocaleString()} Pack Shards`}
@@ -546,15 +584,57 @@ export default function PackSelection() {
               variant="outlined"
             />
             <Box sx={{ display: 'grid', justifyItems: 'center', mt: 1.5 }}>
+<<<<<<< HEAD
               <ToggleButtonGroup exclusive onChange={handlePackQuantityChange} size="small" value={packQuantity}>
+=======
+              <ToggleButtonGroup
+                exclusive
+                onChange={handlePackQuantityChange}
+                size="small"
+                value={packQuantity}
+                sx={{
+                  bgcolor: 'rgba(5, 7, 17, 0.62)',
+                  border: '1px solid rgba(248, 247, 255, 0.14)',
+                  borderRadius: 2,
+                  p: 0.35,
+                }}
+              >
+>>>>>>> cdad45f983029698b55070c669a2729f1e01b718
                 <ToggleButton value={1}>1x</ToggleButton>
                 <ToggleButton value={10}>10x</ToggleButton>
               </ToggleButtonGroup>
               <Typography color="text.secondary" sx={{ fontSize: 12, fontWeight: 800, mt: 0.75 }}>
+<<<<<<< HEAD
                 {packQuantity === 10 ? 'Open 10 packs and save every card.' : 'Open one pack.'}
               </Typography>
             </Box>
+=======
+                {packQuantity === 10 ? 'Open 10 packs in one bulk reveal.' : 'Open one pack with the classic reveal.'}
+              </Typography>
+            </Box>
+            {isCollectorOnly && (
+              <Chip
+                color="warning"
+                icon={<LockIcon />}
+                label="Collector Only"
+                sx={{ mt: 1.5, ml: { xs: 0, sm: 1 }, fontWeight: 900 }}
+                variant="filled"
+              />
+            )}
+>>>>>>> cdad45f983029698b55070c669a2729f1e01b718
           </Box>
+
+          {isCollectorOnly && (
+            <Alert severity="warning" sx={{ width: '100%', maxWidth: 760 }} variant="outlined">
+              {getCollectorOnlySetReason(normalizedSetCode)}
+            </Alert>
+          )}
+
+          {actionError && (
+            <Alert severity="error" sx={{ width: '100%', maxWidth: 760 }} onClose={() => setActionError('')}>
+              {actionError}
+            </Alert>
+          )}
 
           <Box
             className="carouselStage"
@@ -691,7 +771,7 @@ export default function PackSelection() {
           </Box>
 
           <Typography color="text.secondary" fontWeight={700}>
-            Click the centered pack or swipe to browse
+            Click the centered pack, or swipe to browse.
           </Typography>
 
           <Typography color="text.secondary" sx={{ fontSize: 13, textAlign: 'center' }}>
@@ -708,6 +788,7 @@ export default function PackSelection() {
               maxWidth: 760,
             }}
           >
+<<<<<<< HEAD
             <Card sx={{ borderColor: 'rgba(244, 201, 93, 0.5)' }}>
               <CardContent sx={{ display: 'grid', gap: 1.25 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
@@ -728,13 +809,37 @@ export default function PackSelection() {
                 </Button>
               </CardContent>
             </Card>
+=======
+            {!isCollectorOnly && (
+              <Card sx={{ borderColor: 'rgba(244, 201, 93, 0.5)' }}>
+                <CardContent sx={{ display: 'grid', gap: 1.25 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                    <Typography variant="h5">Play Booster</Typography>
+                    <Chip color="success" label="Free" size="small" />
+                  </Box>
+                  <Typography color="text.secondary">
+                    A standard 15-card opening from the selected set.
+                  </Typography>
+                  <Button
+                    disabled={!activePack}
+                    onClick={() => openPack(undefined, 'play')}
+                    size="large"
+                    startIcon={<AutoAwesomeIcon />}
+                    variant="contained"
+                  >
+                    {getOpenButtonLabel('play')}
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+>>>>>>> cdad45f983029698b55070c669a2729f1e01b718
 
             <Card
               sx={{
                 borderColor:
-                  canAffordCollectorBooster ? 'rgba(244, 201, 93, 0.74)' : 'rgba(248, 247, 255, 0.12)',
-                opacity: canAffordCollectorBooster ? 1 : 0.72,
-                boxShadow: canAffordCollectorBooster
+                  canAffordSelectedCollectorBoosters ? 'rgba(244, 201, 93, 0.74)' : 'rgba(248, 247, 255, 0.12)',
+                opacity: canAffordSelectedCollectorBoosters ? 1 : 0.72,
+                boxShadow: canAffordSelectedCollectorBoosters
                   ? '0 0 38px rgba(244, 201, 93, 0.18), 0 0 80px rgba(143, 124, 255, 0.12)'
                   : undefined,
               }}
@@ -743,8 +848,13 @@ export default function PackSelection() {
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
                   <Typography variant="h5">Collector Booster</Typography>
                   <Chip
+<<<<<<< HEAD
                     color={canAffordCollectorBooster ? 'warning' : 'default'}
                     icon={canAffordCollectorBooster ? undefined : <LockIcon />}
+=======
+                    color={canAffordSelectedCollectorBoosters ? 'warning' : 'default'}
+                    icon={canAffordSelectedCollectorBoosters ? undefined : <LockIcon />}
+>>>>>>> cdad45f983029698b55070c669a2729f1e01b718
                     label={`${collectorBoosterTotalCost.toLocaleString()} shards`}
                     size="small"
                     variant="outlined"
@@ -759,19 +869,27 @@ export default function PackSelection() {
                 <Typography color="text.secondary" sx={{ fontSize: 13 }}>
                   Cost: {COLLECTOR_BOOSTER_COST.toLocaleString()} each · {packQuantity}x total: {collectorBoosterTotalCost.toLocaleString()} shards
                 </Typography>
+<<<<<<< HEAD
                 {!canAffordCollectorBooster && (
+=======
+                {!canAffordSelectedCollectorBoosters && (
+>>>>>>> cdad45f983029698b55070c669a2729f1e01b718
                   <Alert severity="info" variant="outlined">
                     Need {missingCollectorShards.toLocaleString()} more Pack Shards.
                   </Alert>
                 )}
                 <Button
-                  disabled={!activePack || !canAffordCollectorBooster}
+                  disabled={!activePack || !canAffordSelectedCollectorBoosters}
                   onClick={() => openPack(undefined, 'collector')}
                   size="large"
-                  startIcon={canAffordCollectorBooster ? <AutoAwesomeIcon /> : <LockIcon />}
-                  variant={canAffordCollectorBooster ? 'contained' : 'outlined'}
+                  startIcon={canAffordSelectedCollectorBoosters ? <AutoAwesomeIcon /> : <LockIcon />}
+                  variant={canAffordSelectedCollectorBoosters ? 'contained' : 'outlined'}
                 >
+<<<<<<< HEAD
                   {canAffordCollectorBooster ? getOpenButtonLabel('collector') : `Need ${missingCollectorShards.toLocaleString()} more shards`}
+=======
+                  {canAffordSelectedCollectorBoosters ? getOpenButtonLabel('collector') : `Need ${missingCollectorShards.toLocaleString()} more shards`}
+>>>>>>> cdad45f983029698b55070c669a2729f1e01b718
                 </Button>
               </CardContent>
             </Card>
@@ -793,6 +911,7 @@ export default function PackSelection() {
             <DialogTitle sx={{ pb: 0.5 }}>Open {activePack?.name || 'Pack'}</DialogTitle>
             <DialogContent sx={{ display: 'grid', gap: 1.25, pt: 1 }}>
               <Typography color="text.secondary">
+<<<<<<< HEAD
                 {setInfo.name} is ready as a free Play Booster. Collector Booster costs{' '}
                 {COLLECTOR_BOOSTER_COST.toLocaleString()} shards each.
               </Typography>
@@ -800,20 +919,52 @@ export default function PackSelection() {
                 <ToggleButton value={1}>1x</ToggleButton>
                 <ToggleButton value={10}>10x</ToggleButton>
               </ToggleButtonGroup>
+=======
+                {isCollectorOnly
+                  ? `${setInfo.name} is collector-only and requires a Collector Booster.`
+                  : `${setInfo.name} is ready as a free Play Booster.`}{' '}
+                Collector Booster costs {COLLECTOR_BOOSTER_COST.toLocaleString()} shards each.
+              </Typography>
+              <Box>
+                <Typography color="text.secondary" sx={{ fontSize: 13, fontWeight: 800, mb: 0.75 }}>
+                  Pack quantity
+                </Typography>
+                <ToggleButtonGroup exclusive onChange={handlePackQuantityChange} size="small" value={packQuantity}>
+                  <ToggleButton value={1}>1x</ToggleButton>
+                  <ToggleButton value={10}>10x</ToggleButton>
+                </ToggleButtonGroup>
+              </Box>
+>>>>>>> cdad45f983029698b55070c669a2729f1e01b718
               <Chip
                 color="warning"
                 label={`${packShards.toLocaleString()} Pack Shards`}
                 sx={{ justifySelf: 'start', fontWeight: 900 }}
                 variant="outlined"
               />
-              {!canAffordCollectorBooster && (
+              <Typography color="text.secondary" sx={{ fontSize: 13 }}>
+                Collector total: {collectorBoosterTotalCost.toLocaleString()} Pack Shards
+              </Typography>
+              {!canAffordSelectedCollectorBoosters && (
                 <Alert severity="info" variant="outlined">
                   Need {missingCollectorShards.toLocaleString()} more Pack Shards.
                 </Alert>
               )}
             </DialogContent>
             <DialogActions sx={{ display: 'grid', gap: 1, p: 3, pt: 1.5 }}>
+              {!isCollectorOnly && (
+                <Button
+                  autoFocus={state?.preferredBoosterType !== 'collector'}
+                  disabled={!activePack}
+                  onClick={() => openSelectedPack('play')}
+                  size="large"
+                  startIcon={<AutoAwesomeIcon />}
+                  variant="contained"
+                >
+                  {getOpenButtonLabel('play')}
+                </Button>
+              )}
               <Button
+<<<<<<< HEAD
                 autoFocus
                 disabled={!activePack}
                 onClick={() => openSelectedPack('play')}
@@ -825,12 +976,20 @@ export default function PackSelection() {
               </Button>
               <Button
                 disabled={!activePack || !canAffordCollectorBooster}
+=======
+                autoFocus={isCollectorOnly || state?.preferredBoosterType === 'collector'}
+                disabled={!activePack || !canAffordSelectedCollectorBoosters}
+>>>>>>> cdad45f983029698b55070c669a2729f1e01b718
                 onClick={() => openSelectedPack('collector')}
                 size="large"
-                startIcon={canAffordCollectorBooster ? <AutoAwesomeIcon /> : <LockIcon />}
+                startIcon={canAffordSelectedCollectorBoosters ? <AutoAwesomeIcon /> : <LockIcon />}
                 variant="outlined"
               >
+<<<<<<< HEAD
                 {canAffordCollectorBooster ? getOpenButtonLabel('collector') : `Need ${missingCollectorShards.toLocaleString()} more shards`}
+=======
+                {canAffordSelectedCollectorBoosters ? getOpenButtonLabel('collector') : `Need ${missingCollectorShards.toLocaleString()} more shards`}
+>>>>>>> cdad45f983029698b55070c669a2729f1e01b718
               </Button>
             </DialogActions>
           </Dialog>

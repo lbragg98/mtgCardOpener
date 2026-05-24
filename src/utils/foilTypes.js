@@ -1,3 +1,4 @@
+// Shared foil treatment names so pack generation, card rendering, and recycling agree.
 export const FOIL_TREATMENTS = {
   NONE: 'none',
   RAINBOW: 'rainbow',
@@ -28,6 +29,7 @@ const FOIL_ONLY_TREATMENTS = [
 ];
 
 export function normalizeFoilTreatment(card) {
+  // Old saved cards may say "standard" or "premium"; normalize them to current treatment names.
   if (!card?.isFoil) {
     return FOIL_TREATMENTS.NONE;
   }
