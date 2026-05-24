@@ -91,7 +91,6 @@ export default function BulkPackSummary({
   allCards = [],
   boosterType,
   isSaving = false,
-  onSave,
   packs = [],
   saveError = '',
   saved = false,
@@ -143,19 +142,15 @@ export default function BulkPackSummary({
           </Alert>
         )}
 
-        <Box sx={{ alignItems: 'center', display: 'flex', flexWrap: 'wrap', gap: 1.5, mb: 3 }}>
-          <Button
-            disabled={isSaving || saved}
-            onClick={onSave}
-            startIcon={<CollectionsBookmarkIcon />}
-            variant="contained"
-          >
-            {isSaving ? 'Saving...' : saved ? 'Saved' : 'Save to Collection'}
-          </Button>
+        <Box sx={{ mb: 3 }}>
           <Typography color="text.secondary" sx={{ fontSize: 13, fontWeight: 800 }}>
-            {saved
+            {isSaving
+              ? 'Saving every card to your collection...'
+              : saved
               ? `${saveResult?.savedCards?.length || 0} cards saved to your collection.`
-              : 'Save every card from every opened pack.'}
+              : saveError
+              ? 'Autosave failed. Your pulled cards are still visible here.'
+              : 'Autosave will add every card from every opened pack.'}
           </Typography>
         </Box>
 

@@ -651,7 +651,6 @@ function RevealCard({ card, cardNumber, exitX, onAdvance, revealEffectId }) {
 function SummaryGrid({
   boosterLabel,
   isSaving,
-  onSave,
   pack,
   saveError,
   saved,
@@ -698,18 +697,14 @@ function SummaryGrid({
           </Alert>
         )}
 
-        <Box sx={{ alignItems: "center", display: "flex", flexWrap: "wrap", gap: 1.5, mb: 3 }}>
-          <Button
-            disabled={isSaving || saved}
-            onClick={onSave}
-            startIcon={<CollectionsBookmarkIcon />}
-            variant="contained"
-          >
-            {isSaving ? "Saving..." : saved ? "Saved" : "Save to Collection"}
-          </Button>
+        <Box sx={{ mb: 3 }}>
           <Typography color="text.secondary" sx={{ fontSize: 13, fontWeight: 800 }}>
-            {saved
+            {isSaving
+              ? "Saving cards to your collection..."
+              : saved
               ? `${saveResult?.savedCards?.length || 0} cards saved to your collection.`
+              : saveError
+              ? "Autosave failed. Your pulled cards are still visible here."
               : `${pack.length} pulled cards are ready to save.`}
           </Typography>
         </Box>
@@ -902,6 +897,7 @@ export default function PackOpening() {
   const [isSavingOpening, setIsSavingOpening] = useState(false);
   const [openingSaved, setOpeningSaved] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const hasAutosavedRef = useRef(false);
   const [completedOneOfOneRevealKey, setCompletedOneOfOneRevealKey] = useState("");
   const isAnimatingRef = useRef(false);
   const equippedOpeningScene = getEquippedItem("openingScene");
@@ -929,6 +925,7 @@ export default function PackOpening() {
         setIsSavingOpening(false);
         setOpeningSaved(false);
         setSaveError("");
+        hasAutosavedRef.current = false;
         setCompletedOneOfOneRevealKey("");
 
         if (isCollectorOnlySet(normalizedSetCode) && boosterType !== "collector") {
@@ -1141,6 +1138,17 @@ export default function PackOpening() {
     user,
   ]);
 
+  useEffect(() => {
+    if (
+      (phase === PHASES.summary || phase === PHASES.bulkSummary) &&
+      revealedPack.length > 0 &&
+      !hasAutosavedRef.current
+    ) {
+      hasAutosavedRef.current = true;
+      saveRevealedPack();
+    }
+  }, [phase, revealedPack.length, saveRevealedPack]);
+
   if (isLoading) {
     return (
       <Box
@@ -1210,7 +1218,6 @@ export default function PackOpening() {
             allCards={mergeSavedCardFlagsForDisplay(bulkOpening.allCards, saveResult?.savedCards)}
             boosterType={boosterType}
             isSaving={isSavingOpening}
-            onSave={saveRevealedPack}
             packs={bulkOpening.packs}
             saveError={saveError}
             saved={openingSaved}
@@ -1249,7 +1256,6 @@ export default function PackOpening() {
         <SummaryGrid
           boosterLabel={boosterLabel}
           isSaving={isSavingOpening}
-          onSave={saveRevealedPack}
           pack={revealedPack}
           saveError={saveError}
           saved={openingSaved}
